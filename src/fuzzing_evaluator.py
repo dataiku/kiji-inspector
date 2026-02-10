@@ -1,0 +1,923 @@
+"""
+Fuzzing evaluation of feature explanations (Step 6).
+
+Tests whether Step 5's feature labels correctly identify WHICH tokens activate
+each feature, not just which texts. This catches explanations that are
+"right for the wrong reasons".
+
+Based on Eleuther AI's autointerp approach:
+https://blog.eleuther.ai/autointerp/
+
+6a: Extract per-token activations via Nemotron.
+6b: Encode through SAE, build cross-prompt A/B fuzzing examples.
+6c: LLM judge evaluates highlights in subprocess.
+6d: Compute metrics and save report.
+"""
+
+from __future__ import annotations
+
+import json
+import multiprocessing as mp
+import random
+import re
+import warnings
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+import torch
+from tqdm import tqdm
+
+# ---------------------------------------------------------------------------
+# Data structures
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FuzzingExample:
+    """A single fuzzing evaluation example."""
+
+    feature_id: int
+    text: str  # original user request(s) description
+    fuzzed_text: str  # highlighted text A (token_level) or prompt pair text (prompt_level)
+    fuzzed_text_b: str  # highlighted text B (token_level) or empty (prompt_level)
+    is_correctly_fuzzed: bool  # True means A is the top-activating example
+    kind: str  # "token_level" or "prompt_level"
+
+
+# ---------------------------------------------------------------------------
+# 6a: Per-token activation extraction
+# ---------------------------------------------------------------------------
+
+
+def extract_per_token_activations(
+    prompts: list[str],
+    formatted_prompts: list[str],
+    nemotron_model: str,
+    layers: list[int],
+    layer_key: str,
+    batch_size: int,
+) -> tuple[list[list[str]], list[np.ndarray]]:
+    """Extract per-token activations for a list of formatted prompts.
+
+    Args:
+        prompts: Original user request strings (for display).
+        formatted_prompts: Full ChatML-formatted prompts for the model.
+        nemotron_model: HuggingFace model name.
+        layers: Transformer layers to hook.
+        layer_key: Which layer's activations to use.
+        batch_size: GPU batch size.
+
+    Returns:
+        token_strings: List of list-of-token-strings per prompt.
+        token_activations: List of (seq_len, d_model) numpy arrays per prompt.
+    """
+    from activation_extractor import ActivationConfig, ActivationExtractor
+
+    config = ActivationConfig(
+        model_name=nemotron_model,
+        layers=layers,
+        dtype=torch.bfloat16,
+        token_positions="all",
+    )
+    extractor = ActivationExtractor(config=config)
+
+    all_token_strings: list[list[str]] = []
+    all_token_activations: list[np.ndarray] = []
+
+    pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
+
+    for i in range(0, len(formatted_prompts), batch_size):
+        batch_formatted = formatted_prompts[i : i + batch_size]
+
+        # Get per-token activations (token_positions="all")
+        acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
+
+        # Get token strings by tokenizing each prompt
+        for j, prompt_text in enumerate(batch_formatted):
+            encoding = extractor.tokenizer(
+                prompt_text,
+                return_tensors="pt",
+                truncation=True,
+            )
+            token_ids = encoding.input_ids[0].tolist()
+            tokens = extractor.tokenizer.convert_ids_to_tokens(token_ids)
+
+            act_array = acts[j][layer_key]  # (seq_len, d_model)
+
+            # Lengths should match -- extract_batch with "all" returns
+            # only non-padded tokens, and we tokenized without padding
+            min_len = min(len(tokens), act_array.shape[0])
+            all_token_strings.append(tokens[:min_len])
+            all_token_activations.append(act_array[:min_len])
+
+        pbar.update(len(batch_formatted))
+
+    pbar.close()
+    extractor.cleanup()
+
+    return all_token_strings, all_token_activations
+
+
+# ---------------------------------------------------------------------------
+# 6b: Build fuzzing examples
+# ---------------------------------------------------------------------------
+
+
+def _find_user_request_span(
+    token_strings: list[str],
+    user_request: str,
+    tokenizer,
+) -> tuple[int, int]:
+    """Find the token index range corresponding to the user request.
+
+    Uses ChatML structural markers (<|im_start|> / <|im_end|>) to
+    deterministically locate the user turn, avoiding BPE context-
+    sensitivity issues with standalone tokenization.
+
+    The formatted prompt has structure:
+        <|im_start|>system\\n...<|im_end|>\\n
+        <|im_start|>user\\n{request}<|im_end|>\\n
+        <|im_start|>assistant\\n...
+
+    Returns:
+        (start_idx, end_idx) -- inclusive start, exclusive end.
+        The span covers only the user request content tokens.
+    """
+    im_start_str = "<|im_start|>"
+    im_end_str = "<|im_end|>"
+
+    # Find positions of ChatML markers in token strings
+    im_start_positions = [i for i, tok in enumerate(token_strings) if im_start_str in tok]
+    im_end_positions = [i for i, tok in enumerate(token_strings) if im_end_str in tok]
+
+    # User turn is the 2nd im_start block (index 1); system is index 0
+    if len(im_start_positions) >= 2 and len(im_end_positions) >= 2:
+        user_turn_start_marker = im_start_positions[1]
+        user_turn_end_marker = im_end_positions[1]
+
+        # Skip past "<|im_start|>user\n" tokens (typically 1-3 tokens)
+        content_start = user_turn_start_marker + 1
+        while content_start < user_turn_end_marker:
+            tok_text = (
+                tokenizer.decode(
+                    tokenizer.convert_tokens_to_ids([token_strings[content_start]]),
+                    skip_special_tokens=False,
+                )
+                .strip()
+                .lower()
+            )
+            if tok_text in ("user", ""):
+                content_start += 1
+            else:
+                break
+
+        if content_start < user_turn_end_marker:
+            return content_start, user_turn_end_marker
+
+    # Fallback: warn and return full prompt
+    warnings.warn(
+        f"Could not locate user turn via ChatML markers. "
+        f"im_start positions: {im_start_positions}, "
+        f"im_end positions: {im_end_positions}, "
+        f"total tokens: {len(token_strings)}"
+    )
+    return 0, len(token_strings)
+
+
+def _user_request_text_with_highlights(
+    token_strings: list[str],
+    highlight_indices: set[int],
+    span_start: int,
+    span_end: int,
+    tokenizer,
+) -> str:
+    """Reconstruct ONLY the user request tokens with <<highlights>>.
+
+    Args:
+        token_strings: Full prompt token list.
+        highlight_indices: Global token indices to highlight.
+        span_start: Start of user request span (inclusive).
+        span_end: End of user request span (exclusive).
+        tokenizer: For decoding tokens to text.
+
+    Returns:
+        User request text with <<highlighted>> tokens.
+    """
+    parts = []
+    for i in range(span_start, span_end):
+        tok = token_strings[i]
+        text = tokenizer.decode(
+            tokenizer.convert_tokens_to_ids([tok]),
+            skip_special_tokens=False,
+        )
+        if i in highlight_indices and text.strip():
+            stripped = text.strip()
+            leading = text[: len(text) - len(text.lstrip())]
+            trailing = text[len(text.rstrip()) :]
+            parts.append(f"{leading}<<{stripped}>>{trailing}")
+        else:
+            parts.append(text)
+    return "".join(parts)
+
+
+def _compute_highlighted_user_text(
+    user_request: str,
+    feat_id: int,
+    prompt_to_idx: dict[str, int],
+    token_strings_list: list[list[str]],
+    token_activations_list: list[np.ndarray],
+    sae,
+    device: str,
+    sae_dtype,
+    tokenizer,
+    top_k_tokens: int,
+) -> str | None:
+    """Compute highlighted user-request text for a single prompt/feature.
+
+    Encodes per-token activations through the SAE, finds the user request
+    span via ChatML markers, and highlights the top-K activated tokens.
+
+    Returns:
+        User request text with <<highlighted>> tokens, or None if the
+        prompt cannot be processed.
+    """
+    if user_request not in prompt_to_idx:
+        return None
+
+    idx = prompt_to_idx[user_request]
+    tok_strs = token_strings_list[idx]
+    tok_acts = token_activations_list[idx]  # (seq_len, d_model)
+
+    # Encode through SAE
+    with torch.no_grad():
+        act_tensor = torch.from_numpy(tok_acts).to(device=device, dtype=sae_dtype)
+        feat_acts = sae.encode(act_tensor)  # (seq_len, d_sae)
+        feature_col = feat_acts[:, feat_id].float().cpu().numpy()  # (seq_len,)
+
+    # Find user request span via ChatML markers
+    req_start, req_end = _find_user_request_span(tok_strs, user_request, tokenizer)
+    if req_end - req_start < 2:
+        return None
+
+    # Get feature activations within user request span
+    req_activations = feature_col[req_start:req_end]
+    req_token_count = req_end - req_start
+
+    # Adaptive K: don't highlight more than 1/3 of user tokens
+    k = max(1, min(top_k_tokens, req_token_count // 3))
+
+    # Top-K tokens by activation within the span
+    sorted_indices = np.argsort(req_activations)
+    top_k_local = sorted_indices[-k:]
+    top_k_global = {req_start + int(i) for i in top_k_local}
+
+    # Reconstruct ONLY the user request text with highlights
+    return _user_request_text_with_highlights(tok_strs, top_k_global, req_start, req_end, tokenizer)
+
+
+def build_fuzzing_examples(
+    feature_descriptions: dict[str, dict],
+    prompt_to_idx: dict[str, int],
+    token_strings_list: list[list[str]],
+    token_activations_list: list[np.ndarray],
+    sae_checkpoint: str,
+    tokenizer,
+    top_k_tokens: int = 5,
+    max_examples_per_feature: int = 10,
+) -> list[FuzzingExample]:
+    """Build cross-prompt A/B fuzzing examples for each feature.
+
+    For token-level evaluation, pairs a highlighted top-activating prompt
+    with a highlighted bottom-activating prompt. The judge picks which
+    highlighted text better matches the feature label.
+
+    For prompt-level evaluation, pairs an unhighlighted top-activating
+    prompt with a bottom-activating prompt (same as before).
+
+    Args:
+        feature_descriptions: From feature_descriptions.json (keyed by str feature ID).
+        prompt_to_idx: Maps user request text -> index into token_strings/activations.
+        token_strings_list: Per-prompt list of token strings.
+        token_activations_list: Per-prompt (seq_len, d_model) arrays.
+        sae_checkpoint: Path to trained SAE.
+        tokenizer: The Nemotron tokenizer (for text reconstruction).
+        top_k_tokens: Number of tokens to highlight.
+        max_examples_per_feature: Max fuzzing examples per feature.
+
+    Returns:
+        List of FuzzingExample objects.
+    """
+    from sae_model import JumpReLUSAE
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    sae = JumpReLUSAE.from_pretrained(sae_checkpoint, device=device)
+    sae.eval()
+    sae_dtype = next(sae.parameters()).dtype
+
+    examples: list[FuzzingExample] = []
+
+    feature_ids = sorted(int(k) for k in feature_descriptions.keys())
+    pbar = tqdm(feature_ids, desc="[6b] Building fuzzing examples", unit="feature")
+
+    for feat_id in pbar:
+        desc = feature_descriptions[str(feat_id)]
+        top_prompts = desc.get("top_examples", [])
+        bottom_prompts = desc.get("bottom_examples", [])
+
+        if not top_prompts or not bottom_prompts:
+            continue
+
+        # Compute highlighted text for top-activating prompts
+        top_highlighted: list[tuple[str, str]] = []
+        for user_request in top_prompts:
+            result = _compute_highlighted_user_text(
+                user_request,
+                feat_id,
+                prompt_to_idx,
+                token_strings_list,
+                token_activations_list,
+                sae,
+                device,
+                sae_dtype,
+                tokenizer,
+                top_k_tokens,
+            )
+            if result is not None:
+                top_highlighted.append((user_request, result))
+
+        # Compute highlighted text for bottom-activating prompts
+        bottom_highlighted: list[tuple[str, str]] = []
+        for user_request in bottom_prompts:
+            result = _compute_highlighted_user_text(
+                user_request,
+                feat_id,
+                prompt_to_idx,
+                token_strings_list,
+                token_activations_list,
+                sae,
+                device,
+                sae_dtype,
+                tokenizer,
+                top_k_tokens,
+            )
+            if result is not None:
+                bottom_highlighted.append((user_request, result))
+
+        if not top_highlighted or not bottom_highlighted:
+            continue
+
+        # Create cross-prompt A/B pairs for token-level evaluation
+        n_pairs = min(len(top_highlighted), len(bottom_highlighted), max_examples_per_feature)
+        for i in range(n_pairs):
+            top_req, top_text = top_highlighted[i % len(top_highlighted)]
+            bot_req, bot_text = bottom_highlighted[i % len(bottom_highlighted)]
+
+            # Randomize A/B order to avoid position bias
+            if random.random() < 0.5:
+                text_a, text_b = top_text, bot_text
+                req_a, req_b = top_req, bot_req
+                correct_is_a = True
+            else:
+                text_a, text_b = bot_text, top_text
+                req_a, req_b = bot_req, top_req
+                correct_is_a = False
+
+            examples.append(
+                FuzzingExample(
+                    feature_id=feat_id,
+                    text=f"A: {req_a}\nB: {req_b}",
+                    fuzzed_text=text_a,
+                    fuzzed_text_b=text_b,
+                    is_correctly_fuzzed=correct_is_a,
+                    kind="token_level",
+                )
+            )
+
+        # Prompt-level fuzzing: pick a top and bottom prompt
+        top_prompt = top_prompts[0]
+        bottom_prompt = bottom_prompts[0]
+
+        # Randomly assign A/B order to avoid position bias
+        if random.random() < 0.5:
+            text_a, text_b = top_prompt, bottom_prompt
+            correct_answer_is_a = True
+        else:
+            text_a, text_b = bottom_prompt, top_prompt
+            correct_answer_is_a = False
+
+        examples.append(
+            FuzzingExample(
+                feature_id=feat_id,
+                text=f"A: {text_a}\nB: {text_b}",
+                fuzzed_text=f"A: {text_a}\nB: {text_b}",
+                fuzzed_text_b="",
+                is_correctly_fuzzed=correct_answer_is_a,
+                kind="prompt_level",
+            )
+        )
+
+    del sae
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    print(
+        f"  Built {len(examples)} fuzzing examples "
+        f"({sum(1 for e in examples if e.kind == 'token_level')} token-level, "
+        f"{sum(1 for e in examples if e.kind == 'prompt_level')} prompt-level)"
+    )
+
+    return examples
+
+
+# ---------------------------------------------------------------------------
+# 6c: LLM judge (runs in subprocess for GPU isolation)
+# ---------------------------------------------------------------------------
+
+_TOKEN_JUDGE_PROMPT = """You are evaluating which text has better token highlighting for a feature.
+
+Feature label: "{label}"
+Feature description: "{description}"
+
+Two user requests are shown below. In each, certain tokens are marked with <<double angle brackets>> to indicate they are claimed to be most relevant to this feature.
+
+Text A (with highlights):
+{text_a}
+
+Text B (with highlights):
+{text_b}
+
+In which text do the <<highlighted>> tokens better match the feature "{label}"? Consider both:
+1. Whether the highlighted tokens are relevant to the described concept
+2. Whether the overall text context relates to the feature
+
+Answer with a single letter: A or B."""
+
+_PROMPT_JUDGE_PROMPT = """You are evaluating which text better matches a feature explanation.
+
+Feature label: "{label}"
+Feature description: "{description}"
+
+Text A:
+{text_a}
+
+Text B:
+{text_b}
+
+Which text would more strongly activate a feature described as "{label}"?
+
+Answer with a single letter: A or B."""
+
+
+def _build_judge_prompts(
+    examples: list[FuzzingExample],
+    feature_descriptions: dict[str, dict],
+) -> list[str]:
+    """Build ChatML judge prompts for all fuzzing examples."""
+    system = (
+        "You evaluate whether token highlights match feature descriptions. "
+        "Answer concisely with A or B as instructed."
+    )
+
+    prompts = []
+    for ex in examples:
+        desc = feature_descriptions.get(str(ex.feature_id), {})
+        label = desc.get("label", "unknown")
+        description = desc.get("description", "")
+
+        if ex.kind == "token_level":
+            user_content = _TOKEN_JUDGE_PROMPT.format(
+                label=label,
+                description=description,
+                text_a=ex.fuzzed_text[:1000],
+                text_b=ex.fuzzed_text_b[:1000],
+            )
+        else:
+            # prompt_level: text field contains "A: ...\nB: ..."
+            parts = ex.text.split("\nB: ", 1)
+            text_a = parts[0].removeprefix("A: ") if len(parts) == 2 else ex.text
+            text_b = parts[1] if len(parts) == 2 else ""
+
+            user_content = _PROMPT_JUDGE_PROMPT.format(
+                label=label,
+                description=description,
+                text_a=text_a,
+                text_b=text_b,
+            )
+
+        chatml = (
+            f"<|im_start|>system\n{system}<|im_end|>\n"
+            f"<|im_start|>user\n{user_content}<|im_end|>\n"
+            f"<|im_start|>assistant\n"
+        )
+        prompts.append(chatml)
+
+    return prompts
+
+
+def _run_judge_subprocess(
+    chatml_prompts: list[str],
+    qwen_model: str,
+    tp_size: int,
+    max_model_len: int,
+    output_path: str,
+) -> None:
+    """Child process: load vLLM, judge all examples, save results, exit."""
+    from vllm import LLM, SamplingParams
+
+    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
+    llm = LLM(
+        model=qwen_model,
+        tensor_parallel_size=tp_size,
+        max_model_len=max_model_len,
+        trust_remote_code=True,
+        gpu_memory_utilization=0.80,
+        enforce_eager=True,
+        enable_expert_parallel=True,
+        disable_log_stats=True,
+    )
+
+    sampling_params = SamplingParams(
+        temperature=0.2,
+        top_p=0.9,
+        max_tokens=20,
+    )
+
+    print(f"  [subprocess] Judging {len(chatml_prompts)} examples...")
+    outputs = llm.generate(chatml_prompts, sampling_params)
+
+    judgments: list[str] = []
+    for output in outputs:
+        raw = output.outputs[0].text.strip().upper()
+        judgments.append(raw)
+
+    with open(output_path, "w") as f:
+        json.dump(judgments, f)
+
+    print(f"  [subprocess] Saved {len(judgments)} judgments to {output_path}")
+
+
+def evaluate_fuzzing(
+    examples: list[FuzzingExample],
+    feature_descriptions: dict[str, dict],
+    qwen_model: str,
+    tp_size: int,
+    max_model_len: int,
+    output_dir: str | Path,
+) -> list[dict]:
+    """Run LLM judge on fuzzing examples in a subprocess.
+
+    Returns:
+        List of dicts, one per example, with judgment results.
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    judgments_path = str(output_dir / "_judge_temp.json")
+
+    chatml_prompts = _build_judge_prompts(examples, feature_descriptions)
+
+    ctx = mp.get_context("spawn")
+    p = ctx.Process(
+        target=_run_judge_subprocess,
+        args=(chatml_prompts, qwen_model, tp_size, max_model_len, judgments_path),
+    )
+    p.start()
+    p.join()
+
+    if p.exitcode != 0:
+        raise RuntimeError(f"Judge subprocess failed with exit code {p.exitcode}")
+
+    with open(judgments_path) as f:
+        raw_judgments = json.load(f)
+
+    Path(judgments_path).unlink(missing_ok=True)
+
+    # Parse judgments -- both token-level and prompt-level use A/B format
+    results = []
+    for ex, raw in zip(examples, raw_judgments):
+        picked_a = bool(re.search(r"\bA\b", raw))
+        predicted_correct = picked_a == ex.is_correctly_fuzzed
+
+        results.append(
+            {
+                "feature_id": ex.feature_id,
+                "kind": ex.kind,
+                "text": ex.text[:200],
+                "fuzzed_text": ex.fuzzed_text[:500],
+                "fuzzed_text_b": ex.fuzzed_text_b[:500],
+                "is_correctly_fuzzed": ex.is_correctly_fuzzed,
+                "predicted_correct": predicted_correct,
+                "raw_judgment": raw,
+                "is_prediction_correct": predicted_correct,
+            }
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Statistical helpers
+# ---------------------------------------------------------------------------
+
+
+def _binomial_p_value(n_correct: int, n_total: int, baseline: float = 0.5) -> float:
+    """One-sided binomial test: is accuracy significantly above baseline?"""
+    from scipy.stats import binomtest
+
+    if n_total == 0:
+        return 1.0
+    result = binomtest(n_correct, n_total, baseline, alternative="greater")
+    return float(result.pvalue)
+
+
+def _clopper_pearson_ci(n_correct: int, n_total: int, alpha: float = 0.05) -> tuple[float, float]:
+    """Clopper-Pearson exact confidence interval for a proportion."""
+    from scipy.stats import beta
+
+    if n_total == 0:
+        return (0.0, 0.0)
+    lo = beta.ppf(alpha / 2, n_correct, n_total - n_correct + 1) if n_correct > 0 else 0.0
+    hi = beta.ppf(1 - alpha / 2, n_correct + 1, n_total - n_correct) if n_correct < n_total else 1.0
+    return (float(lo), float(hi))
+
+
+def _bootstrap_ci_mean(
+    values: list[float], n_bootstrap: int = 10_000, ci: float = 0.95
+) -> tuple[float, float]:
+    """Bootstrap confidence interval for the mean."""
+    if not values:
+        return (0.0, 0.0)
+    arr = np.array(values)
+    rng = np.random.default_rng(42)
+    boot_means = np.array(
+        [rng.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_bootstrap)]
+    )
+    alpha = 1 - ci
+    return (
+        float(np.percentile(boot_means, 100 * alpha / 2)),
+        float(np.percentile(boot_means, 100 * (1 - alpha / 2))),
+    )
+
+
+def _wilson_score_ci(successes: int, total: int, ci: float = 0.95) -> tuple[float, float]:
+    """Wilson score confidence interval for a proportion."""
+    from scipy.stats import norm
+
+    if total == 0:
+        return (0.0, 0.0)
+    z = norm.ppf(1 - (1 - ci) / 2)
+    p = successes / total
+    denom = 1 + z**2 / total
+    centre = (p + z**2 / (2 * total)) / denom
+    margin = z * np.sqrt(p * (1 - p) / total + z**2 / (4 * total**2)) / denom
+    return (max(0.0, centre - margin), min(1.0, centre + margin))
+
+
+# ---------------------------------------------------------------------------
+# 6d: Compute metrics and save report
+# ---------------------------------------------------------------------------
+
+
+def compute_fuzzing_metrics(
+    results: list[dict],
+    feature_descriptions: dict[str, dict],
+) -> tuple[dict[str, dict], dict]:
+    """Compute per-feature and aggregate fuzzing metrics.
+
+    Both token-level and prompt-level use A/B comparison format,
+    so the metric is simple accuracy (did the judge pick the correct text).
+
+    Args:
+        results: List of judgment dicts from evaluate_fuzzing().
+        feature_descriptions: For confidence tier grouping.
+
+    Returns:
+        (per_feature_results, aggregate_summary)
+    """
+    from collections import defaultdict
+
+    # Group results by feature
+    by_feature: dict[int, list[dict]] = defaultdict(list)
+    for r in results:
+        by_feature[r["feature_id"]].append(r)
+
+    per_feature: dict[str, dict] = {}
+
+    for feat_id, feat_results in by_feature.items():
+        # Split by kind
+        token_results = [r for r in feat_results if r["kind"] == "token_level"]
+        prompt_results = [r for r in feat_results if r["kind"] == "prompt_level"]
+
+        # Token-level accuracy
+        if token_results:
+            tok_correct = sum(1 for r in token_results if r["is_prediction_correct"])
+            tok_total = len(token_results)
+            token_accuracy = tok_correct / tok_total
+            tok_ci = _clopper_pearson_ci(tok_correct, tok_total)
+            tok_p = _binomial_p_value(tok_correct, tok_total)
+        else:
+            token_accuracy = 0
+            tok_correct = tok_total = 0
+            tok_ci = (0.0, 0.0)
+            tok_p = 1.0
+
+        # Prompt-level accuracy
+        if prompt_results:
+            prm_correct = sum(1 for r in prompt_results if r["is_prediction_correct"])
+            prm_total = len(prompt_results)
+            prompt_accuracy = prm_correct / prm_total
+            prm_ci = _clopper_pearson_ci(prm_correct, prm_total)
+            prm_p = _binomial_p_value(prm_correct, prm_total)
+        else:
+            prompt_accuracy = 0
+            prm_correct = prm_total = 0
+            prm_ci = (0.0, 0.0)
+            prm_p = 1.0
+
+        # Combined score
+        if token_results and prompt_results:
+            combined = 0.7 * token_accuracy + 0.3 * prompt_accuracy
+        elif token_results:
+            combined = token_accuracy
+        elif prompt_results:
+            combined = prompt_accuracy
+        else:
+            combined = 0
+
+        desc = feature_descriptions.get(str(feat_id), {})
+
+        per_feature[str(feat_id)] = {
+            "label": desc.get("label", "unknown"),
+            "confidence": desc.get("confidence", "low"),
+            "token_level": {
+                "accuracy": round(token_accuracy, 4),
+                "num_correct": tok_correct,
+                "num_examples": tok_total,
+                "ci_95": [round(tok_ci[0], 4), round(tok_ci[1], 4)],
+                "p_value": round(tok_p, 6),
+            },
+            "prompt_level": {
+                "accuracy": round(prompt_accuracy, 4),
+                "num_correct": prm_correct,
+                "num_examples": prm_total,
+                "ci_95": [round(prm_ci[0], 4), round(prm_ci[1], 4)],
+                "p_value": round(prm_p, 6),
+            },
+            "combined_score": round(combined, 4),
+        }
+
+    # Aggregate summary
+    from scipy.stats import kruskal, ttest_1samp
+    from scipy.stats import sem as _sem
+
+    all_combined = [v["combined_score"] for v in per_feature.values()]
+    all_token_acc = [
+        v["token_level"]["accuracy"]
+        for v in per_feature.values()
+        if v["token_level"]["num_examples"] > 0
+    ]
+
+    # Group by confidence tier
+    by_confidence: dict[str, list[float]] = defaultdict(list)
+    for v in per_feature.values():
+        by_confidence[v["confidence"]].append(v["combined_score"])
+
+    # Quality tiers
+    n_total_features = len(all_combined)
+    excellent = sum(1 for s in all_combined if s > 0.8)
+    good = sum(1 for s in all_combined if 0.6 <= s <= 0.8)
+    poor = sum(1 for s in all_combined if s < 0.6)
+
+    # Bootstrap CIs for aggregate means
+    combined_ci = _bootstrap_ci_mean(all_combined)
+    token_ci = _bootstrap_ci_mean(all_token_acc)
+
+    # One-sample t-test vs 0.5 baseline
+    if len(all_combined) >= 2:
+        _, combined_p = ttest_1samp(all_combined, 0.5, alternative="greater")
+    else:
+        combined_p = 1.0
+    if len(all_token_acc) >= 2:
+        _, token_p = ttest_1samp(all_token_acc, 0.5, alternative="greater")
+    else:
+        token_p = 1.0
+
+    # Kruskal-Wallis test across confidence tiers
+    tier_groups = [scores for scores in by_confidence.values() if len(scores) >= 2]
+    if len(tier_groups) >= 2:
+        kw_stat, kw_p = kruskal(*tier_groups)
+    else:
+        kw_stat, kw_p = 0.0, 1.0
+
+    # Wilson CIs for quality tier proportions
+    excellent_ci = _wilson_score_ci(excellent, n_total_features) if n_total_features else (0, 0)
+    good_ci = _wilson_score_ci(good, n_total_features) if n_total_features else (0, 0)
+    poor_ci = _wilson_score_ci(poor, n_total_features) if n_total_features else (0, 0)
+
+    summary = {
+        "num_features_evaluated": n_total_features,
+        "num_examples_total": len(results),
+        "combined_score": {
+            "mean": round(np.mean(all_combined), 4) if all_combined else 0,
+            "std": round(float(np.std(all_combined, ddof=1)), 4) if len(all_combined) > 1 else 0,
+            "sem": round(float(_sem(all_combined)), 4) if len(all_combined) > 1 else 0,
+            "ci_95": [round(combined_ci[0], 4), round(combined_ci[1], 4)],
+            "median": round(float(np.median(all_combined)), 4) if all_combined else 0,
+            "p_value_vs_baseline": round(float(combined_p), 6),
+        },
+        "token_level_accuracy": {
+            "mean": round(np.mean(all_token_acc), 4) if all_token_acc else 0,
+            "std": round(float(np.std(all_token_acc, ddof=1)), 4) if len(all_token_acc) > 1 else 0,
+            "sem": round(float(_sem(all_token_acc)), 4) if len(all_token_acc) > 1 else 0,
+            "ci_95": [round(token_ci[0], 4), round(token_ci[1], 4)],
+            "p_value_vs_baseline": round(float(token_p), 6),
+        },
+        "by_confidence": {
+            tier: {
+                "count": len(scores),
+                "mean_score": round(np.mean(scores), 4) if scores else 0,
+                "std": round(float(np.std(scores, ddof=1)), 4) if len(scores) > 1 else 0,
+                "sem": round(float(_sem(scores)), 4) if len(scores) > 1 else 0,
+            }
+            for tier, scores in by_confidence.items()
+        },
+        "by_confidence_comparison": {
+            "test": "Kruskal-Wallis",
+            "statistic": round(float(kw_stat), 4),
+            "p_value": round(float(kw_p), 6),
+        },
+        "quality_tiers": {
+            "excellent_above_0.8": {
+                "count": excellent,
+                "proportion": round(excellent / n_total_features, 4) if n_total_features else 0,
+                "ci_95": [round(excellent_ci[0], 4), round(excellent_ci[1], 4)],
+            },
+            "good_0.6_to_0.8": {
+                "count": good,
+                "proportion": round(good / n_total_features, 4) if n_total_features else 0,
+                "ci_95": [round(good_ci[0], 4), round(good_ci[1], 4)],
+            },
+            "poor_below_0.6": {
+                "count": poor,
+                "proportion": round(poor / n_total_features, 4) if n_total_features else 0,
+                "ci_95": [round(poor_ci[0], 4), round(poor_ci[1], 4)],
+            },
+        },
+    }
+
+    return per_feature, summary
+
+
+def save_fuzzing_report(
+    per_feature: dict[str, dict],
+    summary: dict,
+    results: list[dict],
+    output_dir: str | Path,
+) -> tuple[Path, Path]:
+    """Save fuzzing results and summary to JSON files."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    results_path = output_dir / "fuzzing_results.json"
+    with open(results_path, "w") as f:
+        json.dump(
+            {"per_feature": per_feature, "details": results},
+            f,
+            indent=2,
+        )
+
+    summary_path = output_dir / "fuzzing_summary.json"
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+
+    cs = summary["combined_score"]
+    ta = summary["token_level_accuracy"]
+    qt = summary["quality_tiers"]
+
+    print(f"\n  Fuzzing evaluation complete:")
+    print(f"    Features evaluated: {summary['num_features_evaluated']}")
+    print(f"    Total examples: {summary['num_examples_total']}")
+    print(
+        f"    Mean combined score: {cs['mean']:.3f} +/- {cs['sem']:.3f} (SEM), "
+        f"95% CI: [{cs['ci_95'][0]:.3f}, {cs['ci_95'][1]:.3f}], "
+        f"p={cs['p_value_vs_baseline']:.4f} vs 0.5 baseline"
+    )
+    print(
+        f"    Token-level accuracy: {ta['mean']:.3f} +/- {ta['sem']:.3f} (SEM), "
+        f"p={ta['p_value_vs_baseline']:.4f} vs 0.5 baseline"
+    )
+    print(
+        f"    Quality tiers: "
+        f"{qt['excellent_above_0.8']['count']} excellent "
+        f"({qt['excellent_above_0.8']['proportion']:.1%}), "
+        f"{qt['good_0.6_to_0.8']['count']} good "
+        f"({qt['good_0.6_to_0.8']['proportion']:.1%}), "
+        f"{qt['poor_below_0.6']['count']} poor "
+        f"({qt['poor_below_0.6']['proportion']:.1%})"
+    )
+    kw = summary["by_confidence_comparison"]
+    print(f"    Confidence tiers differ: {kw['test']} p={kw['p_value']:.4f}")
+    print(f"    Results: {results_path}")
+    print(f"    Summary: {summary_path}")
+
+    return results_path, summary_path
