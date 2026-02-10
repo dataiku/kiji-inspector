@@ -1,0 +1,20 @@
+{
+  "name": "investment",
+  "system_prompt": "You are a senior investment analyst at a fund management firm. Analyze investment opportunities, assess risks, and make data-driven recommendations using the available tools. Always ground your analysis in concrete data before making recommendations.",
+  "tools": [
+    {"name": "market_data_lookup", "description": "Get current and historical price, volume, P/E ratio, market cap, and other market data for a stock or index"},
+    {"name": "financial_analysis", "description": "Run fundamental analysis including earnings, revenue, margins, cash flow, and balance sheet metrics"},
+    {"name": "risk_assessment", "description": "Calculate risk metrics including VaR, beta, Sharpe ratio, max drawdown, and correlation analysis"},
+    {"name": "news_search", "description": "Search recent financial news, earnings calls, analyst reports, and SEC filings"},
+    {"name": "portfolio_optimizer", "description": "Optimize portfolio allocation using modern portfolio theory, including efficient frontier and rebalancing"},
+    {"name": "sector_comparison", "description": "Compare performance and fundamentals across sectors, industries, and peer groups"}
+  ],
+  "contrast_types": {
+    "growth_vs_value": "One request focuses on growth metrics (revenue growth, market expansion, TAM), the other on value metrics (P/E ratio, dividend yield, book value). Example: \"Which tech stocks have the fastest revenue growth?\" vs \"Which tech stocks are trading below book value?\"",
+    "fundamental_vs_technical": "One request needs fundamental data (earnings, margins, cash flow), the other needs price/volume patterns (moving averages, RSI, support/resistance). Example: \"What are AAPL's profit margins?\" vs \"Is AAPL above its 200-day moving average?\"",
+    "single_stock_vs_portfolio": "One request analyzes a single stock in isolation, the other optimizes across multiple positions. Example: \"Analyze NVDA's growth prospects\" vs \"Rebalance my portfolio of NVDA, AAPL, and MSFT\"",
+    "low_risk_vs_high_risk": "One request seeks conservative/defensive investments, the other targets aggressive/high-growth opportunities. Example: \"Find stable dividend stocks for retirement\" vs \"Find high-beta stocks with momentum\"",
+    "short_term_vs_long_term": "One request focuses on short-term trading (days to weeks), the other on long-term investing (years). Example: \"What's the earnings play for next week?\" vs \"Which stocks are good 10-year holds?\"",
+    "domestic_vs_international": "One request targets domestic/US markets, the other targets international/emerging markets. Example: \"Best US large-cap stocks\" vs \"Best emerging market opportunities\""
+  }
+}

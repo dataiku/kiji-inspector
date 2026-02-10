@@ -1,0 +1,29 @@
+{
+  "name": "tool_selection",
+  "system_prompt": "You are a helpful assistant. Choose the best tool for each request.",
+  "tools": [
+    {"name": "internal_search", "description": "Search internal company documentation"},
+    {"name": "web_search", "description": "Search the public web"},
+    {"name": "file_read", "description": "Read a local file"},
+    {"name": "file_write", "description": "Write or update a local file"},
+    {"name": "database_query", "description": "Query a SQL database"},
+    {"name": "api_call", "description": "Call an external REST API"},
+    {"name": "code_execute", "description": "Execute code in a sandbox"},
+    {"name": "delegate_agent", "description": "Delegate to a sub-agent for complex tasks"}
+  ],
+  "contrast_types": {
+    "internal_vs_external": "One request needs information from internal/company sources, the other needs external/public web information. Example difference: \"our docs\" vs \"online resources\"",
+    "local_vs_remote": "One request targets local files/resources, the other targets remote/cloud resources. Example difference: \"local config\" vs \"remote server config\"",
+    "cached_vs_live": "One request can be served from cached/stored data, the other requires fresh/live data. Example difference: \"last known\" vs \"current\"",
+    "read_vs_write": "One request is read-only (fetching/viewing), the other requires writing/modification. Example difference: \"show me\" vs \"update the\"",
+    "create_vs_update": "One request creates a new resource, the other modifies an existing one. Example difference: \"create a new\" vs \"modify the existing\"",
+    "query_vs_mutate": "One request queries/reads state, the other mutates/changes state. Example difference: \"what is\" vs \"set the\"",
+    "single_vs_batch": "One request operates on a single item, the other operates on multiple items. Example difference: \"this file\" vs \"all files matching\"",
+    "shallow_vs_deep": "One request needs a surface-level answer, the other needs deep/recursive analysis. Example difference: \"quick summary\" vs \"detailed breakdown\"",
+    "specific_vs_broad": "One request targets a specific item, the other spans a broad scope. Example difference: \"this function\" vs \"the entire module\"",
+    "authoritative_vs_general": "One request needs an authoritative/official source, the other accepts general information. Example difference: \"official documentation\" vs \"any tutorial\"",
+    "verified_vs_unverified": "One request needs verified/trusted data, the other accepts unverified sources. Example difference: \"peer-reviewed\" vs \"blog post\"",
+    "direct_vs_delegated": "One request can be handled directly, the other is complex enough to require delegation/decomposition. Example difference: simple query vs multi-step analysis",
+    "single_vs_multi_tool": "One request can be solved with a single tool call, the other requires orchestrating multiple tools. Example difference: \"look up X\" vs \"look up X then compare with Y\""
+  }
+}
