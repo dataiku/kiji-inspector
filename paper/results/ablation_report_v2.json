@@ -1,0 +1,1046 @@
+{
+  "per_contrast_type": {
+    "self_service_vs_agent_assist": {
+      "n_pairs_available": 100,
+      "n_tested": 30,
+      "contrastive_ablation": {
+        "features_ablated": [
+          8376,
+          1687,
+          11449,
+          9507,
+          4668,
+          15726,
+          766,
+          4540,
+          5132,
+          1092
+        ],
+        "n_features": 10,
+        "flip_rate": 0.1333,
+        "flip_rate_ci_95": [
+          0.0376,
+          0.3072
+        ],
+        "directed_flip_rate": 0.0667,
+        "directed_flip_rate_ci_95": [
+          0.0082,
+          0.2207
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.2667,
+        "flip_rate_ci_95": [
+          0.1228,
+          0.4589
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.2667,
+        "flip_rate_ci_95": [
+          0.1228,
+          0.4589
+        ]
+      },
+      "fisher_exact_p_value": 0.947918
+    },
+    "billing_vs_technical": {
+      "n_pairs_available": 100,
+      "n_tested": 26,
+      "contrastive_ablation": {
+        "features_ablated": [
+          7728,
+          15726,
+          5132,
+          4668,
+          4540,
+          13586,
+          15678,
+          1017,
+          7701,
+          11010
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0769,
+        "flip_rate_ci_95": [
+          0.0095,
+          0.2513
+        ],
+        "directed_flip_rate": 0.0385,
+        "directed_flip_rate_ci_95": [
+          0.001,
+          0.1964
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.1154,
+        "flip_rate_ci_95": [
+          0.0245,
+          0.3015
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.1154,
+        "flip_rate_ci_95": [
+          0.0245,
+          0.3015
+        ]
+      },
+      "fisher_exact_p_value": 0.82513
+    },
+    "new_vs_returning_customer": {
+      "n_pairs_available": 100,
+      "n_tested": 47,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11307,
+          11449,
+          1687,
+          766,
+          8376,
+          651,
+          4668,
+          6859,
+          5132,
+          9507
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0638,
+        "flip_rate_ci_95": [
+          0.0134,
+          0.1754
+        ],
+        "directed_flip_rate": 0.0426,
+        "directed_flip_rate_ci_95": [
+          0.0052,
+          0.1454
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.1277,
+        "flip_rate_ci_95": [
+          0.0483,
+          0.2574
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.1277,
+        "flip_rate_ci_95": [
+          0.0483,
+          0.2574
+        ]
+      },
+      "fisher_exact_p_value": 0.920908
+    },
+    "urgent_vs_routine": {
+      "n_pairs_available": 100,
+      "n_tested": 47,
+      "contrastive_ablation": {
+        "features_ablated": [
+          15726,
+          3687,
+          4668,
+          4540,
+          8376,
+          11449,
+          766,
+          6859,
+          9507,
+          1155
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0851,
+        "flip_rate_ci_95": [
+          0.0237,
+          0.2038
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0755
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0851,
+        "flip_rate_ci_95": [
+          0.0237,
+          0.2038
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0851,
+        "flip_rate_ci_95": [
+          0.0237,
+          0.2038
+        ]
+      },
+      "fisher_exact_p_value": 0.642901
+    },
+    "refund_vs_troubleshoot": {
+      "n_pairs_available": 100,
+      "n_tested": 22,
+      "contrastive_ablation": {
+        "features_ablated": [
+          1687,
+          1092,
+          14487,
+          3687,
+          8376,
+          9507,
+          184,
+          2599,
+          14090,
+          12815
+        ],
+        "n_features": 10,
+        "flip_rate": 0.2727,
+        "flip_rate_ci_95": [
+          0.1073,
+          0.5022
+        ],
+        "directed_flip_rate": 0.0455,
+        "directed_flip_rate_ci_95": [
+          0.0012,
+          0.2284
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.2727,
+        "flip_rate_ci_95": [
+          0.1073,
+          0.5022
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.2727,
+        "flip_rate_ci_95": [
+          0.1073,
+          0.5022
+        ]
+      },
+      "fisher_exact_p_value": 0.63198
+    },
+    "single_issue_vs_complex_case": {
+      "n_pairs_available": 100,
+      "n_tested": 27,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11307,
+          11449,
+          15726,
+          766,
+          1687,
+          8376,
+          651,
+          4668,
+          6859,
+          5132
+        ],
+        "n_features": 10,
+        "flip_rate": 0.1111,
+        "flip_rate_ci_95": [
+          0.0235,
+          0.2916
+        ],
+        "directed_flip_rate": 0.0741,
+        "directed_flip_rate_ci_95": [
+          0.0091,
+          0.2429
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.4444,
+        "flip_rate_ci_95": [
+          0.2548,
+          0.6467
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.4444,
+        "flip_rate_ci_95": [
+          0.2548,
+          0.6467
+        ]
+      },
+      "fisher_exact_p_value": 0.999122
+    },
+    "growth_vs_value": {
+      "n_pairs_available": 100,
+      "n_tested": 2,
+      "contrastive_ablation": {
+        "features_ablated": [
+          15745,
+          10339,
+          8697,
+          3436,
+          2403,
+          6866,
+          3422,
+          375,
+          10547,
+          6558
+        ],
+        "n_features": 10,
+        "flip_rate": 1.0,
+        "flip_rate_ci_95": [
+          0.1581,
+          1.0
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.8419
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.5,
+        "flip_rate_ci_95": [
+          0.0126,
+          0.9874
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.5,
+        "flip_rate_ci_95": [
+          0.0126,
+          0.9874
+        ]
+      },
+      "fisher_exact_p_value": 0.5
+    },
+    "fundamental_vs_technical": {
+      "n_pairs_available": 100,
+      "n_tested": 89,
+      "contrastive_ablation": {
+        "features_ablated": [
+          15726,
+          7728,
+          8376,
+          184,
+          1092,
+          3687,
+          651,
+          2198,
+          15678,
+          3584
+        ],
+        "n_features": 10,
+        "flip_rate": 0.1011,
+        "flip_rate_ci_95": [
+          0.0473,
+          0.1833
+        ],
+        "directed_flip_rate": 0.0899,
+        "directed_flip_rate_ci_95": [
+          0.0396,
+          0.1695
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0406
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0406
+        ]
+      },
+      "fisher_exact_p_value": 0.001579
+    },
+    "single_stock_vs_portfolio": {
+      "n_pairs_available": 100,
+      "n_tested": 65,
+      "contrastive_ablation": {
+        "features_ablated": [
+          1687,
+          7728,
+          2599,
+          3584,
+          184,
+          1092,
+          15678,
+          766,
+          14090,
+          10882
+        ],
+        "n_features": 10,
+        "flip_rate": 0.1077,
+        "flip_rate_ci_95": [
+          0.0444,
+          0.2094
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0552
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0615,
+        "flip_rate_ci_95": [
+          0.017,
+          0.1501
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0615,
+        "flip_rate_ci_95": [
+          0.017,
+          0.1501
+        ]
+      },
+      "fisher_exact_p_value": 0.26524
+    },
+    "preventive_vs_reactive_maintenance": {
+      "n_pairs_available": 100,
+      "n_tested": 95,
+      "contrastive_ablation": {
+        "features_ablated": [
+          1687,
+          1092,
+          2599,
+          14487,
+          3584,
+          14814,
+          3687,
+          9425,
+          15726,
+          9507
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0381
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0381
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0381
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0381
+        ]
+      },
+      "fisher_exact_p_value": 1.0
+    },
+    "quality_vs_throughput": {
+      "n_pairs_available": 100,
+      "n_tested": 67,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11307,
+          7728,
+          2599,
+          651,
+          184,
+          15678,
+          10882,
+          8697,
+          1155,
+          13586
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0299,
+        "flip_rate_ci_95": [
+          0.0036,
+          0.1037
+        ],
+        "directed_flip_rate": 0.0149,
+        "directed_flip_rate_ci_95": [
+          0.0004,
+          0.0804
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0746,
+        "flip_rate_ci_95": [
+          0.0247,
+          0.1656
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0746,
+        "flip_rate_ci_95": [
+          0.0247,
+          0.1656
+        ]
+      },
+      "fisher_exact_p_value": 0.942433
+    },
+    "single_line_vs_multi_line": {
+      "n_pairs_available": 100,
+      "n_tested": 73,
+      "contrastive_ablation": {
+        "features_ablated": [
+          2599,
+          7728,
+          15726,
+          8376,
+          14487,
+          651,
+          766,
+          184,
+          12815,
+          10623
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0137,
+        "flip_rate_ci_95": [
+          0.0003,
+          0.074
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0493
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0137,
+        "flip_rate_ci_95": [
+          0.0003,
+          0.074
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0137,
+        "flip_rate_ci_95": [
+          0.0003,
+          0.074
+        ]
+      },
+      "fisher_exact_p_value": 0.751724
+    },
+    "planned_vs_emergency_downtime": {
+      "n_pairs_available": 100,
+      "n_tested": 70,
+      "contrastive_ablation": {
+        "features_ablated": [
+          1092,
+          7728,
+          8376,
+          10882,
+          184,
+          766,
+          15745,
+          12815,
+          6942,
+          6330
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0286,
+        "flip_rate_ci_95": [
+          0.0035,
+          0.0994
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0513
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0286,
+        "flip_rate_ci_95": [
+          0.0035,
+          0.0994
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0286,
+        "flip_rate_ci_95": [
+          0.0035,
+          0.0994
+        ]
+      },
+      "fisher_exact_p_value": 0.690227
+    },
+    "root_cause_vs_symptom_fix": {
+      "n_pairs_available": 100,
+      "n_tested": 15,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11449,
+          1422,
+          9507,
+          184,
+          15726,
+          4540,
+          4295,
+          8845,
+          10620,
+          6866
+        ],
+        "n_features": 10,
+        "flip_rate": 0.2667,
+        "flip_rate_ci_95": [
+          0.0779,
+          0.551
+        ],
+        "directed_flip_rate": 0.1333,
+        "directed_flip_rate_ci_95": [
+          0.0166,
+          0.4046
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.1333,
+        "flip_rate_ci_95": [
+          0.0166,
+          0.4046
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.1333,
+        "flip_rate_ci_95": [
+          0.0166,
+          0.4046
+        ]
+      },
+      "fisher_exact_p_value": 0.32567
+    },
+    "spot_buy_vs_contract": {
+      "n_pairs_available": 100,
+      "n_tested": 95,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11307,
+          11523,
+          7797,
+          10755,
+          7586,
+          3413,
+          366,
+          7936,
+          11072,
+          1846
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0316,
+        "flip_rate_ci_95": [
+          0.0066,
+          0.0895
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0381
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0421,
+        "flip_rate_ci_95": [
+          0.0116,
+          0.1043
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0421,
+        "flip_rate_ci_95": [
+          0.0116,
+          0.1043
+        ]
+      },
+      "fisher_exact_p_value": 0.777848
+    },
+    "read_vs_write": {
+      "n_pairs_available": 100,
+      "n_tested": 24,
+      "contrastive_ablation": {
+        "features_ablated": [
+          7728,
+          8376,
+          15726,
+          184,
+          3687,
+          11449,
+          2599,
+          7599,
+          15745,
+          1092
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0833,
+        "flip_rate_ci_95": [
+          0.0103,
+          0.27
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.1425
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0417,
+        "flip_rate_ci_95": [
+          0.0011,
+          0.2112
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0417,
+        "flip_rate_ci_95": [
+          0.0011,
+          0.2112
+        ]
+      },
+      "fisher_exact_p_value": 0.5
+    },
+    "query_vs_mutate": {
+      "n_pairs_available": 100,
+      "n_tested": 9,
+      "contrastive_ablation": {
+        "features_ablated": [
+          7728,
+          8376,
+          184,
+          11449,
+          15726,
+          3687,
+          651,
+          766,
+          12544,
+          15745
+        ],
+        "n_features": 10,
+        "flip_rate": 0.7778,
+        "flip_rate_ci_95": [
+          0.3999,
+          0.9719
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.3363
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.3333,
+        "flip_rate_ci_95": [
+          0.0749,
+          0.7007
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.3333,
+        "flip_rate_ci_95": [
+          0.0749,
+          0.7007
+        ]
+      },
+      "fisher_exact_p_value": 0.076717
+    },
+    "single_vs_batch": {
+      "n_pairs_available": 100,
+      "n_tested": 39,
+      "contrastive_ablation": {
+        "features_ablated": [
+          8376,
+          2599,
+          1687,
+          1092,
+          4668,
+          9507,
+          12815,
+          1739,
+          1938,
+          10620
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0769,
+        "flip_rate_ci_95": [
+          0.0162,
+          0.2087
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0903
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.1538,
+        "flip_rate_ci_95": [
+          0.0586,
+          0.3053
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.1538,
+        "flip_rate_ci_95": [
+          0.0586,
+          0.3053
+        ]
+      },
+      "fisher_exact_p_value": 0.923183
+    },
+    "shallow_vs_deep": {
+      "n_pairs_available": 100,
+      "n_tested": 46,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11307,
+          15726,
+          8376,
+          7728,
+          2599,
+          1687,
+          184,
+          766,
+          651,
+          14487
+        ],
+        "n_features": 10,
+        "flip_rate": 0.087,
+        "flip_rate_ci_95": [
+          0.0242,
+          0.2079
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0771
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0435,
+        "flip_rate_ci_95": [
+          0.0053,
+          0.1484
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0435,
+        "flip_rate_ci_95": [
+          0.0053,
+          0.1484
+        ]
+      },
+      "fisher_exact_p_value": 0.338422
+    },
+    "specific_vs_broad": {
+      "n_pairs_available": 100,
+      "n_tested": 30,
+      "contrastive_ablation": {
+        "features_ablated": [
+          6859,
+          1687,
+          11449,
+          12544,
+          3584,
+          8697,
+          9425,
+          11523,
+          1938,
+          4921
+        ],
+        "n_features": 10,
+        "flip_rate": 0.1,
+        "flip_rate_ci_95": [
+          0.0211,
+          0.2653
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.1157
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.1333,
+        "flip_rate_ci_95": [
+          0.0376,
+          0.3072
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.1333,
+        "flip_rate_ci_95": [
+          0.0376,
+          0.3072
+        ]
+      },
+      "fisher_exact_p_value": 0.788095
+    },
+    "authoritative_vs_general": {
+      "n_pairs_available": 100,
+      "n_tested": 87,
+      "contrastive_ablation": {
+        "features_ablated": [
+          1687,
+          9507,
+          11449,
+          15726,
+          16173,
+          15521,
+          16053,
+          978,
+          1453,
+          7586
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0415
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.0415
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0415
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0,
+        "flip_rate_ci_95": [
+          0.0,
+          0.0415
+        ]
+      },
+      "fisher_exact_p_value": 1.0
+    },
+    "direct_vs_delegated": {
+      "n_pairs_available": 100,
+      "n_tested": 34,
+      "contrastive_ablation": {
+        "features_ablated": [
+          11307,
+          8376,
+          15726,
+          7728,
+          184,
+          766,
+          7599,
+          11449,
+          651,
+          2599
+        ],
+        "n_features": 10,
+        "flip_rate": 0.0882,
+        "flip_rate_ci_95": [
+          0.0186,
+          0.2368
+        ],
+        "directed_flip_rate": 0.0,
+        "directed_flip_rate_ci_95": [
+          0.0,
+          0.1028
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0882,
+        "flip_rate_ci_95": [
+          0.0186,
+          0.2368
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0882,
+        "flip_rate_ci_95": [
+          0.0186,
+          0.2368
+        ]
+      },
+      "fisher_exact_p_value": 0.663578
+    },
+    "single_vs_multi_tool": {
+      "n_pairs_available": 100,
+      "n_tested": 41,
+      "contrastive_ablation": {
+        "features_ablated": [
+          1687,
+          8376,
+          7728,
+          2599,
+          15726,
+          9507,
+          14487,
+          6859,
+          184,
+          1092
+        ],
+        "n_features": 10,
+        "flip_rate": 0.1707,
+        "flip_rate_ci_95": [
+          0.0715,
+          0.3206
+        ],
+        "directed_flip_rate": 0.0244,
+        "directed_flip_rate_ci_95": [
+          0.0006,
+          0.1286
+        ]
+      },
+      "random_ablation": {
+        "n_features": 10,
+        "flip_rate": 0.0244,
+        "flip_rate_ci_95": [
+          0.0006,
+          0.1286
+        ]
+      },
+      "reconstruction_baseline": {
+        "flip_rate": 0.0244,
+        "flip_rate_ci_95": [
+          0.0006,
+          0.1286
+        ]
+      },
+      "fisher_exact_p_value": 0.028543
+    }
+  },
+  "aggregate": {
+    "n_contrast_types": 23,
+    "mean_contrastive_flip_rate": 0.1611,
+    "mean_random_flip_rate": 0.1297,
+    "mean_directed_flip_rate": 0.023,
+    "mean_reconstruction_flip_rate": 0.1297
+  }
+}
