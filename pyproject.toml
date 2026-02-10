@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kiji-inspector"
+version = "0.1.0"
+description = "Kiji Inspector"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "575 Lab Team", email = "opensource@dataiku.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "torch==2.9.1",
+    "vllm>=0.11.0",
+    "numpy>=1.26.0",
+    "tqdm>=4.66.0",
+    "pyarrow>=15.0.0",
+    "rich>=13.0.0",
+    "streamlit>=1.30.0",
+    "pandas>=2.0.0",
+    "scipy>=1.11.0",
+    "scikit-learn>=1.3.0",
+    "flash-linear-attention>=0.4.1 ; sys_platform == 'linux'",
+    "flash-attn-3 ; sys_platform == 'linux'",
+    "causal-conv1d ; sys_platform == 'linux'",
+    "mamba-ssm ; sys_platform == 'linux'",
+    # "accelerate>=1.12.0",
+    # "transformers>=4.57.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py314"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
+]
+
+vllm = { path = "external-dist-packages/vllm-0.15.0+cu130-cp38-abi3-manylinux_2_35_aarch64.whl" }
+causal-conv1d = { path = "external-dist-packages/new-packages/causal_conv1d-1.6.0-cp313-cp313-linux_aarch64.whl" }
+flash-attn-3 = { path = "external-dist-packages/new-packages/flash_attn_3-3.0.0b1-cp39-abi3-linux_aarch64.whl" }
+mamba-ssm = { path = "external-dist-packages/new-packages/mamba_ssm-2.3.0-cp313-cp313-linux_aarch64.whl" }
