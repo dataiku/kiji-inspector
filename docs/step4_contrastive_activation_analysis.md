@@ -10,10 +10,11 @@ This step does **not** modify the SAE. It uses the trained SAE from Step 3 as a 
 
 | File | Key Components |
 |------|----------------|
-| `generate_training_set.py` | `_run_step4()`, `identify_contrastive_features()` |
-| `src/extractor.py` | `build_agent_prompt()` (prompt formatting) |
-| `src/activation_extractor.py` | `ActivationExtractor` (live extraction) |
-| `src/sae_model.py` | `JumpReLUSAE.encode()` |
+| `src/pipeline.py` | `_run_step4()` |
+| `src/analysis/contrastive_features.py` | `identify_contrastive_features()` |
+| `src/extraction/extractor.py` | `build_agent_prompt()` (prompt formatting) |
+| `src/extraction/activation_extractor.py` | `ActivationExtractor` (live extraction) |
+| `src/sae/model.py` | `JumpReLUSAE.encode()` |
 
 ## Architecture
 

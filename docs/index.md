@@ -77,15 +77,15 @@ Nemotron-3-Nano is a Mixture-of-Experts model (30B total parameters, 3B active p
 
 ```bash
 # Full pipeline (steps 1 + 2 + 3)
-uv run python generate_training_set.py 500000
+uv run python -m pipeline 500000
 
 # Individual steps
-uv run python generate_training_set.py 500000 --step 1   # Generate pairs
-uv run python generate_training_set.py --step 2           # Extract activations
-uv run python generate_training_set.py --step 3           # Train SAE
-uv run python generate_training_set.py --step 4           # Contrastive analysis
-uv run python generate_training_set.py --step 5           # Interpret features
-uv run python generate_training_set.py --step 6           # Fuzzing evaluation
+uv run python -m pipeline 500000 --step 1   # Generate pairs
+uv run python -m pipeline --step 2           # Extract activations
+uv run python -m pipeline --step 3           # Train SAE
+uv run python -m pipeline --step 4           # Contrastive analysis
+uv run python -m pipeline --step 5           # Interpret features
+uv run python -m pipeline --step 6           # Fuzzing evaluation
 ```
 
 ## Output Directory Structure
@@ -113,15 +113,22 @@ output/
 
 ## Source Files
 
-| File | Purpose |
-|------|---------|
-| `generate_training_set.py` | Main CLI orchestrator for all 6 steps |
-| `src/scenario.py` | Scenario configuration loading and validation |
-| `src/generator.py` | Contrastive pair generation via vLLM |
-| `src/contrastive_dataset.py` | `ContrastivePair` / `ContrastiveDataset` data structures, Parquet I/O |
-| `src/extractor.py` | Agent prompt formatting and shard-based activation extraction |
-| `src/activation_extractor.py` | Low-level forward-hook-based activation capture from HuggingFace models |
-| `src/sae_model.py` | JumpReLU SAE architecture with STE gradients |
-| `src/sae_trainer.py` | Training loop with cosine LR, sparsity warmup, dead feature resampling |
-| `src/feature_interpreter.py` | Feature labeling via LLM and report generation |
-| `src/fuzzing_evaluator.py` | A/B evaluation of feature explanations |
+The codebase is organized into subpackages by functional area:
+
+| Package | File | Purpose |
+|---------|------|---------|
+| (root) | `src/pipeline.py` | Main CLI orchestrator for all 6 steps |
+| `data` | `src/data/scenario.py` | Scenario configuration loading and validation |
+| `data` | `src/data/generator.py` | Contrastive pair generation via vLLM |
+| `data` | `src/data/contrastive_dataset.py` | `ContrastivePair` / `ContrastiveDataset` data structures, Parquet I/O |
+| `extraction` | `src/extraction/extractor.py` | Agent prompt formatting and shard-based activation extraction |
+| `extraction` | `src/extraction/activation_extractor.py` | Low-level forward-hook-based activation capture from HuggingFace models |
+| `sae` | `src/sae/model.py` | JumpReLU SAE architecture with STE gradients |
+| `sae` | `src/sae/trainer.py` | Training loop with cosine LR, sparsity warmup, dead feature resampling |
+| `analysis` | `src/analysis/contrastive_features.py` | Contrastive feature identification (Step 4) |
+| `analysis` | `src/analysis/feature_interpreter.py` | Feature labeling via LLM and report generation |
+| `analysis` | `src/analysis/fuzzing_evaluator.py` | A/B evaluation of feature explanations |
+| `experiments` | `src/experiments/ablation.py` | Causal intervention experiments |
+| `experiments` | `src/experiments/baselines.py` | Linear probe and PCA+k-means baselines |
+| `experiments` | `src/experiments/layer_sweep.py` | Multi-layer SAE pipeline comparison |
+| `utils` | `src/utils/stats.py` | Shared statistical functions (confidence intervals, hypothesis tests) |

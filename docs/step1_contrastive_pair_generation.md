@@ -8,10 +8,10 @@ Generate synthetic pairs of user requests that share the same underlying intent 
 
 | File | Key Components |
 |------|----------------|
-| `generate_training_set.py` | `_run_step1()`, `generate_pairs()`, `_run_generation_subprocess()` |
-| `src/generator.py` | `ContrastivePairGenerator`, `_parse_json_array()`, `_fuzzy_get()` |
-| `src/contrastive_dataset.py` | `ContrastivePair`, `ContrastiveDataset`, Parquet I/O |
-| `src/scenario.py` | `ScenarioConfig`, `load_scenarios()`, `save_scenarios_meta()` |
+| `src/pipeline.py` | `_run_step1()`, `generate_pairs()`, `_run_generation_subprocess()` |
+| `src/data/generator.py` | `ContrastivePairGenerator`, `_parse_json_array()`, `_fuzzy_get()` |
+| `src/data/contrastive_dataset.py` | `ContrastivePair`, `ContrastiveDataset`, Parquet I/O |
+| `src/data/scenario.py` | `ScenarioConfig`, `load_scenarios()`, `save_scenarios_meta()` |
 
 ## Architecture
 

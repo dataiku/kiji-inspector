@@ -10,9 +10,9 @@ Each contrastive pair contributes **two** activation vectors (one for the anchor
 
 | File | Key Components |
 |------|----------------|
-| `generate_training_set.py` | `_run_step2()`, `extract_activations()` |
-| `src/extractor.py` | `build_agent_prompt()`, `RawActivationExtractor`, `extract_to_shards()` |
-| `src/activation_extractor.py` | `ActivationConfig`, `ActivationExtractor`, forward hooks |
+| `src/pipeline.py` | `_run_step2()`, `extract_activations()` |
+| `src/extraction/extractor.py` | `build_agent_prompt()`, `RawActivationExtractor`, `extract_to_shards()` |
+| `src/extraction/activation_extractor.py` | `ActivationConfig`, `ActivationExtractor`, forward hooks |
 
 ## Architecture
 

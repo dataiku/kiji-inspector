@@ -8,9 +8,9 @@ Train a **JumpReLU Sparse Autoencoder** on the raw activation vectors from Step 
 
 | File | Key Components |
 |------|----------------|
-| `generate_training_set.py` | `_run_step3()`, `train_sae_step()` |
-| `src/sae_model.py` | `JumpReLUSAE`, `JumpReLUFunction` |
-| `src/sae_trainer.py` | `SAETrainingConfig`, `CachedActivationBuffer`, `train_sae()`, `analyze_feature_health()` |
+| `src/pipeline.py` | `_run_step3()`, `train_sae_step()` |
+| `src/sae/model.py` | `JumpReLUSAE`, `JumpReLUFunction` |
+| `src/sae/trainer.py` | `SAETrainingConfig`, `CachedActivationBuffer`, `train_sae()`, `analyze_feature_health()` |
 
 ## JumpReLU SAE Architecture
 

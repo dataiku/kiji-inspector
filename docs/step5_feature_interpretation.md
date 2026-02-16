@@ -17,8 +17,8 @@ Transform the abstract SAE feature indices from Step 4 into human-readable label
 
 | File | Key Components |
 |------|----------------|
-| `generate_training_set.py` | `_run_step5()` |
-| `src/feature_interpreter.py` | `load_activations_from_shards()`, `collect_max_activating_examples()`, `label_features_via_llm()`, `generate_explanation_report()` |
+| `src/pipeline.py` | `_run_step5()` |
+| `src/analysis/feature_interpreter.py` | `load_activations_from_shards()`, `collect_max_activating_examples()`, `label_features_via_llm()`, `generate_explanation_report()` |
 
 ## Sub-Step 5a: Load Activations from Shards
 

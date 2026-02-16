@@ -19,8 +19,8 @@ This approach is based on [Eleuther AI's autointerp methodology](https://blog.el
 
 | File | Key Components |
 |------|----------------|
-| `generate_training_set.py` | `_run_step6()` |
-| `src/fuzzing_evaluator.py` | `FuzzingExample`, `extract_per_token_activations()`, `build_fuzzing_examples()`, `evaluate_fuzzing()`, `compute_fuzzing_metrics()` |
+| `src/pipeline.py` | `_run_step6()` |
+| `src/analysis/fuzzing_evaluator.py` | `FuzzingExample`, `extract_per_token_activations()`, `build_fuzzing_examples()`, `evaluate_fuzzing()`, `compute_fuzzing_metrics()` |
 
 ## Architecture
 
