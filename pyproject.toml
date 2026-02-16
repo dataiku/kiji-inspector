@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "Kiji Inspector"
 readme = "README.md"
 requires-python = ">=3.13"
-license = {text = "Apache-2.0"}
+license = {text = "Apache 2.0"}
 authors = [
-    {name = "575 Lab Team", email = "opensource@dataiku.com"}
+    {name = "575 Lab - Dataiku's Open Source Office", email = "opensource@dataiku.com"},
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -85,6 +85,7 @@ torch = [
   { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
 ]
 
+# TODO: @david.cardozo -> provide the builds to external contributors, in the mean time, please request them via email
 vllm = { path = "external-dist-packages/vllm-0.15.0+cu130-cp38-abi3-manylinux_2_35_aarch64.whl" }
 causal-conv1d = { path = "external-dist-packages/new-packages/causal_conv1d-1.6.0-cp313-cp313-linux_aarch64.whl" }
 flash-attn-3 = { path = "external-dist-packages/new-packages/flash_attn_3-3.0.0b1-cp39-abi3-linux_aarch64.whl" }
