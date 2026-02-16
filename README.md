@@ -27,6 +27,11 @@ This project is under active development. We are planning to release the framewo
 
 In the meantime, join our [Slack Community](https://join.slack.com/t/dataiku-opensource/shared_invite/zt-3o6yq14rp-FTtAHZYhyru~jLZ~S6xPLA)
 
+Learn more about our approach and early results:
+
+* [Paper](paper/Opening%20the%20Black%20Box%20Mechanistic%20Interpretability%20of%20Agent%20Tool%20Selection%20with%20Sparse%20Autoencoders.pdf)
+* [Presentation](presentation/Opening%20the%20Black%20Box%20Mechanistic%20Interpretability%20of%20Agent%20Tool%20Selection%20with%20Sparse%20Autoencoders.pdf)
+
 ---
 
 ## What This Project Does
