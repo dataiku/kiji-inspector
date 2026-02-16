@@ -51,7 +51,7 @@ def print_stats(pairs_dir: str) -> None:
 
     # --- Per contrast type per scenario ---
     scenario_ct = Counter((p.scenario_name, p.contrast_type) for p in pairs)
-    print(f"\nContrast types by scenario:")
+    print("\nContrast types by scenario:")
     for scenario in sorted(scenario_counts):
         label = scenario or "(unnamed)"
         cts = {ct: c for (s, ct), c in scenario_ct.items() if s == scenario}
@@ -81,10 +81,10 @@ def print_stats(pairs_dir: str) -> None:
 
     # --- Semantic similarity ---
     sims = [p.semantic_similarity for p in pairs]
-    print(f"\nSemantic similarity:")
+    print("\nSemantic similarity:")
     print(f"  min={min(sims):.3f}  max={max(sims):.3f}  mean={sum(sims) / len(sims):.3f}")
     buckets = Counter(int(s * 10) for s in sims)  # bucket by 0.0-0.1, 0.1-0.2, ...
-    print(f"  Distribution:")
+    print("  Distribution:")
     for bucket in range(11):
         count = buckets.get(bucket, 0)
         bar = "#" * (count * 40 // max(max(buckets.values()), 1))
@@ -96,7 +96,7 @@ def print_stats(pairs_dir: str) -> None:
     anchor_lens = [len(p.anchor_prompt) for p in pairs]
     contrast_lens = [len(p.contrast_prompt) for p in pairs]
     all_lens = anchor_lens + contrast_lens
-    print(f"\nPrompt lengths (chars):")
+    print("\nPrompt lengths (chars):")
     print(
         f"  Anchor:   min={min(anchor_lens):,}  max={max(anchor_lens):,}  mean={sum(anchor_lens) // len(anchor_lens):,}"
     )
@@ -108,13 +108,13 @@ def print_stats(pairs_dir: str) -> None:
     )
 
     # --- Duplicate check ---
-    anchor_set = set(p.anchor_prompt for p in pairs)
-    contrast_set = set(p.contrast_prompt for p in pairs)
+    anchor_set = {p.anchor_prompt for p in pairs}
+    contrast_set = {p.contrast_prompt for p in pairs}
     all_prompts = [p.anchor_prompt for p in pairs] + [p.contrast_prompt for p in pairs]
     unique_prompts = set(all_prompts)
     dup_count = len(all_prompts) - len(unique_prompts)
     cross_overlap = anchor_set & contrast_set
-    print(f"\nDuplicates:")
+    print("\nDuplicates:")
     print(f"  Unique prompts: {len(unique_prompts):,} / {len(all_prompts):,}")
     print(f"  Duplicate prompts: {dup_count:,}")
     print(f"  Anchor/contrast overlap: {len(cross_overlap):,} prompts appear in both roles")
@@ -124,7 +124,7 @@ def print_stats(pairs_dir: str) -> None:
     if dup_ids:
         print(f"  Duplicate pair_ids: {len(dup_ids):,}")
     else:
-        print(f"  Duplicate pair_ids: 0")
+        print("  Duplicate pair_ids: 0")
 
     print()
 

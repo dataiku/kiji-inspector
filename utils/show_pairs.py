@@ -21,11 +21,11 @@ def display_pair(pair, index: int) -> None:
     print(f"Distinguishing Signal: {pair.distinguishing_signal}")
     print(f"Semantic Similarity: {pair.semantic_similarity:.2f}")
     print()
-    print(f"ANCHOR:")
+    print("ANCHOR:")
     print(f"  Tool: {pair.anchor_tool}")
     print(f"  Prompt: {pair.anchor_prompt}")
     print()
-    print(f"CONTRAST:")
+    print("CONTRAST:")
     print(f"  Tool: {pair.contrast_tool}")
     print(f"  Prompt: {pair.contrast_prompt}")
 
@@ -99,7 +99,7 @@ def main():
         for name, count in sorted(contrast_types.items(), key=lambda x: -x[1]):
             print(f"  {name}: {count}")
 
-        print(f"\nTop 10 Tool Pairs:")
+        print("\nTop 10 Tool Pairs:")
         for (t1, t2), count in sorted(tool_pairs.items(), key=lambda x: -x[1])[:10]:
             print(f"  {t1} vs {t2}: {count}")
 
