@@ -292,6 +292,17 @@ def _run_generation_subprocess(
     from generator import ContrastivePairGenerator
     from scenario import ScenarioConfig
 
+    # Check for existing pairs to append to
+    existing_pairs: list = []
+    output_path = Path(output_dir)
+    existing_shards = sorted(output_path.glob("shard_*.parquet")) if output_path.exists() else []
+    if existing_shards:
+        existing_dataset = ContrastiveDataset.from_parquet(output_dir)
+        existing_pairs = existing_dataset.pairs
+        print(
+            f"  [subprocess] Found {len(existing_pairs)} existing pairs in {output_dir}, will append"
+        )
+
     print(f"  [subprocess] Loading vLLM model: {qwen_model}")
     print(f"  [subprocess] tensor_parallel_size={tp_size}, max_model_len={max_model_len}")
 
@@ -373,9 +384,18 @@ def _run_generation_subprocess(
 
     pbar.close()
     all_pairs = all_pairs[:num_samples]
-    print(f"  [subprocess] Total pairs generated: {len(all_pairs)}")
+    print(f"  [subprocess] New pairs generated: {len(all_pairs)}")
 
-    dataset = ContrastiveDataset(pairs=all_pairs)
+    # Merge with existing pairs if any were found
+    if existing_pairs:
+        combined_pairs = existing_pairs + all_pairs
+        print(
+            f"  [subprocess] Combined total: {len(existing_pairs)} existing + {len(all_pairs)} new = {len(combined_pairs)} pairs"
+        )
+    else:
+        combined_pairs = all_pairs
+
+    dataset = ContrastiveDataset(pairs=combined_pairs)
     shards = dataset.to_parquet(output_dir)
     print(f"  [subprocess] Saved {len(shards)} shard(s) to {output_dir}")
 
@@ -834,7 +854,7 @@ def _run_step1(args, pairs_dir: str) -> None:
 
     elapsed = time.time() - t0
     print(f"  Generation complete ({elapsed:.1f}s)")
-    print(f"  {len(pairs)} pairs saved to {pairs_dir}")
+    print(f"  {len(pairs)} total pairs in {pairs_dir}")
 
 
 def _run_step2(args, pairs_dir: str) -> None:
