@@ -59,11 +59,11 @@ class ActivationExtractor:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        load_kwargs = dict(
-            dtype=self.config.dtype,
-            device_map="auto",
-            trust_remote_code=self.config.trust_remote_code,
-        )
+        load_kwargs = {
+            "dtype": self.config.dtype,
+            "device_map": "auto",
+            "trust_remote_code": self.config.trust_remote_code,
+        }
         if self.config.max_memory is not None:
             load_kwargs["max_memory"] = self.config.max_memory
 
@@ -94,8 +94,9 @@ class ActivationExtractor:
         print(f"  hooked layers: {self.config.layers}")
         print(f"  model type: {type(self.model).__name__}")
         if hasattr(self.model, "model"):
-            print(f"  model.model attrs: {[a for a in dir(self.model.model) if not a.startswith('_')]}")
-
+            print(
+                f"  model.model attrs: {[a for a in dir(self.model.model) if not a.startswith('_')]}"
+            )
 
     def _find_input_device(self) -> torch.device:
         """Find the device of the model's embedding layer.
@@ -148,16 +149,16 @@ class ActivationExtractor:
         # GPT-2 style
         if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "layers"):
             return self.model.transformer.layers
-        
+
         # Debug: print backbone structure if it exists
         if hasattr(self.model, "backbone"):
-            backbone_attrs = [attr for attr in dir(self.model.backbone) if not attr.startswith('_')]
+            backbone_attrs = [attr for attr in dir(self.model.backbone) if not attr.startswith("_")]
             raise AttributeError(
                 f"Cannot locate transformer layers for {type(self.model).__name__}. "
                 f"Found 'backbone' but could not find layers. "
                 f"Backbone attributes: {backbone_attrs}"
             )
-        
+
         raise AttributeError(
             f"Cannot locate transformer layers for {type(self.model).__name__}. "
             "Supported architectures: LlamaForCausalLM, NemotronForCausalLM, "

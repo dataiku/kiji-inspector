@@ -144,7 +144,6 @@ def run_layer(
 
     from contrastive_dataset import ContrastiveDataset
     from generate_training_set import (
-        _load_scenarios,
         extract_activations,
         identify_contrastive_features,
         train_sae_step,

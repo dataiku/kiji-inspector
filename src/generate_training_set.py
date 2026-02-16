@@ -329,7 +329,6 @@ def _run_generation_subprocess(
     from tqdm import tqdm
 
     all_pairs: list = []
-    malformed_count = 0
 
     # Single overall progress bar
     pbar = tqdm(
@@ -367,7 +366,7 @@ def _run_generation_subprocess(
             round_requests = requests[round_start : round_start + vllm_batch_size]
             results = gen.generate_batched(round_requests)
 
-            for (ct, _n), pairs in zip(round_requests, results):
+            for (ct, _n), pairs in zip(round_requests, results, strict=True):
                 base = pair_counters.get(ct, 0)
                 for i, pair in enumerate(pairs):
                     pair.pair_id = f"{scenario.name}_{ct}_{base + i}"
@@ -681,7 +680,9 @@ def identify_contrastive_features(
             topk_indices = torch.tensor([], dtype=torch.long)
 
         feature_list = []
-        for rank, (val, idx) in enumerate(zip(topk_vals.tolist(), topk_indices.tolist())):
+        for rank, (val, idx) in enumerate(
+            zip(topk_vals.tolist(), topk_indices.tolist(), strict=True)
+        ):
             idx = int(idx)
             feature_list.append(
                 {
@@ -716,7 +717,7 @@ def identify_contrastive_features(
     from collections import Counter
 
     all_feature_indices: list[int] = []
-    for ct_value, ct_info in results.items():
+    for _ct_value, ct_info in results.items():
         for f in ct_info["top_features"]:
             all_feature_indices.append(f["feature_index"])
 
@@ -833,7 +834,7 @@ def _run_step1(args, pairs_dir: str) -> None:
 
     scenarios = _load_scenarios(args)
     scenario_names = [s.name for s in scenarios]
-    print(f"\n[Step 1] Generating contrastive pairs via vLLM (subprocess)...")
+    print("\n[Step 1] Generating contrastive pairs via vLLM (subprocess)...")
     print(f"  Scenarios: {', '.join(scenario_names)}")
 
     t0 = time.time()
@@ -869,10 +870,10 @@ def _run_step2(args, pairs_dir: str) -> None:
     scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
     scenario_names = list(scenarios_meta.keys())
 
-    print(f"\n[Step 2] Extracting raw activations to numpy shards...")
+    print("\n[Step 2] Extracting raw activations to numpy shards...")
     print(f"  Output: {args.output_dir}")
     print(f"  Scenarios: {', '.join(scenario_names)}")
-    print(f"  Each pair -> 2 activation vectors (anchor + contrast)")
+    print("  Each pair -> 2 activation vectors (anchor + contrast)")
     print(f"  Total prompts: {len(pairs) * 2}")
     t0 = time.time()
     extract_activations(
@@ -894,7 +895,7 @@ def _run_step3(args) -> str:
         Path(args.output_dir).parent / "sae_checkpoints"
     )
 
-    print(f"\n[Step 3] Training JumpReLU SAE...")
+    print("\n[Step 3] Training JumpReLU SAE...")
     print(f"  Activations: {args.output_dir}")
     print(f"  d_sae: {args.d_sae}")
     print(f"  Checkpoints: {checkpoint_dir}")
@@ -930,7 +931,7 @@ def _run_step4(args, pairs_dir: str, sae_checkpoint: str | None = None) -> None:
 
     scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
 
-    print(f"\n[Step 4] Identifying contrastive SAE features...")
+    print("\n[Step 4] Identifying contrastive SAE features...")
     print(f"  SAE checkpoint: {checkpoint}")
     print(f"  Scenarios: {', '.join(scenarios_meta.keys())}")
     t0 = time.time()
@@ -1006,7 +1007,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     print(f"\n[Step 5] Interpreting {len(feature_indices)} unique features")
 
     # 5a: Load activations from Step 2 numpy shards (no Nemotron needed)
-    print(f"\n[Step 5a] Loading activations from numpy shards...")
+    print("\n[Step 5a] Loading activations from numpy shards...")
     t0 = time.time()
     prompts, activations = load_activations_from_shards(
         activations_dir=args.output_dir,
@@ -1015,7 +1016,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     print(f"  5a complete ({elapsed:.1f}s): {len(prompts)} prompts, shape {activations.shape}")
 
     # 5b: Encode through SAE, collect examples
-    print(f"\n[Step 5b] Encoding through SAE and collecting max-activating examples...")
+    print("\n[Step 5b] Encoding through SAE and collecting max-activating examples...")
     t0 = time.time()
     feature_examples = collect_max_activating_examples(
         prompts=prompts,
@@ -1032,7 +1033,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     del activations
 
     # 5c: Label features via LLM (subprocess for GPU isolation)
-    print(f"\n[Step 5c] Labeling features via LLM (subprocess)...")
+    print("\n[Step 5c] Labeling features via LLM (subprocess)...")
     t0 = time.time()
     feature_labels = label_features_via_llm(
         feature_examples=feature_examples,
@@ -1045,7 +1046,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     print(f"  5c complete ({elapsed:.1f}s): {len(feature_labels)} features labeled")
 
     # 5d: Generate report
-    print(f"\n[Step 5d] Generating explanation report...")
+    print("\n[Step 5d] Generating explanation report...")
     t0 = time.time()
     report_path = generate_explanation_report(
         contrastive_features_path=contrastive_path,
@@ -1134,7 +1135,7 @@ def _run_step6(args, pairs_dir: str) -> None:
         )
 
     # 6a: Extract per-token activations
-    print(f"\n[Step 6a] Extracting per-token activations...")
+    print("\n[Step 6a] Extracting per-token activations...")
     t0 = time.time()
     token_strings_list, token_activations_list = extract_per_token_activations(
         prompts=all_prompts,
@@ -1160,7 +1161,7 @@ def _run_step6(args, pairs_dir: str) -> None:
     )
 
     # 6b: Build fuzzing examples
-    print(f"\n[Step 6b] Building fuzzing examples...")
+    print("\n[Step 6b] Building fuzzing examples...")
     t0 = time.time()
     examples = build_fuzzing_examples(
         feature_descriptions=feature_descriptions,
@@ -1187,7 +1188,7 @@ def _run_step6(args, pairs_dir: str) -> None:
         torch.cuda.reset_peak_memory_stats()
 
     # 6c: LLM judge (subprocess)
-    print(f"\n[Step 6c] Running LLM judge (subprocess)...")
+    print("\n[Step 6c] Running LLM judge (subprocess)...")
     t0 = time.time()
     results = evaluate_fuzzing(
         examples=examples,
@@ -1201,7 +1202,7 @@ def _run_step6(args, pairs_dir: str) -> None:
     print(f"  6c complete ({elapsed:.1f}s): {len(results)} judgments")
 
     # 6d: Compute metrics and save
-    print(f"\n[Step 6d] Computing metrics and saving report...")
+    print("\n[Step 6d] Computing metrics and saving report...")
     t0 = time.time()
     per_feature, summary = compute_fuzzing_metrics(results, feature_descriptions)
     save_fuzzing_report(per_feature, summary, results, args.output_dir)

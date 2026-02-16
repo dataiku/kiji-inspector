@@ -51,11 +51,13 @@ where = ["src"]
 
 [tool.black]
 line-length = 100
-target-version = ["py314"]
+target-version = ["py313"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py313"
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings

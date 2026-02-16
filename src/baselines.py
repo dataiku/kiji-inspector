@@ -27,8 +27,8 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", _N_CORES)
 os.environ.setdefault("MKL_NUM_THREADS", _N_CORES)
 os.environ.setdefault("OMP_NUM_THREADS", _N_CORES)
 
-import numpy as np
-from tqdm import tqdm
+import numpy as np  # noqa: E402
+from tqdm import tqdm  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Data loading

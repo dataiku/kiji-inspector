@@ -188,7 +188,7 @@ def compute_ablation_metrics(
     """Compute aggregate metrics across contrast types."""
     from scipy.stats import fisher_exact
 
-    for ct, info in per_contrast.items():
+    for _ct, info in per_contrast.items():
         n = info["n_tested"]
         if n == 0:
             continue
@@ -338,7 +338,7 @@ def run_ablation_experiment(
 
     # Diagnostic: print tool token mappings
     _printed_scenarios: set[str] = set()
-    for name, (t2t, t2tok) in scenario_tool_maps.items():
+    for name, (t2t, _t2tok) in scenario_tool_maps.items():
         if name not in _printed_scenarios:
             _printed_scenarios.add(name)
             print(f"  Tool tokens for '{name}': {len(t2t)} mappings")
@@ -512,7 +512,7 @@ def run_ablation_experiment(
                 f"({100 * random_flips / n_tested:.1f}%)"
             )
         else:
-            print(f"    No prompts with correct baseline prediction")
+            print("    No prompts with correct baseline prediction")
 
     # Compute metrics and save
     report = compute_ablation_metrics(per_contrast)
@@ -534,8 +534,8 @@ def run_ablation_experiment(
         recon_rate = agg.get("mean_reconstruction_flip_rate", 0)
         if recon_rate > 0.3:
             print(f"\n  WARNING: Reconstruction-only flip rate is {recon_rate:.1%}.")
-            print(f"  The SAE round-trip itself disrupts predictions significantly.")
-            print(f"  Ablation results should be interpreted relative to this baseline.")
+            print("  The SAE round-trip itself disrupts predictions significantly.")
+            print("  Ablation results should be interpreted relative to this baseline.")
     print(f"  Report saved          : {report_path}")
     print(f"{'=' * 70}")
 

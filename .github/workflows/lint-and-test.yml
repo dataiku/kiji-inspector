@@ -1,0 +1,32 @@
+name: Lint and Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    name: Python Lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Run ruff linter
+        run: |
+          uvx ruff check src/ utils/
+
+      - name: Run ruff formatter check
+        run: |
+          uvx ruff format --check src/ utils/ --diff

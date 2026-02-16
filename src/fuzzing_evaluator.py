@@ -180,7 +180,8 @@ def _find_user_request_span(
         f"Could not locate user turn via ChatML markers. "
         f"im_start positions: {im_start_positions}, "
         f"im_end positions: {im_end_positions}, "
-        f"total tokens: {len(token_strings)}"
+        f"total tokens: {len(token_strings)}",
+        stacklevel=2,
     )
     return 0, len(token_strings)
 
@@ -594,7 +595,7 @@ def evaluate_fuzzing(
 
     # Parse judgments -- both token-level and prompt-level use A/B format
     results = []
-    for ex, raw in zip(examples, raw_judgments):
+    for ex, raw in zip(examples, raw_judgments, strict=True):
         picked_a = bool(re.search(r"\bA\b", raw))
         predicted_correct = picked_a == ex.is_correctly_fuzzed
 
@@ -894,7 +895,7 @@ def save_fuzzing_report(
     ta = summary["token_level_accuracy"]
     qt = summary["quality_tiers"]
 
-    print(f"\n  Fuzzing evaluation complete:")
+    print("\n  Fuzzing evaluation complete:")
     print(f"    Features evaluated: {summary['num_features_evaluated']}")
     print(f"    Total examples: {summary['num_examples_total']}")
     print(
