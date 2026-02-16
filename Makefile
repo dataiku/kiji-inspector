@@ -1,11 +1,11 @@
 .PHONY: format lint fix
 
 format: ## Format code with ruff
-	uv run ruff format .
+	uvx ruff format .
 
 lint: ## Run linter
-	uv run ruff check src/
+	uvx ruff check src/
 
 fix: ## Auto-fix lint issues and format
-	uv run ruff check src/ --fix
-	uv run ruff format .
+	uvx ruff check src/ --fix
+	uvx ruff format .
