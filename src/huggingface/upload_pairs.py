@@ -13,16 +13,12 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
-
-# Allow imports from src/
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from collections import Counter
+from pathlib import Path
 
 from datasets import Dataset
 
-from contrastive_dataset import ContrastiveDataset
+from data.contrastive_dataset import ContrastiveDataset
 
 
 def _build_dataset_card(repo_id: str, cd: ContrastiveDataset) -> str:

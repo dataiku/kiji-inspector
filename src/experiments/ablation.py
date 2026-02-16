@@ -31,6 +31,8 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from utils.stats import clopper_pearson_ci as _clopper_pearson_ci
+
 # ---------------------------------------------------------------------------
 # Tool prediction
 # ---------------------------------------------------------------------------
@@ -171,17 +173,6 @@ def make_ablation_hook(
 # ---------------------------------------------------------------------------
 
 
-def _clopper_pearson_ci(k: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
-    """Exact CI for a proportion."""
-    from scipy.stats import beta
-
-    if n == 0:
-        return (0.0, 0.0)
-    lo = beta.ppf(alpha / 2, k, n - k + 1) if k > 0 else 0.0
-    hi = beta.ppf(1 - alpha / 2, k + 1, n - k) if k < n else 1.0
-    return (float(lo), float(hi))
-
-
 def compute_ablation_metrics(
     per_contrast: dict[str, dict],
 ) -> dict:
@@ -288,11 +279,11 @@ def run_ablation_experiment(
         n_prompts_per_type: Max prompts to test per contrast type.
         seed: Random seed.
     """
-    from activation_extractor import ActivationConfig, ActivationExtractor
-    from contrastive_dataset import ContrastiveDataset
-    from extractor import build_agent_prompt
-    from sae_model import JumpReLUSAE
-    from scenario import load_scenarios_meta
+    from data.contrastive_dataset import ContrastiveDataset
+    from data.scenario import load_scenarios_meta
+    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction.extractor import build_agent_prompt
+    from sae.model import JumpReLUSAE
 
     random.seed(seed)
     np.random.seed(seed)
@@ -368,7 +359,7 @@ def run_ablation_experiment(
 
     per_contrast: dict[str, dict] = {}
 
-    from scenario import default_scenario
+    from data.scenario import default_scenario
 
     default_sc = default_scenario()
 

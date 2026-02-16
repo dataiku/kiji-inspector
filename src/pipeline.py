@@ -11,20 +11,20 @@ Step 6: Evaluate feature explanations via fuzzing
 
 Usage:
     # Run steps 1 + 2 + 3 (full data pipeline + training)
-    uv run python generate_training_set.py 1300
+    uv run python -m pipeline 1300
 
     # Generate pairs (num_samples required)
-    uv run python generate_training_set.py 1300 --step 1
+    uv run python -m pipeline 1300 --step 1
 
     # Steps 2-6 read pairs from disk (num_samples optional)
-    uv run python generate_training_set.py --step 2 --pairs-dir output/pairs
-    uv run python generate_training_set.py --step 3
-    uv run python generate_training_set.py --step 4
-    uv run python generate_training_set.py --step 5
-    uv run python generate_training_set.py --step 6
+    uv run python -m pipeline --step 2 --pairs-dir output/pairs
+    uv run python -m pipeline --step 3
+    uv run python -m pipeline --step 4
+    uv run python -m pipeline --step 5
+    uv run python -m pipeline --step 6
 
     # Large-scale
-    uv run python generate_training_set.py 100000 --output-dir output/activations
+    uv run python -m pipeline 100000 --output-dir output/activations
 """
 
 from __future__ import annotations
@@ -36,8 +36,6 @@ import multiprocessing as mp
 import sys
 import time
 from pathlib import Path
-
-import numpy as np
 
 
 def parse_args() -> argparse.Namespace:
@@ -284,13 +282,9 @@ def _run_generation_subprocess(
     """Child-process entry point: load vLLM, generate pairs for all scenarios, save, exit."""
     from vllm import LLM, SamplingParams
 
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from contrastive_dataset import ContrastiveDataset
-    from generator import ContrastivePairGenerator
-    from scenario import ScenarioConfig
+    from data.contrastive_dataset import ContrastiveDataset
+    from data.generator import ContrastivePairGenerator
+    from data.scenario import ScenarioConfig
 
     # Check for existing pairs to append to
     existing_pairs: list = []
@@ -410,10 +404,6 @@ def generate_pairs(
     pairs_dir: str,
 ) -> list:
     """Spawn a subprocess to generate pairs via vLLM, then load results."""
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
     ctx = mp.get_context("spawn")
     p = ctx.Process(
         target=_run_generation_subprocess,
@@ -434,7 +424,7 @@ def generate_pairs(
     if p.exitcode != 0:
         raise RuntimeError(f"Generation subprocess failed with exit code {p.exitcode}")
 
-    from contrastive_dataset import ContrastiveDataset
+    from data.contrastive_dataset import ContrastiveDataset
 
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
     return dataset.pairs
@@ -458,12 +448,8 @@ def extract_activations(
     """Load Nemotron, extract raw activations, save as numpy shards."""
     import torch
 
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from activation_extractor import ActivationConfig, ActivationExtractor
-    from extractor import RawActivationExtractor
+    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction.extractor import RawActivationExtractor
 
     config = ActivationConfig(
         model_name=nemotron_model,
@@ -508,11 +494,7 @@ def train_sae_step(
     auto_scale_steps: bool = True,
 ) -> str:
     """Train a JumpReLU SAE on the numpy activation shards from Step 2."""
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from sae_trainer import SAETrainingConfig, train_sae
+    from sae.trainer import SAETrainingConfig, train_sae
 
     config = SAETrainingConfig(
         d_sae=d_sae,
@@ -530,237 +512,10 @@ def train_sae_step(
 
 
 # ---------------------------------------------------------------------------
-# Step 4: Contrastive feature identification
+# Step 4: Contrastive feature identification (see analysis/contrastive_features.py)
 # ---------------------------------------------------------------------------
 
-
-def identify_contrastive_features(
-    pairs: list,
-    sae_checkpoint: str,
-    nemotron_model: str,
-    layers: list[int],
-    layer_key: str,
-    batch_size: int,
-    top_k: int,
-    output_dir: str,
-    min_effect_size: float = 0.3,
-    min_activation: float = 0.01,
-    scenarios_meta: dict | None = None,
-) -> Path:
-    """Identify which SAE features are decision-relevant using contrastive pairs.
-
-    For each contrastive pair, encode both the anchor and contrast prompts
-    through the SAE and compare which features activate differently.  Features
-    that consistently differ across many pairs of the same contrast type are
-    the decision-relevant features for that contrast.
-    """
-    import torch
-
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from activation_extractor import ActivationConfig, ActivationExtractor
-    from extractor import build_agent_prompt
-    from sae_model import JumpReLUSAE
-    from scenario import default_scenario
-
-    # Load the trained SAE
-    sae_path = Path(sae_checkpoint)
-    if not sae_path.exists():
-        raise FileNotFoundError(f"SAE checkpoint not found: {sae_path}")
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    sae = JumpReLUSAE.from_pretrained(str(sae_path), device=device)
-    sae.eval()
-    print(f"  Loaded SAE: d_model={sae.d_model}, d_sae={sae.d_sae}")
-
-    # Load Nemotron for live extraction of contrastive pairs
-    config = ActivationConfig(
-        model_name=nemotron_model,
-        layers=layers,
-        dtype=torch.bfloat16,
-    )
-    extractor = ActivationExtractor(config=config)
-
-    # Build scenario lookup for per-pair prompt construction
-    _scenarios_meta = scenarios_meta or {}
-    _default_scenario = default_scenario()
-
-    # Group pairs by contrast type
-    from collections import defaultdict
-
-    pairs_by_type: dict[str, list] = defaultdict(list)
-    for pair in pairs:
-        pairs_by_type[pair.contrast_type].append(pair)
-
-    results: dict[str, dict] = {}
-    sae_dtype = next(sae.parameters()).dtype
-    from tqdm import tqdm
-
-    pbar = tqdm(total=len(pairs), desc="Extracting pair activations", unit="pair")
-
-    for ct_value, ct_pairs in pairs_by_type.items():
-        # Build all prompts for this contrast type
-        anchor_prompts = []
-        contrast_prompts = []
-        for pair in ct_pairs:
-            scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
-            anchor_prompts.append(
-                build_agent_prompt(
-                    system_prompt=scenario.system_prompt,
-                    tools=scenario.tools,
-                    user_request=pair.anchor_prompt,
-                    model_type="nemotron",
-                )
-            )
-            contrast_prompts.append(
-                build_agent_prompt(
-                    system_prompt=scenario.system_prompt,
-                    tools=scenario.tools,
-                    user_request=pair.contrast_prompt,
-                    model_type="nemotron",
-                )
-            )
-
-        # Extract in batches, accumulating results
-        all_prompts = anchor_prompts + contrast_prompts
-        all_acts: list[dict[str, np.ndarray]] = []
-        for bi in range(0, len(all_prompts), batch_size):
-            batch_prompts = all_prompts[bi : bi + batch_size]
-            all_acts.extend(extractor.extract_batch(batch_prompts, batch_size=len(batch_prompts)))
-
-        pbar.update(len(ct_pairs))
-
-        n = len(ct_pairs)
-        anchor_acts = [all_acts[i][layer_key] for i in range(n)]
-        contrast_acts = [all_acts[n + i][layer_key] for i in range(n)]
-
-        anchor_vecs = torch.from_numpy(np.stack(anchor_acts)).to(device=device, dtype=sae_dtype)
-        contrast_vecs = torch.from_numpy(np.stack(contrast_acts)).to(device=device, dtype=sae_dtype)
-
-        with torch.no_grad():
-            anchor_features = sae.encode(anchor_vecs)
-            contrast_features = sae.encode(contrast_vecs)
-
-        feature_diffs = (anchor_features - contrast_features).abs().mean(dim=0)
-        anchor_mean = anchor_features.mean(dim=0)
-        contrast_mean = contrast_features.mean(dim=0)
-        anchor_var = anchor_features.var(dim=0)
-        contrast_var = contrast_features.var(dim=0)
-        n_a = anchor_features.shape[0]
-        n_c = contrast_features.shape[0]
-
-        # Cohen's d effect size
-        pooled_std = torch.sqrt(
-            ((n_a - 1) * anchor_var + (n_c - 1) * contrast_var) / max(n_a + n_c - 2, 1)
-        )
-        cohens_d = (anchor_mean - contrast_mean).abs() / (pooled_std + 1e-8)
-
-        # Filter: effect size >= threshold AND at least one side has meaningful activation
-        effect_mask = cohens_d >= min_effect_size
-        activation_mask = (anchor_mean.abs() > min_activation) | (
-            contrast_mean.abs() > min_activation
-        )
-        valid_mask = effect_mask & activation_mask
-
-        # Apply mask before top-K
-        masked_diffs = feature_diffs.clone()
-        masked_diffs[~valid_mask] = -1.0
-
-        k_actual = min(top_k, int(valid_mask.sum().item()), feature_diffs.shape[0])
-        if k_actual > 0:
-            topk_vals, topk_indices = masked_diffs.topk(k_actual)
-            # Keep only features that passed the mask
-            keep = topk_vals > 0
-            topk_vals = topk_vals[keep]
-            topk_indices = topk_indices[keep]
-        else:
-            topk_vals = torch.tensor([])
-            topk_indices = torch.tensor([], dtype=torch.long)
-
-        feature_list = []
-        for rank, (val, idx) in enumerate(
-            zip(topk_vals.tolist(), topk_indices.tolist(), strict=True)
-        ):
-            idx = int(idx)
-            feature_list.append(
-                {
-                    "rank": rank,
-                    "feature_index": idx,
-                    "mean_abs_diff": round(val, 6),
-                    "anchor_mean_activation": round(anchor_mean[idx].item(), 6),
-                    "contrast_mean_activation": round(contrast_mean[idx].item(), 6),
-                    "cohens_d": round(cohens_d[idx].item(), 6),
-                    "anchor_std": round(anchor_var[idx].sqrt().item(), 6),
-                    "contrast_std": round(contrast_var[idx].sqrt().item(), 6),
-                }
-            )
-
-        n_filtered_effect = int((~effect_mask).sum().item())
-        n_filtered_activation = int((effect_mask & ~activation_mask).sum().item())
-
-        results[ct_value] = {
-            "num_pairs": n,
-            "top_features": feature_list,
-            "num_filtered_by_effect_size": n_filtered_effect,
-            "num_filtered_by_min_activation": n_filtered_activation,
-        }
-
-        del anchor_vecs, contrast_vecs, anchor_features, contrast_features
-
-    pbar.close()
-
-    extractor.cleanup()
-
-    # Compute utilization summary
-    from collections import Counter
-
-    all_feature_indices: list[int] = []
-    for _ct_value, ct_info in results.items():
-        for f in ct_info["top_features"]:
-            all_feature_indices.append(f["feature_index"])
-
-    unique_features = set(all_feature_indices)
-    total_slots = len(all_feature_indices)
-    feature_counts = Counter(all_feature_indices)
-    multi_contrast = sum(1 for c in feature_counts.values() if c > 1)
-
-    results["_summary"] = {
-        "total_feature_slots": total_slots,
-        "unique_features": len(unique_features),
-        "dedup_ratio": round(len(unique_features) / max(total_slots, 1), 4),
-        "features_in_multiple_contrasts": multi_contrast,
-        "max_contrast_overlap": max(feature_counts.values()) if feature_counts else 0,
-        "top_k_per_type": top_k,
-        "min_effect_size": min_effect_size,
-        "min_activation": min_activation,
-    }
-
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    report_path = output_path / "contrastive_features.json"
-    with open(report_path, "w") as f:
-        json.dump(results, f, indent=2)
-
-    print(f"\nContrastive feature report saved to {report_path}")
-    print(f"  Contrast types analyzed: {len(results) - 1}")  # exclude _summary
-    print(f"  Max top-{top_k} features per type (filtered by Cohen's d >= {min_effect_size})")
-    print(f"  Total feature slots: {total_slots}")
-    print(f"  Unique features: {len(unique_features)}")
-    print(f"  Features in multiple contrasts: {multi_contrast}")
-    print(f"  Dedup ratio: {results['_summary']['dedup_ratio']:.2%}")
-
-    for ct_value, info in results.items():
-        if ct_value.startswith("_"):
-            continue
-        n_feats = len(info["top_features"])
-        top3 = info["top_features"][:3]
-        top3_str = ", ".join(f"#{f['feature_index']}(d={f['cohens_d']:.2f})" for f in top3)
-        print(f"  {ct_value}: {info['num_pairs']} pairs, {n_feats} features, top: {top3_str}")
-
-    return report_path
-
+from analysis.contrastive_features import identify_contrastive_features  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Main
@@ -768,11 +523,7 @@ def identify_contrastive_features(
 
 
 def _load_pairs(args, pairs_dir: str) -> list:
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from contrastive_dataset import ContrastiveDataset
+    from data.contrastive_dataset import ContrastiveDataset
 
     src = args.pairs_dir or pairs_dir
     src_path = Path(src)
@@ -795,11 +546,7 @@ def _load_scenarios(args) -> list:
     scenarios/ directory are loaded automatically.  Use --scenario to
     select a subset for targeted runs.
     """
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from scenario import load_scenarios
+    from data.scenario import load_scenarios
 
     if args.scenarios:
         scenario_paths = args.scenarios
@@ -826,11 +573,7 @@ def _run_step1(args, pairs_dir: str) -> None:
         print("  Usage: generate_training_set.py 1300 --step 1")
         sys.exit(1)
 
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from scenario import save_scenarios_meta
+    from data.scenario import save_scenarios_meta
 
     scenarios = _load_scenarios(args)
     scenario_names = [s.name for s in scenarios]
@@ -861,11 +604,7 @@ def _run_step1(args, pairs_dir: str) -> None:
 def _run_step2(args, pairs_dir: str) -> None:
     pairs = _load_pairs(args, pairs_dir)
 
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from scenario import load_scenarios_meta
+    from data.scenario import load_scenarios_meta
 
     scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
     scenario_names = list(scenarios_meta.keys())
@@ -923,11 +662,7 @@ def _run_step4(args, pairs_dir: str, sae_checkpoint: str | None = None) -> None:
 
     pairs = _load_pairs(args, pairs_dir)
 
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from scenario import load_scenarios_meta
+    from data.scenario import load_scenarios_meta
 
     scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
 
@@ -981,11 +716,7 @@ def _resolve_contrastive_features(args) -> str:
 def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     """Step 5: Interpret features -- load activations from shards, encode
     through SAE, label via LLM, generate decision report."""
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from feature_interpreter import (
+    from analysis.feature_interpreter import (
         collect_max_activating_examples,
         generate_explanation_report,
         label_features_via_llm,
@@ -1075,19 +806,15 @@ def _resolve_feature_descriptions(args) -> str:
 
 def _run_step6(args, pairs_dir: str) -> None:
     """Step 6: Evaluate feature explanations via fuzzing."""
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from extractor import build_agent_prompt
-    from fuzzing_evaluator import (
+    from analysis.fuzzing_evaluator import (
         build_fuzzing_examples,
         compute_fuzzing_metrics,
         evaluate_fuzzing,
         extract_per_token_activations,
         save_fuzzing_report,
     )
-    from scenario import default_scenario, load_scenarios_meta
+    from data.scenario import default_scenario, load_scenarios_meta
+    from extraction.extractor import build_agent_prompt
 
     desc_path = _resolve_feature_descriptions(args)
     checkpoint = _resolve_sae_checkpoint(args)

@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import time
 from pathlib import Path
 
@@ -137,18 +136,13 @@ def run_layer(
     Returns a summary dict with feature health and fuzzing metrics (if available).
     """
     # Import generate_training_set functions
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    src_dir = str(Path(__file__).resolve().parent / "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
-    from contrastive_dataset import ContrastiveDataset
-    from generate_training_set import (
+    from data.contrastive_dataset import ContrastiveDataset
+    from data.scenario import load_scenarios_meta
+    from pipeline import (
         extract_activations,
         identify_contrastive_features,
         train_sae_step,
     )
-    from scenario import load_scenarios_meta
 
     layer_key = f"residual_{layer}"
     activations_dir = str(layer_output_dir / "activations")
@@ -253,7 +247,7 @@ def run_layer(
         print(f"\n  [Layer {layer}] Step 5: Interpreting features...")
         t0 = time.time()
 
-        from feature_interpreter import (
+        from analysis.feature_interpreter import (
             collect_max_activating_examples,
             generate_explanation_report,
             label_features_via_llm,
@@ -306,15 +300,15 @@ def run_layer(
 
         from transformers import AutoTokenizer
 
-        from extractor import build_agent_prompt
-        from fuzzing_evaluator import (
+        from analysis.fuzzing_evaluator import (
             build_fuzzing_examples,
             compute_fuzzing_metrics,
             evaluate_fuzzing,
             extract_per_token_activations,
             save_fuzzing_report,
         )
-        from scenario import default_scenario
+        from data.scenario import default_scenario
+        from extraction.extractor import build_agent_prompt
 
         desc_path = Path(activations_dir) / "feature_descriptions.json"
         with open(desc_path) as f:

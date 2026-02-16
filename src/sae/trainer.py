@@ -25,7 +25,9 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
 from tqdm.auto import tqdm
 
-from sae_model import JumpReLUSAE
+from sae.model import JumpReLUSAE
+from utils.stats import bootstrap_ci_mean as _bootstrap_ci
+from utils.stats import wilson_score_ci as _wilson_score_ci
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -325,40 +327,6 @@ class _MetricsLogger:
             f"Active: {metrics.get('sparsity/feature_activity', 0):.1%} | "
             f"LR: {lr:.2e}"
         )
-
-
-# ---------------------------------------------------------------------------
-# Statistical helpers
-# ---------------------------------------------------------------------------
-
-
-def _bootstrap_ci(
-    data: np.ndarray, n_bootstrap: int = 10_000, ci: float = 0.95
-) -> tuple[float, float]:
-    """Bootstrap confidence interval for the mean."""
-    rng = np.random.default_rng(42)
-    boot_means = np.array(
-        [rng.choice(data, size=len(data), replace=True).mean() for _ in range(n_bootstrap)]
-    )
-    alpha = 1 - ci
-    return (
-        float(np.percentile(boot_means, 100 * alpha / 2)),
-        float(np.percentile(boot_means, 100 * (1 - alpha / 2))),
-    )
-
-
-def _wilson_score_ci(successes: int, total: int, ci: float = 0.95) -> tuple[float, float]:
-    """Wilson score confidence interval for a proportion."""
-    from scipy.stats import norm
-
-    if total == 0:
-        return (0.0, 0.0)
-    z = norm.ppf(1 - (1 - ci) / 2)
-    p = successes / total
-    denom = 1 + z**2 / total
-    centre = (p + z**2 / (2 * total)) / denom
-    margin = z * np.sqrt(p * (1 - p) / total + z**2 / (4 * total**2)) / denom
-    return (max(0.0, centre - margin), min(1.0, centre + margin))
 
 
 # ---------------------------------------------------------------------------

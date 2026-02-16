@@ -51,7 +51,7 @@ def load_activations_with_labels(
         pair_ids: (N,) integer pair indices (for group-aware splitting).
         label_names: List of tool name strings (index = label int).
     """
-    from contrastive_dataset import ContrastiveDataset
+    from data.contrastive_dataset import ContrastiveDataset
 
     activations_dir = Path(activations_dir)
     pairs_dir = Path(pairs_dir)

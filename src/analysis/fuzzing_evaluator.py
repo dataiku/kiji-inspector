@@ -28,6 +28,11 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from utils.stats import binomial_p_value as _binomial_p_value
+from utils.stats import bootstrap_ci_mean as _bootstrap_ci_mean
+from utils.stats import clopper_pearson_ci as _clopper_pearson_ci
+from utils.stats import wilson_score_ci as _wilson_score_ci
+
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
@@ -72,7 +77,7 @@ def extract_per_token_activations(
         token_strings: List of list-of-token-strings per prompt.
         token_activations: List of (seq_len, d_model) numpy arrays per prompt.
     """
-    from activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
 
     config = ActivationConfig(
         model_name=nemotron_model,
@@ -309,7 +314,7 @@ def build_fuzzing_examples(
     Returns:
         List of FuzzingExample objects.
     """
-    from sae_model import JumpReLUSAE
+    from sae.model import JumpReLUSAE
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sae = JumpReLUSAE.from_pretrained(sae_checkpoint, device=device)
@@ -614,64 +619,6 @@ def evaluate_fuzzing(
         )
 
     return results
-
-
-# ---------------------------------------------------------------------------
-# Statistical helpers
-# ---------------------------------------------------------------------------
-
-
-def _binomial_p_value(n_correct: int, n_total: int, baseline: float = 0.5) -> float:
-    """One-sided binomial test: is accuracy significantly above baseline?"""
-    from scipy.stats import binomtest
-
-    if n_total == 0:
-        return 1.0
-    result = binomtest(n_correct, n_total, baseline, alternative="greater")
-    return float(result.pvalue)
-
-
-def _clopper_pearson_ci(n_correct: int, n_total: int, alpha: float = 0.05) -> tuple[float, float]:
-    """Clopper-Pearson exact confidence interval for a proportion."""
-    from scipy.stats import beta
-
-    if n_total == 0:
-        return (0.0, 0.0)
-    lo = beta.ppf(alpha / 2, n_correct, n_total - n_correct + 1) if n_correct > 0 else 0.0
-    hi = beta.ppf(1 - alpha / 2, n_correct + 1, n_total - n_correct) if n_correct < n_total else 1.0
-    return (float(lo), float(hi))
-
-
-def _bootstrap_ci_mean(
-    values: list[float], n_bootstrap: int = 10_000, ci: float = 0.95
-) -> tuple[float, float]:
-    """Bootstrap confidence interval for the mean."""
-    if not values:
-        return (0.0, 0.0)
-    arr = np.array(values)
-    rng = np.random.default_rng(42)
-    boot_means = np.array(
-        [rng.choice(arr, size=len(arr), replace=True).mean() for _ in range(n_bootstrap)]
-    )
-    alpha = 1 - ci
-    return (
-        float(np.percentile(boot_means, 100 * alpha / 2)),
-        float(np.percentile(boot_means, 100 * (1 - alpha / 2))),
-    )
-
-
-def _wilson_score_ci(successes: int, total: int, ci: float = 0.95) -> tuple[float, float]:
-    """Wilson score confidence interval for a proportion."""
-    from scipy.stats import norm
-
-    if total == 0:
-        return (0.0, 0.0)
-    z = norm.ppf(1 - (1 - ci) / 2)
-    p = successes / total
-    denom = 1 + z**2 / total
-    centre = (p + z**2 / (2 * total)) / denom
-    margin = z * np.sqrt(p * (1 - p) / total + z**2 / (4 * total**2)) / denom
-    return (max(0.0, centre - margin), min(1.0, centre + margin))
 
 
 # ---------------------------------------------------------------------------

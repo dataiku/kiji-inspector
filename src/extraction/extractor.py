@@ -15,8 +15,8 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from activation_extractor import ActivationExtractor
-from contrastive_dataset import ContrastivePair
+from data.contrastive_dataset import ContrastivePair
+from extraction.activation_extractor import ActivationExtractor
 
 
 def build_agent_prompt(
@@ -142,7 +142,7 @@ class RawActivationExtractor:
         Returns:
             Path to the output directory.
         """
-        from scenario import default_scenario
+        from data.scenario import default_scenario
 
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -152,7 +152,7 @@ class RawActivationExtractor:
             _scenarios = scenarios_meta
         elif system_prompt is not None and tools is not None:
             # Legacy single-scenario mode
-            from scenario import ScenarioConfig
+            from data.scenario import ScenarioConfig
 
             legacy = ScenarioConfig(
                 name="tool_selection",

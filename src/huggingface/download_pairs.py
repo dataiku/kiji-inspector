@@ -12,15 +12,11 @@ Example:
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
-
-# Allow imports from src/
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from datasets import load_dataset
 
-from contrastive_dataset import ContrastiveDataset, ContrastivePair
+from data.contrastive_dataset import ContrastiveDataset, ContrastivePair
 
 
 def parse_args() -> argparse.Namespace:
