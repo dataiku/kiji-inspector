@@ -1,20 +1,42 @@
+
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-*.whl
-dist/
+*$py.class
+*.so
+.Python
 build/
-
-# Virtual environment
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 .venv/
+venv/
+ENV/
+env/
+
+# uv (Python package manager)
+# Note: uv.lock should be committed for reproducible builds
+.uv/
+.uvcache/
+
 
 # Pipeline output
 output/
 
-# IDE
+# IDEs and AI assistant files
+CLAUDE.md
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
@@ -22,6 +44,14 @@ output/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
 
 # LaTeX
 *.aux
