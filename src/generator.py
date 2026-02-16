@@ -211,7 +211,7 @@ class ContrastivePairGenerator:
         outputs = self.llm.generate(prompts, self.sampling_params, use_tqdm=False)
 
         results: list[list[ContrastivePair]] = []
-        for (ct, _n), output in zip(requests, outputs):
+        for (ct, _n), output in zip(requests, outputs, strict=True):
             raw = output.outputs[0].text.strip()
             try:
                 results.append(self._parse_pairs(raw, ct))

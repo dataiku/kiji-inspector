@@ -9,7 +9,7 @@ train on multiple scenarios to produce a generic SAE.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 

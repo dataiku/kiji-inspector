@@ -10,7 +10,6 @@ Feature interpretation pipeline (Step 5).
 from __future__ import annotations
 
 import json
-from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -80,7 +79,7 @@ def load_activations_from_shards(
     unique_prompts: list[str] = []
     unique_activations: list[np.ndarray] = []
 
-    for prompt, act in zip(all_prompts, all_activations):
+    for prompt, act in zip(all_prompts, all_activations, strict=True):
         if prompt not in seen:
             seen.add(prompt)
             unique_prompts.append(prompt)
@@ -160,13 +159,13 @@ def collect_max_activating_examples(
         # Top activating
         topk_vals, topk_ids = col.topk(min(top_n, len(col)))
         top_examples = []
-        for val, idx in zip(topk_vals.tolist(), topk_ids.tolist()):
+        for val, idx in zip(topk_vals.tolist(), topk_ids.tolist(), strict=True):
             top_examples.append({"prompt": prompts[idx], "activation": round(val, 6)})
 
         # Bottom (near-zero / zero)
         bottomk_vals, bottomk_ids = col.topk(min(bottom_n, len(col)), largest=False)
         bottom_examples = []
-        for val, idx in zip(bottomk_vals.tolist(), bottomk_ids.tolist()):
+        for val, idx in zip(bottomk_vals.tolist(), bottomk_ids.tolist(), strict=True):
             bottom_examples.append({"prompt": prompts[idx], "activation": round(val, 6)})
 
         results[feat_idx] = {
@@ -231,7 +230,6 @@ def _run_labeling_subprocess(
     output_path: str,
 ) -> None:
     """Child process: load vLLM, label all features, save results, exit."""
-    import re
 
     from vllm import LLM, SamplingParams
 
@@ -270,7 +268,7 @@ def _run_labeling_subprocess(
     outputs = llm.generate(chatml_prompts, sampling_params)
 
     labels: dict[str, dict] = {}
-    for (feat_idx, _), output in zip(label_prompts, outputs):
+    for (feat_idx, _), output in zip(label_prompts, outputs, strict=True):
         raw = output.outputs[0].text.strip()
         # Strip markdown fences
         if raw.startswith("```"):
@@ -417,7 +415,7 @@ def generate_explanation_report(
     print(f"  Saved decision report: {report_path}")
 
     # Print summary
-    print(f"\n  Decision explanations:")
+    print("\n  Decision explanations:")
     for ct_value, info in decision_report.items():
         print(f"    {ct_value}:")
         print(f"      {info['explanation']}")
