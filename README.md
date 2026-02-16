@@ -23,7 +23,7 @@
 </div>
 
 ## Status
-This project is under active development. We are planning to release the framework in the coming weeks.
+This project is **under heavy active development**. We are planning to release a stable version of the framework in the coming weeks.
 
 In the meantime, join our [Slack Community](https://join.slack.com/t/dataiku-opensource/shared_invite/zt-3o6yq14rp-FTtAHZYhyru~jLZ~S6xPLA)
 
