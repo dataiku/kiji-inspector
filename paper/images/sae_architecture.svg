@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#1a2744" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="grad-topbar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a2744"/>
+      <stop offset="100%" stop-color="#e8563a"/>
+    </linearGradient>
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d4a7a"/>
+      <stop offset="100%" stop-color="#1a2744"/>
+    </linearGradient>
+    <linearGradient id="grad-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff7b5f"/>
+      <stop offset="100%" stop-color="#e8563a"/>
+    </linearGradient>
+    <linearGradient id="grad-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38b2ac"/>
+      <stop offset="100%" stop-color="#2c7a7b"/>
+    </linearGradient>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e8563a"/>
+    </marker>
+    <marker id="arr-navy" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1a2744"/>
+    </marker>
+    <marker id="arr-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2c7a7b"/>
+    </marker>
+    <marker id="arr-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#718096"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="560" fill="#ffffff" rx="8"/>
+  <rect width="1100" height="4" fill="url(#grad-topbar)" rx="2"/>
+
+  <!-- ============================================================ -->
+  <!-- INPUT: x (d_model = 4,096) -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="210" width="130" height="70" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="105" y="236" text-anchor="middle" font-size="12" fill="#718096" font-weight="600">INPUT</text>
+  <text x="105" y="255" text-anchor="middle" font-size="14" fill="#1a2744" font-weight="700">x</text>
+  <text x="105" y="272" text-anchor="middle" font-size="10" fill="#718096">d_model = 4,096</text>
+
+  <!-- ============================================================ -->
+  <!-- ENCODER PATH (top) -->
+  <!-- ============================================================ -->
+
+  <!-- Arrow: input to subtract b_dec -->
+  <line x1="170" y1="235" x2="218" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Subtract b_dec -->
+  <g filter="url(#shadow)">
+    <rect x="225" y="210" width="95" height="50" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="272" y="234" text-anchor="middle" font-size="12" fill="#1a2744" font-weight="700">x - b_dec</text>
+  <text x="272" y="250" text-anchor="middle" font-size="9" fill="#718096">center input</text>
+
+  <!-- Arrow to W_enc -->
+  <line x1="320" y1="235" x2="358" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- W_enc matmul + b_enc -->
+  <g filter="url(#shadow)">
+    <rect x="365" y="195" width="140" height="80" rx="10" fill="url(#grad-primary)"/>
+  </g>
+  <text x="435" y="222" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">W_enc @ (...)</text>
+  <text x="435" y="240" text-anchor="middle" font-size="11" fill="#ffffff">+ b_enc</text>
+  <text x="435" y="260" text-anchor="middle" font-size="9" fill="#cbd5e0">4,096 x 16,384</text>
+
+  <!-- Arrow to pre-activation -->
+  <line x1="505" y1="235" x2="543" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Pre-activation -->
+  <g filter="url(#shadow)">
+    <rect x="550" y="210" width="110" height="50" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="605" y="233" text-anchor="middle" font-size="11" fill="#1a2744" font-weight="600">pre_activation</text>
+  <text x="605" y="249" text-anchor="middle" font-size="10" fill="#718096">d_sae = 16,384</text>
+
+  <!-- Arrow to JumpReLU -->
+  <line x1="660" y1="235" x2="698" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- JumpReLU activation -->
+  <g filter="url(#shadow)">
+    <rect x="705" y="185" width="155" height="100" rx="12" fill="url(#grad-accent)"/>
+  </g>
+  <text x="782" y="212" text-anchor="middle" font-size="13" fill="#ffffff" font-weight="700">JumpReLU</text>
+  <text x="782" y="232" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.9">z * H(z - &#x3B8;)</text>
+  <text x="782" y="252" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">learnable &#x3B8; per feature</text>
+  <text x="782" y="270" text-anchor="middle" font-size="9" fill="#ffffff" fill-opacity="0.7">exact zeros (true sparsity)</text>
+
+  <!-- Arrow to features -->
+  <line x1="860" y1="235" x2="898" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Sparse features output -->
+  <g filter="url(#shadow)">
+    <rect x="905" y="200" width="155" height="70" rx="10" fill="url(#grad-teal)"/>
+  </g>
+  <text x="982" y="225" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">features (sparse)</text>
+  <text x="982" y="244" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.9">d_sae = 16,384</text>
+  <text x="982" y="260" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">~668 active (~4%)</text>
+
+  <!-- ============================================================ -->
+  <!-- DECODER PATH (bottom) -->
+  <!-- ============================================================ -->
+
+  <!-- Arrow down from features -->
+  <line x1="982" y1="270" x2="982" y2="335" stroke="#1a2744" stroke-width="2" marker-end="url(#arr-navy)"/>
+
+  <!-- W_dec matmul + b_dec -->
+  <g filter="url(#shadow)">
+    <rect x="910" y="342" width="145" height="75" rx="10" fill="url(#grad-primary)"/>
+  </g>
+  <text x="982" y="367" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">W_dec @ features</text>
+  <text x="982" y="385" text-anchor="middle" font-size="11" fill="#ffffff">+ b_dec</text>
+  <text x="982" y="403" text-anchor="middle" font-size="9" fill="#cbd5e0">16,384 x 4,096</text>
+
+  <!-- Arrow left to reconstruction -->
+  <line x1="910" y1="380" x2="855" y2="380" stroke="#1a2744" stroke-width="2" marker-end="url(#arr-navy)"/>
+
+  <!-- Reconstruction output -->
+  <g filter="url(#shadow)">
+    <rect x="700" y="350" width="148" height="60" rx="10" fill="#f7fafc" stroke="#2c7a7b" stroke-width="1.5"/>
+  </g>
+  <text x="774" y="374" text-anchor="middle" font-size="12" fill="#2c7a7b" font-weight="700">reconstruction</text>
+  <text x="774" y="393" text-anchor="middle" font-size="10" fill="#718096">d_model = 4,096</text>
+
+  <!-- ============================================================ -->
+  <!-- LOSS: connect reconstruction and input -->
+  <!-- ============================================================ -->
+
+  <!-- Arrow from reconstruction left -->
+  <line x1="700" y1="380" x2="620" y2="380" stroke="#718096" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+  <!-- MSE Loss box -->
+  <g filter="url(#shadow)">
+    <rect x="460" y="348" width="155" height="65" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="537" y="370" text-anchor="middle" font-size="11" fill="#1a2744" font-weight="700">Loss</text>
+  <text x="537" y="388" text-anchor="middle" font-size="9.5" fill="#718096">MSE(x, reconstruction)</text>
+  <text x="537" y="402" text-anchor="middle" font-size="9.5" fill="#718096">+ &#x3BB; * tanh L0 sparsity</text>
+
+  <!-- Line from input down to loss -->
+  <line x1="105" y1="280" x2="105" y2="380" stroke="#718096" stroke-width="1.5"/>
+  <line x1="105" y1="380" x2="453" y2="380" stroke="#718096" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+  <text x="280" y="395" text-anchor="middle" font-size="9" fill="#718096" font-weight="600">compare x with reconstruction</text>
+
+  <!-- ============================================================ -->
+  <!-- Shared b_dec annotation (below decoder path) -->
+  <!-- ============================================================ -->
+  <path d="M 272 260 L 272 440 L 982 440 L 982 417" stroke="#718096" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+  <text x="627" y="452" text-anchor="middle" font-size="9" fill="#718096" font-weight="600">b_dec shared (subtract before encode, add after decode)</text>
+
+  <!-- ============================================================ -->
+  <!-- Normalize decoder annotation -->
+  <!-- ============================================================ -->
+  <text x="982" y="432" text-anchor="middle" font-size="9" fill="#e8563a" font-weight="600">W_dec columns normalized to unit norm</text>
+
+  <!-- ============================================================ -->
+  <!-- Legend -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="460" width="1020" height="80" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1"/>
+  </g>
+
+  <text x="60" y="485" font-size="11" fill="#1a2744" font-weight="700">Parameters</text>
+
+  <rect x="60" y="496" width="14" height="14" rx="3" fill="#1a2744"/>
+  <text x="82" y="508" font-size="10" fill="#2d3748" font-weight="600">W_enc</text>
+  <text x="120" y="508" font-size="9.5" fill="#718096">(4,096 x 16,384)</text>
+
+  <rect x="240" y="496" width="14" height="14" rx="3" fill="#1a2744"/>
+  <text x="262" y="508" font-size="10" fill="#2d3748" font-weight="600">W_dec</text>
+  <text x="300" y="508" font-size="9.5" fill="#718096">(16,384 x 4,096)</text>
+
+  <rect x="420" y="496" width="14" height="14" rx="3" fill="#e8563a"/>
+  <text x="442" y="508" font-size="10" fill="#2d3748" font-weight="600">&#x3B8;</text>
+  <text x="454" y="508" font-size="9.5" fill="#718096">(16,384) thresholds</text>
+
+  <rect x="590" y="496" width="14" height="14" rx="3" fill="#718096"/>
+  <text x="612" y="508" font-size="10" fill="#2d3748" font-weight="600">b_enc</text>
+  <text x="648" y="508" font-size="9.5" fill="#718096">(16,384)</text>
+
+  <rect x="720" y="496" width="14" height="14" rx="3" fill="#718096"/>
+  <text x="742" y="508" font-size="10" fill="#2d3748" font-weight="600">b_dec</text>
+  <text x="778" y="508" font-size="9.5" fill="#718096">(4,096) shared</text>
+
+  <text x="60" y="530" font-size="10" fill="#718096">Total: ~134M trainable parameters</text>
+  <text x="350" y="530" font-size="10" fill="#718096">Activation: JumpReLU with STE pseudo-gradients</text>
+  <text x="700" y="530" font-size="10" fill="#718096">Loss: MSE + &#x3BB; * tanh-smoothed L0</text>
+</svg>

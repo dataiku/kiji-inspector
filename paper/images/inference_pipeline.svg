@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 520" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e8563a"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#718096"/>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#1a2744" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d4a7a"/>
+      <stop offset="100%" stop-color="#1a2744"/>
+    </linearGradient>
+    <linearGradient id="grad-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff7b5f"/>
+      <stop offset="100%" stop-color="#e8563a"/>
+    </linearGradient>
+    <linearGradient id="grad-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38b2ac"/>
+      <stop offset="100%" stop-color="#2c7a7b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="520" fill="#ffffff" rx="8"/>
+  <!-- Top accent bar -->
+  <rect width="1100" height="4" fill="url(#grad-accent)" rx="2"/>
+
+  <!-- ============================================================ -->
+  <!-- STEP 1: User Prompt -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="55" width="160" height="80" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="110" y="86" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">USER PROMPT</text>
+  <text x="110" y="108" text-anchor="middle" font-size="12" fill="#2d3748" font-style="italic">"Analyze our Q3</text>
+  <text x="110" y="123" text-anchor="middle" font-size="12" fill="#2d3748" font-style="italic">revenue trends"</text>
+
+  <!-- Arrow 1 -->
+  <line x1="190" y1="95" x2="238" y2="95" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- STEP 2: Nemotron Model -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="245" y="30" width="200" height="210" rx="12" fill="url(#grad-primary)"/>
+  </g>
+  <text x="345" y="58" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="700">Nemotron-3 Nano</text>
+  <text x="345" y="75" text-anchor="middle" font-size="11" fill="#cbd5e0">30B params, 54 layers</text>
+
+  <!-- Layer stack inside model -->
+  <rect x="275" y="90" width="140" height="22" rx="4" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1"/>
+  <text x="345" y="105" text-anchor="middle" font-size="10" fill="#cbd5e0">Layers 1-19</text>
+
+  <rect x="275" y="118" width="140" height="28" rx="4" fill="#e8563a" fill-opacity="0.9" stroke="#ff7b5f" stroke-width="1.5"/>
+  <text x="345" y="137" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Layer 20</text>
+
+  <rect x="275" y="152" width="140" height="22" rx="4" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1"/>
+  <text x="345" y="167" text-anchor="middle" font-size="10" fill="#cbd5e0">Layers 21-54</text>
+
+  <!-- Extract label -->
+  <text x="345" y="198" text-anchor="middle" font-size="10" fill="#cbd5e0">Encoder forward pass</text>
+  <text x="345" y="213" text-anchor="middle" font-size="10" fill="#ff7b5f" font-weight="600">Extract at decision token</text>
+  <text x="345" y="228" text-anchor="middle" font-size="10" fill="#cbd5e0" font-style="italic">"I'll use the '"</text>
+
+  <!-- Arrow 2: Extract from Layer 20 to Activation box -->
+  <line x1="445" y1="95" x2="488" y2="95" stroke="#e8563a" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="467" y="84" text-anchor="middle" font-size="9" fill="#e8563a" font-weight="600">extract</text>
+
+  <!-- ============================================================ -->
+  <!-- STEP 3: Activation Vector -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="495" y="60" width="130" height="70" rx="10" fill="#f7fafc" stroke="#e8563a" stroke-width="1.5"/>
+  </g>
+  <text x="560" y="84" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">ACTIVATION</text>
+  <text x="560" y="102" text-anchor="middle" font-size="13" fill="#1a2744" font-weight="700">4,096-dim vector</text>
+  <text x="560" y="118" text-anchor="middle" font-size="10" fill="#718096">dense, float16</text>
+
+  <!-- Arrow 3 -->
+  <line x1="560" y1="130" x2="560" y2="178" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- STEP 4: SAE Model -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="480" y="185" width="160" height="90" rx="12" fill="url(#grad-accent)"/>
+  </g>
+  <text x="560" y="212" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="700">SAE Encoder</text>
+  <text x="560" y="230" text-anchor="middle" font-size="11" fill="#ffffff" fill-opacity="0.9">JumpReLU activation</text>
+  <text x="560" y="248" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.8">learnable thresholds</text>
+  <text x="560" y="264" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.8">4,096 &#x2192; 16,384</text>
+
+  <!-- Arrow 4 -->
+  <line x1="560" y1="275" x2="560" y2="318" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- STEP 5: Sparse Vector -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="460" y="325" width="200" height="75" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="560" y="348" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">SPARSE VECTOR</text>
+  <text x="560" y="367" text-anchor="middle" font-size="13" fill="#1a2744" font-weight="700">16,384 dimensions</text>
+  <text x="560" y="385" text-anchor="middle" font-size="10" fill="#718096">~96% zeros, ~668 active</text>
+
+  <!-- Sparse vector visualization bar -->
+  <g transform="translate(475, 392)">
+    <!-- background bar -->
+    <rect width="170" height="6" rx="3" fill="#e2e8f0"/>
+    <!-- active spikes -->
+    <rect x="8" width="2" height="6" rx="1" fill="#e8563a"/>
+    <rect x="23" width="2" height="6" rx="1" fill="#e8563a"/>
+    <rect x="31" width="3" height="6" rx="1" fill="#e8563a" opacity="0.7"/>
+    <rect x="52" width="2" height="6" rx="1" fill="#e8563a"/>
+    <rect x="67" width="3" height="6" rx="1" fill="#1a2744"/>
+    <rect x="78" width="2" height="6" rx="1" fill="#e8563a" opacity="0.5"/>
+    <rect x="95" width="3" height="6" rx="1" fill="#1a2744"/>
+    <rect x="110" width="2" height="6" rx="1" fill="#e8563a"/>
+    <rect x="128" width="2" height="6" rx="1" fill="#e8563a" opacity="0.6"/>
+    <rect x="142" width="3" height="6" rx="1" fill="#1a2744"/>
+    <rect x="160" width="2" height="6" rx="1" fill="#e8563a"/>
+  </g>
+
+  <!-- Arrow 5 -->
+  <line x1="660" y1="365" x2="708" y2="365" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="684" y="356" text-anchor="middle" font-size="9" fill="#e8563a" font-weight="600">rank</text>
+
+  <!-- ============================================================ -->
+  <!-- STEP 6: Top-K Selection -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="715" y="325" width="150" height="75" rx="10" fill="url(#grad-primary)"/>
+  </g>
+  <text x="790" y="348" text-anchor="middle" font-size="11" fill="#cbd5e0" font-weight="600" letter-spacing="0.5">TOP-K FEATURES</text>
+  <text x="790" y="368" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Most active dims</text>
+  <text x="790" y="386" text-anchor="middle" font-size="10" fill="#cbd5e0">ranked by activation</text>
+
+  <!-- Arrow 6 -->
+  <line x1="865" y1="365" x2="908" y2="365" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="886" y="356" text-anchor="middle" font-size="9" fill="#e8563a" font-weight="600">look up</text>
+
+  <!-- ============================================================ -->
+  <!-- STEP 7: Feature Themes / Labels -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="915" y="285" width="160" height="170" rx="12" fill="url(#grad-teal)"/>
+  </g>
+  <text x="995" y="310" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">FEATURE THEMES</text>
+  <text x="995" y="327" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.8">pre-computed labels</text>
+
+  <!-- Theme items -->
+  <rect x="930" y="340" width="130" height="24" rx="5" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="995" y="356" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">"internal data access"</text>
+
+  <rect x="930" y="370" width="130" height="24" rx="5" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="995" y="386" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">"financial analysis"</text>
+
+  <rect x="930" y="400" width="130" height="24" rx="5" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="995" y="416" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">"temporal reasoning"</text>
+
+  <rect x="930" y="430" width="130" height="15" rx="4" fill="#ffffff" fill-opacity="0.1"/>
+  <text x="995" y="441" text-anchor="middle" font-size="9" fill="#ffffff" fill-opacity="0.6">...</text>
+
+  <!-- ============================================================ -->
+  <!-- Output: Decision Explanation -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="715" y="475" width="360" height="36" rx="8" fill="#f7fafc" stroke="#38b2ac" stroke-width="1.5"/>
+  </g>
+  <text x="895" y="498" text-anchor="middle" font-size="11" fill="#2c7a7b" font-weight="600">Output: natural-language decision explanation</text>
+
+  <!-- Arrow from themes down to output -->
+  <path d="M 995 455 L 995 475 L 950 475" stroke="#38b2ac" stroke-width="1.5" fill="none" marker-end="url(#arrow-gray)"/>
+
+  <!-- ============================================================ -->
+  <!-- Step numbers -->
+  <!-- ============================================================ -->
+  <circle cx="110" cy="42" r="11" fill="#e8563a"/>
+  <text x="110" y="46" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">1</text>
+
+  <circle cx="345" cy="20" r="11" fill="#e8563a"/>
+  <text x="345" y="24" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">2</text>
+
+  <circle cx="560" cy="48" r="11" fill="#e8563a"/>
+  <text x="560" y="52" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">3</text>
+
+  <circle cx="560" cy="178" r="11" fill="#e8563a"/>
+  <text x="560" y="182" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">4</text>
+
+  <circle cx="560" cy="318" r="11" fill="#e8563a"/>
+  <text x="560" y="322" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">5</text>
+
+  <circle cx="790" cy="318" r="11" fill="#e8563a"/>
+  <text x="790" y="322" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">6</text>
+
+  <circle cx="995" cy="278" r="11" fill="#e8563a"/>
+  <text x="995" y="282" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">7</text>
+
+  <!-- ============================================================ -->
+  <!-- Step labels at bottom -->
+  <!-- ============================================================ -->
+  <rect x="30" y="475" width="650" height="36" rx="6" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="45" y="498" font-size="10" fill="#e8563a" font-weight="700">1</text>
+  <text x="55" y="498" font-size="10" fill="#718096">Prompt</text>
+  <text x="110" y="498" font-size="10" fill="#e8563a" font-weight="700">2</text>
+  <text x="120" y="498" font-size="10" fill="#718096">Encode</text>
+  <text x="185" y="498" font-size="10" fill="#e8563a" font-weight="700">3</text>
+  <text x="195" y="498" font-size="10" fill="#718096">Extract layer 20</text>
+  <text x="305" y="498" font-size="10" fill="#e8563a" font-weight="700">4</text>
+  <text x="315" y="498" font-size="10" fill="#718096">SAE encode</text>
+  <text x="400" y="498" font-size="10" fill="#e8563a" font-weight="700">5</text>
+  <text x="410" y="498" font-size="10" fill="#718096">Sparse vector</text>
+  <text x="505" y="498" font-size="10" fill="#e8563a" font-weight="700">6</text>
+  <text x="515" y="498" font-size="10" fill="#718096">Rank top-K</text>
+  <text x="600" y="498" font-size="10" fill="#e8563a" font-weight="700">7</text>
+  <text x="610" y="498" font-size="10" fill="#718096">Theme lookup</text>
+</svg>
