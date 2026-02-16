@@ -41,22 +41,6 @@ The key insight: train the SAE on **raw activations** (not difference vectors), 
 
 We welcome contributions! Whether you're fixing a bug, improving documentation, or proposing a new feature, your help is appreciated.
 
-### Getting Started
-
-1. Fork the repository and clone your fork
-2. Create a new branch for your contribution (`git checkout -b feature/your-feature`)
-3. Install the project with dev dependencies:
-   ```bash
-   pip install -e ".[dev]"
-   ```
-4. Make your changes and ensure code quality:
-   ```bash
-   black .
-   ruff check .
-   pytest
-   ```
-5. Commit your changes and open a Pull Request against `main`
-
 ### Ways to Contribute
 
 - **Report Bugs** - [Open an issue](https://github.com/dataiku/kiji-inspector/issues) with steps to reproduce
