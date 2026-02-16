@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 580" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#1a2744" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="grad-topbar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a2744"/>
+      <stop offset="100%" stop-color="#e8563a"/>
+    </linearGradient>
+    <marker id="arrow-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e8563a"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="580" fill="#ffffff" rx="8"/>
+  <rect width="1100" height="4" fill="url(#grad-topbar)" rx="2"/>
+
+  <!-- Title -->
+  <text x="550" y="36" text-anchor="middle" font-size="16" fill="#1a2744" font-weight="700">Nemotron-3 Nano 30B Architecture</text>
+  <text x="550" y="54" text-anchor="middle" font-size="11" fill="#718096">52 layers | 30B total params | 3.5B active | Mamba2-Transformer Hybrid MoE</text>
+
+  <!-- ============================================================ -->
+  <!-- Layer strip: 52 columns -->
+  <!-- ============================================================ -->
+  <!-- Layout: x=40..1060, width=1020, each layer = 1020/52 ~ 19.6px -->
+
+  <!-- Layer type colors:
+       M (Mamba2)    = #2d4a7a (primary_light)
+       E (Attention) = #1a2744 (primary)
+       * (MoE)       = #e8563a (accent)
+       Layer 20 highlight = bright outline
+  -->
+
+  <!-- Column labels: every 5th layer -->
+  <text x="52" y="82" text-anchor="middle" font-size="8" fill="#718096">0</text>
+  <text x="150" y="82" text-anchor="middle" font-size="8" fill="#718096">5</text>
+  <text x="248" y="82" text-anchor="middle" font-size="8" fill="#718096">10</text>
+  <text x="346" y="82" text-anchor="middle" font-size="8" fill="#718096">15</text>
+  <text x="444" y="82" text-anchor="middle" font-size="8" fill="#718096">20</text>
+  <text x="542" y="82" text-anchor="middle" font-size="8" fill="#718096">25</text>
+  <text x="640" y="82" text-anchor="middle" font-size="8" fill="#718096">30</text>
+  <text x="738" y="82" text-anchor="middle" font-size="8" fill="#718096">35</text>
+  <text x="836" y="82" text-anchor="middle" font-size="8" fill="#718096">40</text>
+  <text x="934" y="82" text-anchor="middle" font-size="8" fill="#718096">45</text>
+  <text x="1032" y="82" text-anchor="middle" font-size="8" fill="#718096">50</text>
+
+  <!-- Layer blocks: M E M E M * E M E M E M * E M E M E M * E M E M E M * E M E M E M * E M E M E M E M * E M E M E M E M E -->
+  <!-- Pattern: MEMEM*EMEMEM*EMEMEM*EMEMEM*EMEMEM*EMEMEMEM*EMEMEMEME -->
+  <!-- x_start=42, width per layer=18.5, gap=1 -->
+
+  <!-- Layer  0: M --> <rect x="42"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer  1: E --> <rect x="61.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer  2: M --> <rect x="81"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer  3: E --> <rect x="100.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer  4: M --> <rect x="120"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer  5: * --> <rect x="139.5"  y="88" width="18" height="180" rx="2" fill="#e8563a"/>
+  <!-- Layer  6: E --> <rect x="159"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer  7: M --> <rect x="178.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer  8: E --> <rect x="198"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer  9: M --> <rect x="217.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 10: E --> <rect x="237"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 11: M --> <rect x="256.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 12: * --> <rect x="276"  y="88" width="18" height="180" rx="2" fill="#e8563a"/>
+  <!-- Layer 13: E --> <rect x="295.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 14: M --> <rect x="315"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 15: E --> <rect x="334.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 16: M --> <rect x="354"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 17: E --> <rect x="373.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 18: M --> <rect x="393"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 19: * --> <rect x="412.5"  y="88" width="18" height="180" rx="2" fill="#e8563a"/>
+
+  <!-- Layer 20: E = EXTRACTION POINT (highlighted) -->
+  <rect x="430" y="84" width="22" height="188" rx="3" fill="none" stroke="#ff7b5f" stroke-width="3"/>
+  <rect x="432" y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+
+  <!-- Layer 21: M --> <rect x="453.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 22: E --> <rect x="473"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 23: M --> <rect x="492.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 24: E --> <rect x="512"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 25: M --> <rect x="531.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 26: * --> <rect x="551"  y="88" width="18" height="180" rx="2" fill="#e8563a"/>
+  <!-- Layer 27: E --> <rect x="570.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 28: M --> <rect x="590"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 29: E --> <rect x="609.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 30: M --> <rect x="629"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 31: E --> <rect x="648.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 32: M --> <rect x="668"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 33: * --> <rect x="687.5"  y="88" width="18" height="180" rx="2" fill="#e8563a"/>
+  <!-- Layer 34: E --> <rect x="707"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 35: M --> <rect x="726.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 36: E --> <rect x="746"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 37: M --> <rect x="765.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 38: E --> <rect x="785"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 39: M --> <rect x="804.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 40: E --> <rect x="824"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 41: M --> <rect x="843.5"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 42: * --> <rect x="863"  y="88" width="18" height="180" rx="2" fill="#e8563a"/>
+  <!-- Layer 43: E --> <rect x="882.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 44: M --> <rect x="902"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 45: E --> <rect x="921.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 46: M --> <rect x="941"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 47: E --> <rect x="960.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 48: M --> <rect x="980"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 49: E --> <rect x="999.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+  <!-- Layer 50: M --> <rect x="1019"  y="88" width="18" height="180" rx="2" fill="#2d4a7a"/>
+  <!-- Layer 51: E --> <rect x="1038.5"  y="88" width="18" height="180" rx="2" fill="#1a2744"/>
+
+  <!-- ============================================================ -->
+  <!-- Extraction arrow pointing to layer 20 -->
+  <!-- ============================================================ -->
+  <line x1="441" y1="282" x2="441" y2="300" stroke="#e8563a" stroke-width="2"/>
+  <line x1="441" y1="300" x2="441" y2="350" stroke="#e8563a" stroke-width="2.5" marker-end="url(#arrow-r)" stroke-dasharray="6,3"/>
+
+  <!-- Extraction callout box -->
+  <g filter="url(#shadow)">
+    <rect x="340" y="355" width="202" height="70" rx="8" fill="#fff5f5" stroke="#e8563a" stroke-width="2"/>
+  </g>
+  <text x="441" y="377" text-anchor="middle" font-size="13" fill="#e8563a" font-weight="700">Layer 20: Extraction Point</text>
+  <text x="441" y="395" text-anchor="middle" font-size="10" fill="#2d3748">GQA Attention layer</text>
+  <text x="441" y="411" text-anchor="middle" font-size="10" fill="#2d3748">hidden dim = 2,688</text>
+
+  <!-- Arrow from callout pointing right to "why layer 20" note -->
+  <line x1="542" y1="390" x2="595" y2="390" stroke="#e8563a" stroke-width="1.5" marker-end="url(#arrow-r)"/>
+
+  <g filter="url(#shadow)">
+    <rect x="600" y="355" width="235" height="70" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="717" y="377" text-anchor="middle" font-size="11" fill="#1a2744" font-weight="700">Why layer 20?</text>
+  <text x="717" y="395" text-anchor="middle" font-size="10" fill="#718096">Last dense layer before MoE block</text>
+  <text x="717" y="411" text-anchor="middle" font-size="10" fill="#718096">81.2% alive features, MSE 0.574</text>
+
+  <!-- ============================================================ -->
+  <!-- Legend -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="42" y="450" width="1015" height="110" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1"/>
+  </g>
+
+  <!-- Legend title -->
+  <text x="62" y="475" font-size="12" fill="#1a2744" font-weight="700">Layer Types</text>
+
+  <!-- Mamba2 -->
+  <rect x="62" y="488" width="30" height="16" rx="3" fill="#2d4a7a"/>
+  <text x="100" y="501" font-size="11" fill="#2d3748" font-weight="600">Mamba-2 (23 layers)</text>
+  <text x="100" y="515" font-size="9.5" fill="#718096">State-space model, linear complexity</text>
+
+  <!-- Attention -->
+  <rect x="310" y="488" width="30" height="16" rx="3" fill="#1a2744"/>
+  <text x="348" y="501" font-size="11" fill="#2d3748" font-weight="600">GQA Attention (23 layers)</text>
+  <text x="348" y="515" font-size="9.5" fill="#718096">Grouped query attention, 2 KV groups</text>
+
+  <!-- MoE -->
+  <rect x="590" y="488" width="30" height="16" rx="3" fill="#e8563a"/>
+  <text x="628" y="501" font-size="11" fill="#2d3748" font-weight="600">MoE (6 layers)</text>
+  <text x="628" y="515" font-size="9.5" fill="#718096">128 routed + 1 shared expert, 6 active/token</text>
+
+  <!-- Extraction highlight -->
+  <rect x="860" y="486" width="30" height="20" rx="3" fill="none" stroke="#ff7b5f" stroke-width="2.5"/>
+  <text x="898" y="501" font-size="11" fill="#e8563a" font-weight="600">Extraction point</text>
+  <text x="898" y="515" font-size="9.5" fill="#718096">SAE trained on this layer</text>
+
+  <!-- Model stats row -->
+  <text x="62" y="547" font-size="10" fill="#718096">30B total params</text>
+  <text x="210" y="547" font-size="10" fill="#718096">3.5B active/token</text>
+  <text x="380" y="547" font-size="10" fill="#718096">hidden dim: 2,688</text>
+  <text x="560" y="547" font-size="10" fill="#718096">vocab: 131K</text>
+  <text x="700" y="547" font-size="10" fill="#718096">context: 256K</text>
+  <text x="860" y="547" font-size="10" fill="#718096">pattern: MEMEM*E...</text>
+</svg>

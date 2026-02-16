@@ -1,0 +1,294 @@
+/* @theme professional */
+
+@import "default";
+
+:root {
+    --color-primary: #1a2744;
+    --color-primary-light: #2d4a7a;
+    --color-accent: #e8563a;
+    --color-accent-light: #ff7b5f;
+    --color-text: #2d3748;
+    --color-text-light: #718096;
+    --color-bg: #ffffff;
+    --color-bg-subtle: #f7fafc;
+    --color-border: #e2e8f0;
+    font-family: "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+}
+
+section {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 23px;
+    line-height: 1.5;
+    padding: 50px 60px 40px 60px;
+    justify-content: flex-start;
+}
+
+/* Top accent bar on every slide */
+section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(
+        90deg,
+        var(--color-primary) 0%,
+        var(--color-accent) 100%
+    );
+}
+
+/* Page number styling */
+section::after {
+    color: var(--color-text-light);
+    font-size: 14px;
+    font-weight: 400;
+}
+
+/* ---- Headings ---- */
+h1 {
+    color: var(--color-primary);
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    border-bottom: 2px solid var(--color-accent);
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: var(--color-primary);
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+h3 {
+    color: var(--color-primary-light);
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* ---- Lead / Title slides ---- */
+section.lead {
+    background: linear-gradient(
+        135deg,
+        var(--color-primary) 0%,
+        #1e3a5f 50%,
+        var(--color-primary-light) 100%
+    );
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 80px;
+}
+
+section.lead::before {
+    background: var(--color-accent);
+    height: 6px;
+}
+
+section.lead h1 {
+    color: #ffffff;
+    font-size: 40px;
+    border-bottom: 3px solid var(--color-accent);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+
+section.lead h2 {
+    color: #cbd5e0;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+section.lead p {
+    color: #e2e8f0;
+    font-size: 20px;
+}
+
+section.lead strong {
+    color: #ffffff;
+}
+
+section.lead a {
+    color: var(--color-accent-light);
+}
+
+/* ---- Section break slides ---- */
+section.section-break {
+    background: var(--color-bg-subtle);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+section.section-break h1 {
+    font-size: 38px;
+    border-bottom: 3px solid var(--color-accent);
+    padding-bottom: 12px;
+}
+
+section.section-break h2 {
+    color: var(--color-text-light);
+    font-weight: 400;
+    font-size: 24px;
+}
+
+/* ---- Lists ---- */
+ul,
+ol {
+    margin-left: 0.2em;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+li::marker {
+    color: var(--color-accent);
+    font-weight: 700;
+}
+
+/* ---- Tables ---- */
+table {
+    font-size: 19px;
+    margin: 16px auto;
+    border-collapse: collapse;
+    width: auto;
+}
+
+thead th {
+    background: var(--color-primary);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 8px 14px;
+    border: none;
+}
+
+tbody td {
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+tbody tr:nth-child(even) {
+    background: var(--color-bg-subtle);
+}
+
+tbody tr:hover {
+    background: #edf2f7;
+}
+
+/* ---- Blockquotes ---- */
+blockquote {
+    border-left: 4px solid var(--color-accent);
+    background: #fff5f5;
+    padding: 12px 20px;
+    margin: 16px 0;
+    font-style: normal;
+    font-size: 21px;
+    border-radius: 0 4px 4px 0;
+}
+
+blockquote p {
+    margin: 4px 0;
+}
+
+/* ---- Code ---- */
+code {
+    background: #edf2f7;
+    color: var(--color-primary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.88em;
+}
+
+pre {
+    background: #1a2744;
+    color: #e2e8f0;
+    padding: 16px 20px;
+    border-radius: 6px;
+    border-left: 4px solid var(--color-accent);
+    font-size: 17px;
+    line-height: 1.5;
+}
+
+pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+/* ---- Emphasis as highlight ---- */
+em {
+    color: var(--color-accent);
+    font-style: normal;
+    font-weight: 700;
+}
+
+section.lead em {
+    color: var(--color-accent-light);
+}
+
+/* ---- Strong ---- */
+strong {
+    color: var(--color-primary);
+}
+
+/* ---- Links ---- */
+a {
+    color: var(--color-primary-light);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-accent);
+}
+
+/* ---- Images ---- */
+img[alt~="center"] {
+    display: block;
+    margin: 0 auto;
+}
+
+img {
+    border-radius: 4px;
+}
+
+/* ---- Math ---- */
+.katex,
+.MathJax {
+    font-size: 1em;
+}
+
+/* ---- Draft / WIP slide ---- */
+section.draft {
+    border: 6px solid #c53030;
+    box-shadow:
+        inset 0 0 0 2px #fff,
+        inset 0 0 0 4px #c53030;
+}
+
+section.draft::before {
+    background: #c53030;
+}
+
+section.draft h2 {
+    color: #c53030;
+}
+
+/* ---- HR as section divider ---- */
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        var(--color-accent) 0%,
+        transparent 100%
+    );
+    margin: 20px 0;
+}
