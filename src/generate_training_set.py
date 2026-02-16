@@ -252,10 +252,10 @@ def parse_args() -> argparse.Namespace:
         "--step",
         type=str,
         default="all",
-        choices=["1", "2", "3", "4", "5", "6", "all"],
+        choices=["1", "2", "3", "4", "5", "6", "all", "2+"],
         help="Run a single step: 1=generate, 2=extract, 3=train SAE, "
-        "4=identify features, 5=interpret features, 6=fuzzing eval "
-        "(default: all runs 1+2+3).",
+        "4=identify features, 5=interpret features, 6=fuzzing eval. "
+        "Shortcuts: all=1+2+3, 2+=2+3+4+5+6 (default: all).",
     )
     p.add_argument(
         "--pairs-dir",
@@ -1213,8 +1213,13 @@ def _run_step6(args, pairs_dir: str) -> None:
 def main() -> None:
     args = parse_args()
 
-    # "all" runs steps 1 + 2 + 3 (steps 4-6 require explicit invocation)
-    steps = ["1", "2", "3"] if args.step == "all" else [args.step]
+    # "all" runs steps 1 + 2 + 3; "2+" runs steps 2 through 6
+    if args.step == "all":
+        steps = ["1", "2", "3"]
+    elif args.step == "2+":
+        steps = ["2", "3", "4", "5", "6"]
+    else:
+        steps = [args.step]
 
     # num_samples is required when generating pairs (step 1 or "all")
     if "1" in steps and not args.pairs_dir and args.num_samples is None:
