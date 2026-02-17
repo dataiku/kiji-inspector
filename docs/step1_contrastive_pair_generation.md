@@ -229,15 +229,22 @@ Each Parquet file contains columns matching the `ContrastivePair` fields. The `s
 
 ## Verification
 
+Use the `data.pair_stats` module to inspect generated pairs:
+
 ```bash
-# Check pair distribution across scenarios and contrast types
-python -c "
-import pyarrow.parquet as pq
-from collections import Counter
-t = pq.read_table('output/pairs/shard_00000.parquet')
-d = t.to_pydict()
-print('Scenarios:', Counter(d['scenario_name']))
-print('Contrast types:', Counter(d['contrast_type']))
-print('Total pairs:', len(d['pair_id']))
-"
+# Comprehensive statistics (scenarios, contrast types, tools, prompt lengths, etc.)
+uv run python -m data.pair_stats output/pairs
+
+# Include random example pairs
+uv run python -m data.pair_stats output/pairs --show-examples 5
+
+# Machine-readable JSON output (e.g. for piping to jq)
+uv run python -m data.pair_stats output/pairs --json
 ```
+
+The report includes:
+- Total/unique/duplicate prompt counts
+- Per-scenario and per-contrast-type pair distributions
+- Tool usage (as anchor vs. contrast) and top tool pairs
+- Prompt length statistics (min, P10, median, mean, P90, max)
+- Semantic similarity distribution
