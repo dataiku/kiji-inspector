@@ -20,7 +20,7 @@ import numpy as np
 def identify_contrastive_features(
     pairs: list,
     sae_checkpoint: str,
-    nemotron_model: str,
+    subject_model: str,
     layers: list[int],
     layer_key: str,
     batch_size: int,
@@ -54,13 +54,14 @@ def identify_contrastive_features(
     sae.eval()
     print(f"  Loaded SAE: d_model={sae.d_model}, d_sae={sae.d_sae}")
 
-    # Load Nemotron for live extraction of contrastive pairs
+    # Load subject model for live extraction of contrastive pairs
     config = ActivationConfig(
-        model_name=nemotron_model,
+        model_name=subject_model,
         layers=layers,
         dtype=torch.bfloat16,
     )
     extractor = ActivationExtractor(config=config)
+    tokenizer = extractor.tokenizer
 
     # Build scenario lookup for per-pair prompt construction
     _scenarios_meta = scenarios_meta or {}
@@ -88,7 +89,7 @@ def identify_contrastive_features(
                     system_prompt=scenario.system_prompt,
                     tools=scenario.tools,
                     user_request=pair.anchor_prompt,
-                    model_type="nemotron",
+                    tokenizer=tokenizer,
                 )
             )
             contrast_prompts.append(
@@ -96,7 +97,7 @@ def identify_contrastive_features(
                     system_prompt=scenario.system_prompt,
                     tools=scenario.tools,
                     user_request=pair.contrast_prompt,
-                    model_type="nemotron",
+                    tokenizer=tokenizer,
                 )
             )
 

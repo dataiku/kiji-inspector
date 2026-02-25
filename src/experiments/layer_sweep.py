@@ -57,10 +57,18 @@ def parse_args() -> argparse.Namespace:
         help="Base directory for per-layer outputs (default: output/layer_sweep).",
     )
     p.add_argument(
-        "--nemotron-model",
+        "--subject-model",
         type=str,
         default="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+        dest="subject_model",
         help="Subject model for activation extraction.",
+    )
+    p.add_argument(
+        "--nemotron-model",
+        type=str,
+        default=argparse.SUPPRESS,
+        dest="subject_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--qwen-model",
@@ -174,7 +182,7 @@ def run_layer(
         extract_activations(
             pairs=pairs,
             output_dir=activations_dir,
-            nemotron_model=args.nemotron_model,
+            subject_model=args.subject_model,
             layers=[layer],
             layer_key=layer_key,
             batch_size=args.batch_size,
@@ -220,7 +228,7 @@ def run_layer(
         identify_contrastive_features(
             pairs=pairs,
             sae_checkpoint=sae_path,
-            nemotron_model=args.nemotron_model,
+            subject_model=args.subject_model,
             layers=[layer],
             layer_key=layer_key,
             batch_size=args.batch_size,
@@ -328,25 +336,26 @@ def run_layer(
                     seen.add(prompt)
                     all_prompts.append(prompt)
 
+        tokenizer = AutoTokenizer.from_pretrained(args.subject_model, trust_remote_code=True)
+
         formatted_prompts = []
         for req in all_prompts:
             sc_name = prompt_to_scenario.get(req, "")
             sc = scenarios_meta.get(sc_name, _default_sc)
             formatted_prompts.append(
-                build_agent_prompt(sc.system_prompt, sc.tools, req, "nemotron")
+                build_agent_prompt(sc.system_prompt, sc.tools, req, tokenizer=tokenizer)
             )
 
         token_strings_list, token_activations_list = extract_per_token_activations(
             prompts=all_prompts,
             formatted_prompts=formatted_prompts,
-            nemotron_model=args.nemotron_model,
+            subject_model=args.subject_model,
             layers=[layer],
             layer_key=layer_key,
             batch_size=64,
         )
 
         prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
-        tokenizer = AutoTokenizer.from_pretrained(args.nemotron_model, trust_remote_code=True)
 
         examples = build_fuzzing_examples(
             feature_descriptions=feature_descriptions,
@@ -484,7 +493,7 @@ def main() -> None:
     print(f"  Pairs           : {args.pairs_dir}")
     print(f"  Output base     : {args.base_output_dir}")
     print(f"  Skip steps      : {args.skip_steps or 'none'}")
-    print(f"  Model           : {args.nemotron_model}")
+    print(f"  Subject model   : {args.subject_model}")
     print("=" * 70)
 
     summaries: list[dict] = []

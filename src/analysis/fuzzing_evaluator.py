@@ -8,7 +8,7 @@ each feature, not just which texts. This catches explanations that are
 Based on Eleuther AI's autointerp approach:
 https://blog.eleuther.ai/autointerp/
 
-6a: Extract per-token activations via Nemotron.
+6a: Extract per-token activations from the subject model.
 6b: Encode through SAE, build cross-prompt A/B fuzzing examples.
 6c: LLM judge evaluates highlights in subprocess.
 6d: Compute metrics and save report.
@@ -58,7 +58,7 @@ class FuzzingExample:
 def extract_per_token_activations(
     prompts: list[str],
     formatted_prompts: list[str],
-    nemotron_model: str,
+    subject_model: str,
     layers: list[int],
     layer_key: str,
     batch_size: int,
@@ -67,8 +67,8 @@ def extract_per_token_activations(
 
     Args:
         prompts: Original user request strings (for display).
-        formatted_prompts: Full ChatML-formatted prompts for the model.
-        nemotron_model: HuggingFace model name.
+        formatted_prompts: Full formatted prompts for the subject model.
+        subject_model: HuggingFace model name.
         layers: Transformer layers to hook.
         layer_key: Which layer's activations to use.
         batch_size: GPU batch size.
@@ -80,7 +80,7 @@ def extract_per_token_activations(
     from extraction.activation_extractor import ActivationConfig, ActivationExtractor
 
     config = ActivationConfig(
-        model_name=nemotron_model,
+        model_name=subject_model,
         layers=layers,
         dtype=torch.bfloat16,
         token_positions="all",
@@ -129,30 +129,17 @@ def extract_per_token_activations(
 # ---------------------------------------------------------------------------
 
 
-def _find_user_request_span(
+def _try_chatml_span(
     token_strings: list[str],
-    user_request: str,
     tokenizer,
-) -> tuple[int, int]:
-    """Find the token index range corresponding to the user request.
+) -> tuple[int, int] | None:
+    """Try to find user request span using ChatML markers.
 
-    Uses ChatML structural markers (<|im_start|> / <|im_end|>) to
-    deterministically locate the user turn, avoiding BPE context-
-    sensitivity issues with standalone tokenization.
-
-    The formatted prompt has structure:
-        <|im_start|>system\\n...<|im_end|>\\n
-        <|im_start|>user\\n{request}<|im_end|>\\n
-        <|im_start|>assistant\\n...
-
-    Returns:
-        (start_idx, end_idx) -- inclusive start, exclusive end.
-        The span covers only the user request content tokens.
+    Works with Qwen, Nemotron, Yi, and other ChatML-based models.
     """
     im_start_str = "<|im_start|>"
     im_end_str = "<|im_end|>"
 
-    # Find positions of ChatML markers in token strings
     im_start_positions = [i for i, tok in enumerate(token_strings) if im_start_str in tok]
     im_end_positions = [i for i, tok in enumerate(token_strings) if im_end_str in tok]
 
@@ -180,12 +167,163 @@ def _find_user_request_span(
         if content_start < user_turn_end_marker:
             return content_start, user_turn_end_marker
 
+    return None
+
+
+def _try_llama3_span(
+    token_strings: list[str],
+    tokenizer,
+) -> tuple[int, int] | None:
+    """Try to find user request span using Llama 3 markers.
+
+    Looks for <|start_header_id|>user<|end_header_id|> boundaries.
+    """
+    header_start = "<|start_header_id|>"
+    eot = "<|eot_id|>"
+
+    header_positions = [i for i, tok in enumerate(token_strings) if header_start in tok]
+    eot_positions = [i for i, tok in enumerate(token_strings) if eot in tok]
+
+    # Find the "user" header (typically the 2nd header after "system")
+    user_header_idx = None
+    for pos in header_positions:
+        # Check if next few tokens contain "user"
+        for offset in range(1, 4):
+            if pos + offset < len(token_strings):
+                decoded = tokenizer.decode(
+                    tokenizer.convert_tokens_to_ids([token_strings[pos + offset]]),
+                    skip_special_tokens=False,
+                ).strip().lower()
+                if decoded == "user":
+                    user_header_idx = pos
+                    break
+        if user_header_idx is not None:
+            break
+
+    if user_header_idx is None:
+        return None
+
+    # Find the end_header_id after the user header
+    end_header = "<|end_header_id|>"
+    content_start = None
+    for i in range(user_header_idx, min(user_header_idx + 5, len(token_strings))):
+        if end_header in token_strings[i]:
+            content_start = i + 1
+            break
+
+    if content_start is None:
+        return None
+
+    # Skip whitespace tokens after the header
+    while content_start < len(token_strings):
+        decoded = tokenizer.decode(
+            tokenizer.convert_tokens_to_ids([token_strings[content_start]]),
+            skip_special_tokens=False,
+        ).strip()
+        if decoded == "":
+            content_start += 1
+        else:
+            break
+
+    # Find the eot_id that ends the user turn
+    content_end = None
+    for pos in eot_positions:
+        if pos > content_start:
+            content_end = pos
+            break
+
+    if content_end is not None and content_start < content_end:
+        return content_start, content_end
+
+    return None
+
+
+def _try_text_search_span(
+    token_strings: list[str],
+    user_request: str,
+    tokenizer,
+) -> tuple[int, int] | None:
+    """Find user request by text matching in the decoded token stream.
+
+    Decodes each token, reconstructs the full text, finds the user_request
+    substring, and maps character offsets back to token indices.
+    """
+    if not user_request:
+        return None
+
+    # Decode each token to get character boundaries
+    decoded_texts: list[str] = []
+    token_char_starts: list[int] = []
+    char_pos = 0
+    for tok_str in token_strings:
+        text = tokenizer.decode(
+            tokenizer.convert_tokens_to_ids([tok_str]),
+            skip_special_tokens=False,
+        )
+        token_char_starts.append(char_pos)
+        decoded_texts.append(text)
+        char_pos += len(text)
+
+    full_text = "".join(decoded_texts)
+    idx = full_text.find(user_request)
+    if idx == -1:
+        return None
+
+    end_char = idx + len(user_request)
+
+    # Map character positions to token indices
+    start_token = 0
+    for i, start in enumerate(token_char_starts):
+        if start <= idx:
+            start_token = i
+
+    end_token = len(token_strings)
+    for i, start in enumerate(token_char_starts):
+        if start >= end_char:
+            end_token = i
+            break
+
+    if start_token < end_token:
+        return start_token, end_token
+
+    return None
+
+
+def _find_user_request_span(
+    token_strings: list[str],
+    user_request: str,
+    tokenizer,
+) -> tuple[int, int]:
+    """Find the token index range corresponding to the user request.
+
+    Tries multiple strategies to support different chat template formats:
+    1. ChatML markers (<|im_start|>/<|im_end|>) -- Qwen, Nemotron, Yi
+    2. Llama 3 markers (<|start_header_id|>/<|end_header_id|>)
+    3. Text-search fallback -- decode tokens, find user_request substring
+
+    Returns:
+        (start_idx, end_idx) -- inclusive start, exclusive end.
+        The span covers only the user request content tokens.
+    """
+    # Strategy 1: ChatML markers
+    span = _try_chatml_span(token_strings, tokenizer)
+    if span is not None:
+        return span
+
+    # Strategy 2: Llama 3 markers
+    span = _try_llama3_span(token_strings, tokenizer)
+    if span is not None:
+        return span
+
+    # Strategy 3: Text search fallback
+    span = _try_text_search_span(token_strings, user_request, tokenizer)
+    if span is not None:
+        return span
+
     # Fallback: warn and return full prompt
     warnings.warn(
-        f"Could not locate user turn via ChatML markers. "
-        f"im_start positions: {im_start_positions}, "
-        f"im_end positions: {im_end_positions}, "
-        f"total tokens: {len(token_strings)}",
+        f"Could not locate user turn in token sequence. "
+        f"Falling back to full prompt ({len(token_strings)} tokens).",
         stacklevel=2,
     )
     return 0, len(token_strings)
@@ -242,7 +380,7 @@ def _compute_highlighted_user_text(
     """Compute highlighted user-request text for a single prompt/feature.
 
     Encodes per-token activations through the SAE, finds the user request
-    span via ChatML markers, and highlights the top-K activated tokens.
+    span via chat template markers, and highlights the top-K activated tokens.
 
     Returns:
         User request text with <<highlighted>> tokens, or None if the
@@ -307,7 +445,7 @@ def build_fuzzing_examples(
         token_strings_list: Per-prompt list of token strings.
         token_activations_list: Per-prompt (seq_len, d_model) arrays.
         sae_checkpoint: Path to trained SAE.
-        tokenizer: The Nemotron tokenizer (for text reconstruction).
+        tokenizer: The subject model tokenizer (for text reconstruction).
         top_k_tokens: Number of tokens to highlight.
         max_examples_per_feature: Max fuzzing examples per feature.
 
@@ -479,7 +617,12 @@ def _build_judge_prompts(
     examples: list[FuzzingExample],
     feature_descriptions: dict[str, dict],
 ) -> list[str]:
-    """Build ChatML judge prompts for all fuzzing examples."""
+    """Build ChatML judge prompts for all fuzzing examples.
+
+    Note: These prompts target the generator/judge model (e.g. Qwen),
+    not the subject model. ChatML is used because the generator model
+    is assumed to be a Qwen model.
+    """
     system = (
         "You evaluate whether token highlights match feature descriptions. "
         "Answer concisely with A or B as instructed."

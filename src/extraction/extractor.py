@@ -10,6 +10,7 @@ to tool-selection decisions.
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -19,25 +20,98 @@ from data.contrastive_dataset import ContrastivePair
 from extraction.activation_extractor import ActivationExtractor
 
 
+def build_agent_prompt_from_tokenizer(
+    tokenizer,
+    system_prompt: str,
+    tools: list[dict],
+    user_request: str,
+    assistant_prefill: str = "I'll use the ",
+) -> str:
+    """Build a prompt using the tokenizer's native chat template.
+
+    Works with any HuggingFace model that ships a chat template
+    (Qwen, Llama, Mistral, Gemma, Nemotron, etc.).
+
+    Args:
+        tokenizer: A HuggingFace tokenizer with a chat template.
+        system_prompt: The system message.
+        tools: Tool definitions for the prompt.
+        user_request: The user's message.
+        assistant_prefill: Text to prepend to the assistant turn
+            (creates a "prefill" so we extract at the decision point).
+
+    Returns:
+        The formatted prompt string ending at the decision token.
+    """
+    tool_descriptions = "\n".join(
+        f"- {t['name']}: {t['description']}" for t in tools
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"{system_prompt}\n\n"
+                f"Available tools:\n{tool_descriptions}\n\n"
+                f"When you decide to use a tool, respond with the tool name."
+            ),
+        },
+        {"role": "user", "content": user_request},
+    ]
+
+    formatted = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+
+    formatted += assistant_prefill
+    return formatted
+
+
 def build_agent_prompt(
     system_prompt: str,
     tools: list[dict],
     user_request: str,
-    model_type: str = "nemotron",
+    model_type: str = "auto",
+    tokenizer=None,
+    assistant_prefill: str = "I'll use the ",
 ) -> str:
     """
     Build a full prompt in the target model's chat template.
 
-    Supported model_type values:
+    When a *tokenizer* is provided and has a chat template, the prompt is
+    built via ``tokenizer.apply_chat_template`` (preferred — works with any
+    HuggingFace model).  Otherwise falls back to manual format strings
+    selected by *model_type*.
+
+    Supported model_type values (legacy fallback):
         - "nemotron"  : ChatML-style used by NVIDIA Nemotron models
         - "llama"     : Llama 3 Instruct format
         - "mistral"   : Mistral instruct format
         - "generic"   : Plain text fallback
+        - "auto"      : Use tokenizer if available, else "generic"
 
     Returns:
         The formatted prompt string ending just before the model's
         tool-selection decision token.
     """
+    # Prefer tokenizer-based approach
+    if tokenizer is not None and getattr(tokenizer, "chat_template", None):
+        return build_agent_prompt_from_tokenizer(
+            tokenizer, system_prompt, tools, user_request, assistant_prefill
+        )
+
+    # Legacy manual format strings
+    if model_type == "auto":
+        model_type = "generic"
+        warnings.warn(
+            "No tokenizer provided and model_type='auto'. "
+            "Falling back to 'generic' prompt format. "
+            "Pass a tokenizer for best results.",
+            stacklevel=2,
+        )
+
     tool_descriptions = "\n".join(f"- {t['name']}: {t['description']}" for t in tools)
 
     if model_type == "nemotron":
@@ -50,7 +124,7 @@ def build_agent_prompt(
             f"<|im_start|>user\n"
             f"{user_request}<|im_end|>\n"
             f"<|im_start|>assistant\n"
-            f"I'll use the "
+            f"{assistant_prefill}"
         )
 
     elif model_type == "llama":
@@ -62,7 +136,7 @@ def build_agent_prompt(
             f"When you decide to use a tool, respond with the tool name."
             f"<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n"
             f"{user_request}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
-            f"I'll use the "
+            f"{assistant_prefill}"
         )
 
     elif model_type == "mistral":
@@ -70,7 +144,7 @@ def build_agent_prompt(
             f"[INST] {system_prompt}\n\n"
             f"Available tools:\n{tool_descriptions}\n\n"
             f"User request: {user_request} [/INST]\n\n"
-            f"I'll use the "
+            f"{assistant_prefill}"
         )
 
     else:
@@ -79,7 +153,7 @@ def build_agent_prompt(
             f"System: {system_prompt}\n\n"
             f"Tools: {tool_descriptions}\n\n"
             f"User: {user_request}\n\n"
-            f"Assistant: I'll use the "
+            f"Assistant: {assistant_prefill}"
         )
 
     return prompt
@@ -88,7 +162,7 @@ def build_agent_prompt(
 class RawActivationExtractor:
     """Extract raw activations at the decision token and save as numpy shards.
 
-    Output format is compatible with yaak-inspector's CachedActivationBuffer:
+    Output format is compatible with CachedActivationBuffer:
         activations_dir/
             shard_000000.npy   # float16, shape (tokens_in_shard, d_model)
             shard_000001.npy
@@ -99,12 +173,14 @@ class RawActivationExtractor:
     def __init__(
         self,
         base_extractor: ActivationExtractor,
-        model_type: str = "nemotron",
+        model_type: str = "auto",
         layer_key: str = "residual_20",
+        tokenizer=None,
     ):
         self.extractor = base_extractor
         self.model_type = model_type
         self.layer_key = layer_key
+        self.tokenizer = tokenizer or base_extractor.tokenizer
 
     def extract_to_shards(
         self,
@@ -178,6 +254,7 @@ class RawActivationExtractor:
                     tools=scenario.tools,
                     user_request=pair.anchor_prompt,
                     model_type=self.model_type,
+                    tokenizer=self.tokenizer,
                 )
             )
             user_requests.append(pair.anchor_prompt)
@@ -187,6 +264,7 @@ class RawActivationExtractor:
                     tools=scenario.tools,
                     user_request=pair.contrast_prompt,
                     model_type=self.model_type,
+                    tokenizer=self.tokenizer,
                 )
             )
             user_requests.append(pair.contrast_prompt)

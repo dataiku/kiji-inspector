@@ -3,7 +3,7 @@
 End-to-end pipeline for contrastive SAE analysis of tool-selection decisions.
 
 Step 1: Generate contrastive pairs via Qwen3-VL (vLLM subprocess)
-Step 2: Extract raw activations from Nemotron as numpy shards
+Step 2: Extract raw activations from the subject model as numpy shards
 Step 3: Train a JumpReLU SAE on the raw activations
 Step 4: Identify decision-relevant SAE features using contrastive pairs
 Step 5: Interpret features -- label with LLM, generate decision report
@@ -23,6 +23,9 @@ Usage:
     uv run python -m pipeline --step 5
     uv run python -m pipeline --step 6
 
+    # Use a different subject model (e.g. Qwen)
+    uv run python -m pipeline --subject-model Qwen/Qwen2.5-3B-Instruct --step 2+
+
     # Large-scale
     uv run python -m pipeline 100000 --output-dir output/activations
 """
@@ -36,6 +39,37 @@ import multiprocessing as mp
 import sys
 import time
 from pathlib import Path
+
+_SUBJECT_MODEL_DEFAULT = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+
+
+def _resolve_model_defaults(args: argparse.Namespace) -> None:
+    """Auto-detect layer and d_sae defaults based on the subject model config.
+
+    Called after parse_args() so we can inspect the model's actual architecture
+    before any heavy loading happens.
+    """
+    needs_layer = args.layers is None
+    needs_d_sae = args.d_sae is None
+    if not needs_layer and not needs_d_sae:
+        return
+
+    from transformers import AutoConfig
+
+    print(f"  Auto-detecting model config for {args.subject_model}...")
+    config = AutoConfig.from_pretrained(args.subject_model, trust_remote_code=True)
+
+    if needs_layer:
+        num_layers = getattr(config, "num_hidden_layers", 30)
+        default_layer = int(num_layers * 2 / 3)
+        args.layers = [default_layer]
+        args.layer_key = f"residual_{default_layer}"
+        print(f"  Auto-selected layer {default_layer} (~2/3 of {num_layers} layers)")
+
+    if needs_d_sae:
+        hidden_size = getattr(config, "hidden_size", 4096)
+        args.d_sae = 4 * hidden_size
+        print(f"  Auto-selected d_sae={args.d_sae} (4x hidden_size={hidden_size})")
 
 
 def parse_args() -> argparse.Namespace:
@@ -98,32 +132,42 @@ def parse_args() -> argparse.Namespace:
         default=128,
         help="Max prompts per vLLM generate() call (default: 128).",
     )
-    # -- Extraction model (Step 2) --
+    # -- Subject model (Step 2) --
+    p.add_argument(
+        "--subject-model",
+        type=str,
+        default=_SUBJECT_MODEL_DEFAULT,
+        dest="subject_model",
+        help="HuggingFace model ID for activation extraction — the model under study "
+        f"(default: {_SUBJECT_MODEL_DEFAULT}).",
+    )
+    # Backward-compatible alias (hidden from help)
     p.add_argument(
         "--nemotron-model",
         type=str,
-        default="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
-        help="HuggingFace model for activation extraction.",
+        default=argparse.SUPPRESS,
+        dest="subject_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--layers",
         type=int,
         nargs="+",
-        default=[20],
-        help="Transformer layers to hook (default: 20).",
+        default=None,
+        help="Transformer layers to hook (default: auto-detect ~2/3 depth).",
     )
     p.add_argument(
         "--layer-key",
         type=str,
-        default="residual_20",
-        help="Layer key for activation extraction (default: residual_20).",
+        default=None,
+        help="Layer key for activation extraction (default: auto from --layers).",
     )
     # -- SAE training (Step 3) --
     p.add_argument(
         "--d-sae",
         type=int,
-        default=16384,
-        help="SAE hidden dimension (default: 16384, typically 4-8x d_model).",
+        default=None,
+        help="SAE hidden dimension (default: auto 4x d_model).",
     )
     p.add_argument(
         "--sae-lr",
@@ -261,7 +305,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to existing pairs parquet directory to skip generation.",
     )
-    return p.parse_args()
+
+    args = p.parse_args()
+
+    # Resolve layer-key from layers if layers was explicitly set but layer-key wasn't
+    if args.layers is not None and args.layer_key is None:
+        args.layer_key = f"residual_{args.layers[0]}"
+
+    return args
 
 
 # ---------------------------------------------------------------------------
@@ -438,21 +489,21 @@ def generate_pairs(
 def extract_activations(
     pairs: list,
     output_dir: str,
-    nemotron_model: str,
+    subject_model: str,
     layers: list[int],
     layer_key: str,
     batch_size: int,
     shard_size: int,
     scenarios_meta: dict | None = None,
 ) -> Path:
-    """Load Nemotron, extract raw activations, save as numpy shards."""
+    """Load subject model, extract raw activations, save as numpy shards."""
     import torch
 
     from extraction.activation_extractor import ActivationConfig, ActivationExtractor
     from extraction.extractor import RawActivationExtractor
 
     config = ActivationConfig(
-        model_name=nemotron_model,
+        model_name=subject_model,
         layers=layers,
         dtype=torch.bfloat16,
     )
@@ -460,7 +511,6 @@ def extract_activations(
     extractor = ActivationExtractor(config=config)
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
-        model_type="nemotron",
         layer_key=layer_key,
     )
 
@@ -618,7 +668,7 @@ def _run_step2(args, pairs_dir: str) -> None:
     extract_activations(
         pairs=pairs,
         output_dir=args.output_dir,
-        nemotron_model=args.nemotron_model,
+        subject_model=args.subject_model,
         layers=args.layers,
         layer_key=args.layer_key,
         batch_size=args.batch_size,
@@ -673,7 +723,7 @@ def _run_step4(args, pairs_dir: str, sae_checkpoint: str | None = None) -> None:
     identify_contrastive_features(
         pairs=pairs,
         sae_checkpoint=checkpoint,
-        nemotron_model=args.nemotron_model,
+        subject_model=args.subject_model,
         layers=args.layers,
         layer_key=args.layer_key,
         batch_size=args.batch_size,
@@ -737,7 +787,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     feature_indices = sorted(feature_indices_set)
     print(f"\n[Step 5] Interpreting {len(feature_indices)} unique features")
 
-    # 5a: Load activations from Step 2 numpy shards (no Nemotron needed)
+    # 5a: Load activations from Step 2 numpy shards (no subject model needed)
     print("\n[Step 5a] Loading activations from numpy shards...")
     t0 = time.time()
     prompts, activations = load_activations_from_shards(
@@ -760,7 +810,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     elapsed = time.time() - t0
     print(f"  5b complete ({elapsed:.1f}s): {len(feature_examples)} features analyzed")
 
-    # Free Nemotron activations before loading vLLM for labeling
+    # Free activations before loading vLLM for labeling
     del activations
 
     # 5c: Label features via LLM (subprocess for GPU isolation)
@@ -847,7 +897,15 @@ def _run_step6(args, pairs_dir: str) -> None:
 
     print(f"  Unique prompts to process: {len(all_prompts)}")
 
-    # Build formatted prompts for Nemotron (per-prompt scenario lookup)
+    # Load tokenizer once for prompt formatting and text reconstruction
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.subject_model,
+        trust_remote_code=True,
+    )
+
+    # Build formatted prompts using subject model's chat template
     formatted_prompts = []
     for req in all_prompts:
         scenario_name = prompt_to_scenario.get(req, "")
@@ -857,7 +915,7 @@ def _run_step6(args, pairs_dir: str) -> None:
                 system_prompt=scenario.system_prompt,
                 tools=scenario.tools,
                 user_request=req,
-                model_type="nemotron",
+                tokenizer=tokenizer,
             )
         )
 
@@ -867,7 +925,7 @@ def _run_step6(args, pairs_dir: str) -> None:
     token_strings_list, token_activations_list = extract_per_token_activations(
         prompts=all_prompts,
         formatted_prompts=formatted_prompts,
-        nemotron_model=args.nemotron_model,
+        subject_model=args.subject_model,
         layers=args.layers,
         layer_key=args.layer_key,
         batch_size=args.fuzz_batch_size,
@@ -877,15 +935,6 @@ def _run_step6(args, pairs_dir: str) -> None:
 
     # Build prompt -> index mapping
     prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
-
-    # We need the tokenizer for text reconstruction in 6b.
-    # Load it once (lightweight, no GPU).
-    from transformers import AutoTokenizer
-
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.nemotron_model,
-        trust_remote_code=True,
-    )
 
     # 6b: Build fuzzing examples
     print("\n[Step 6b] Building fuzzing examples...")
@@ -955,6 +1004,11 @@ def main() -> None:
         print("  Or skip generation: generate_training_set.py --step 2 --pairs-dir output/pairs")
         sys.exit(1)
 
+    # Auto-detect layer/d_sae defaults from model config when needed
+    needs_subject_model = any(s in steps for s in ("2", "3", "4", "5", "6"))
+    if needs_subject_model:
+        _resolve_model_defaults(args)
+
     pairs_dir = str(Path(args.output_dir).parent / "pairs")
 
     # Resolve scenarios for display
@@ -974,7 +1028,7 @@ def main() -> None:
     if "1" in steps:
         print(f"  Generation model  : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
     if "2" in steps:
-        print(f"  Extraction model  : {args.nemotron_model}")
+        print(f"  Subject model     : {args.subject_model}")
         print(f"  Layers            : {args.layers}")
         print(f"  Layer key         : {args.layer_key}")
         print(f"  GPU batch size    : {args.batch_size}")

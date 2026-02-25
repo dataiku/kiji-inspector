@@ -1,9 +1,9 @@
 """
-Activation extractor for NVIDIA Nemotron-3-Nano-30B-A3B-BF16.
+Activation extractor for HuggingFace causal language models.
 
-Designed for multi-GPU inference on 4xGB200 (or similar).
-The model is sharded across GPUs via device_map="auto" and
-activations are captured via forward hooks at specified layers.
+Designed for multi-GPU inference. The model is sharded across GPUs
+via device_map="auto" and activations are captured via forward hooks
+at specified layers.
 """
 
 from dataclasses import dataclass, field
@@ -17,7 +17,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 class ActivationConfig:
     """Configuration for activation extraction."""
 
-    model_name: str = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+    model_name: str = ""  # Required — HuggingFace model ID (e.g. "Qwen/Qwen2.5-3B-Instruct")
     layers: list[int] = field(default_factory=lambda: [8, 12, 16, 20, 24])
     extract_residual_stream: bool = True
     extract_attention: bool = False
@@ -29,17 +29,17 @@ class ActivationConfig:
 
 
 class ActivationExtractor:
-    """
-    Extract activations from NVIDIA Nemotron-3-Nano-30B-A3B-BF16.
+    """Extract activations from any HuggingFace causal language model.
 
-    This model uses a Mixture-of-Experts architecture (30B total, 3B active).
-    It is automatically sharded across all available GPUs via device_map="auto".
-
-    Designed for 4xGB200 but works on any multi-GPU or single-GPU setup.
+    Supports models using standard architectures (Llama, Qwen, Mistral,
+    Nemotron, GPT-NeoX, etc.). The model is automatically sharded across
+    all available GPUs via device_map="auto".
     """
 
-    def __init__(self, config: ActivationConfig | None = None):
-        self.config = config or ActivationConfig()
+    def __init__(self, config: ActivationConfig):
+        if not config.model_name:
+            raise ValueError("ActivationConfig.model_name is required.")
+        self.config = config
         self._hooks: list[torch.utils.hooks.RemovableHook] = []
 
         num_gpus = torch.cuda.device_count()
@@ -161,8 +161,9 @@ class ActivationExtractor:
 
         raise AttributeError(
             f"Cannot locate transformer layers for {type(self.model).__name__}. "
-            "Supported architectures: LlamaForCausalLM, NemotronForCausalLM, "
-            "NemotronHForCausalLM, GPTNeoXForCausalLM. "
+            "Supported architectures: LlamaForCausalLM, Qwen2ForCausalLM, "
+            "MistralForCausalLM, NemotronForCausalLM, NemotronHForCausalLM, "
+            "GPTNeoXForCausalLM, and others using model.model.layers. "
             f"Model structure: {[attr for attr in dir(self.model) if not attr.startswith('_')]}"
         )
 

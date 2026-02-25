@@ -410,7 +410,7 @@ def run_ablation_experiment(
                 system_prompt=sc.system_prompt,
                 tools=sc.tools,
                 user_request=pair.anchor_prompt,
-                model_type="nemotron",
+                tokenizer=tokenizer,
             )
 
             # Normalize tool labels (handle compound labels)

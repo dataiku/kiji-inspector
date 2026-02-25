@@ -1,9 +1,9 @@
 """
 Feature interpretation pipeline (Step 5).
 
-5a: Extract activations for all prompts via Nemotron (batched).
+5a: Load activations from Step 2 numpy shards.
 5b: Encode through SAE, collect top/bottom activating prompts per feature.
-5c: Auto-label features via LLM.
+5c: Auto-label features via LLM (generator model).
 5d: Generate user-facing explanation report.
 """
 
