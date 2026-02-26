@@ -43,9 +43,7 @@ def build_agent_prompt_from_tokenizer(
     Returns:
         The formatted prompt string ending at the decision token.
     """
-    tool_descriptions = "\n".join(
-        f"- {t['name']}: {t['description']}" for t in tools
-    )
+    tool_descriptions = "\n".join(f"- {t['name']}: {t['description']}" for t in tools)
 
     messages = [
         {

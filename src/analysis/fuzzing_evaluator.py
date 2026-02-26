@@ -190,10 +190,14 @@ def _try_llama3_span(
         # Check if next few tokens contain "user"
         for offset in range(1, 4):
             if pos + offset < len(token_strings):
-                decoded = tokenizer.decode(
-                    tokenizer.convert_tokens_to_ids([token_strings[pos + offset]]),
-                    skip_special_tokens=False,
-                ).strip().lower()
+                decoded = (
+                    tokenizer.decode(
+                        tokenizer.convert_tokens_to_ids([token_strings[pos + offset]]),
+                        skip_special_tokens=False,
+                    )
+                    .strip()
+                    .lower()
+                )
                 if decoded == "user":
                     user_header_idx = pos
                     break
