@@ -82,13 +82,13 @@ name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
+[[tool.uv.index]]
+name = "flash-attn-3-wheels"
+url = "https://windreamer.github.io/flash-attention3-wheels/cu128_torch280"
+explicit = true
+
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
 ]
-
-# TODO: @david.cardozo -> provide the builds to external contributors, in the mean time, please request them via email
-vllm = { path = "external-dist-packages/vllm-0.15.0+cu130-cp38-abi3-manylinux_2_35_aarch64.whl" }
-causal-conv1d = { path = "external-dist-packages/new-packages/causal_conv1d-1.6.0-cp313-cp313-linux_aarch64.whl" }
-flash-attn-3 = { path = "external-dist-packages/new-packages/flash_attn_3-3.0.0b1-cp39-abi3-linux_aarch64.whl" }
-mamba-ssm = { path = "external-dist-packages/new-packages/mamba_ssm-2.3.0-cp313-cp313-linux_aarch64.whl" }
+flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }
