@@ -602,7 +602,7 @@ def _load_scenarios(args) -> list:
         scenario_paths = args.scenarios
     else:
         # Default: load all scenario files from scenarios/ directory
-        scenarios_dir = Path(__file__).resolve().parent / "scenarios"
+        scenarios_dir = Path(__file__).resolve().parent.parent / "scenarios"
         scenario_paths = sorted(scenarios_dir.glob("*.json"))
         if not scenario_paths:
             raise FileNotFoundError(
