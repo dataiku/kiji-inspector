@@ -93,4 +93,10 @@ explicit = true
 torch = [
   { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
 ]
+torchvision = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
+]
+torchaudio = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
+]
 flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }
