@@ -21,6 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "torch==2.9.1",
+    "torchvision",
     "vllm>=0.11.0",
     "numpy>=1.26.0",
     "tqdm>=4.66.0",
