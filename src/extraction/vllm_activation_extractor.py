@@ -71,6 +71,16 @@ class VLLMActivationExtractor:
         print(f"  hidden_size: {self.hidden_size}")
         print(f"  token_positions: {config.token_positions}")
 
+        if config.token_positions == "all":
+            import warnings
+
+            warnings.warn(
+                "vLLM backend with token_positions='all' only returns activations "
+                "from the last forward step (decode), not the full prompt sequence. "
+                "Use --backend hf for full per-token activations.",
+                stacklevel=2,
+            )
+
     def extract(
         self,
         prompt: str,
@@ -101,15 +111,15 @@ class VLLMActivationExtractor:
 
         result = {}
         for layer_idx, tensor in activations.items():
-            # tensor shape: (prompt_tokens + generated_tokens, hidden_size)
-            # Drop the generated token to get prompt-only activations
-            prompt_acts = tensor[:-1]
+            # vLLM overwrites activations per step (prefill then decode).
+            # With max_tokens=1 the returned tensor is from the decode step:
+            # shape (1, hidden_size) — the hidden state at the decision point.
             key = f"residual_{layer_idx}"
 
             if self.config.token_positions in ("last", "decision"):
-                result[key] = prompt_acts[decision_token_offset].float().numpy()
+                result[key] = tensor[-1].float().numpy()
             elif self.config.token_positions == "all":
-                result[key] = prompt_acts.float().numpy()
+                result[key] = tensor.float().numpy()
             else:
                 raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
 
@@ -147,14 +157,12 @@ class VLLMActivationExtractor:
 
                 item = {}
                 for layer_idx, tensor in activations.items():
-                    prompt_acts = tensor[:-1]
                     key = f"residual_{layer_idx}"
 
                     if self.config.token_positions in ("last", "decision"):
-                        position = prompt_acts.shape[0] - 1
-                        item[key] = prompt_acts[position].float().numpy()
+                        item[key] = tensor[-1].float().numpy()
                     elif self.config.token_positions == "all":
-                        item[key] = prompt_acts.float().numpy()
+                        item[key] = tensor.float().numpy()
                     else:
                         raise ValueError(
                             f"Unknown token_positions: {self.config.token_positions}"
