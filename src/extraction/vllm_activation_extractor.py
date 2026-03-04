@@ -103,7 +103,7 @@ class VLLMActivationExtractor:
             temperature=0.0,
             extract_activations=True,
         )
-        outputs = self.llm.generate([prompt], sp)
+        outputs = self.llm.generate([prompt], sp, use_tqdm=False)
         activations = outputs[0].outputs[0].activations
 
         if not activations:
@@ -148,7 +148,7 @@ class VLLMActivationExtractor:
 
         for i in range(0, len(prompts), batch_size):
             chunk = prompts[i : i + batch_size]
-            outputs = self.llm.generate(chunk, sp)
+            outputs = self.llm.generate(chunk, sp, use_tqdm=False)
 
             for output in outputs:
                 activations = output.outputs[0].activations
