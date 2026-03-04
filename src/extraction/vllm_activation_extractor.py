@@ -7,7 +7,8 @@ with manual forward hooks.  Significantly faster for bulk extraction
 thanks to vLLM's continuous batching and optimized kernels.
 
 Requires a patched vLLM build that supports ``extract_activation_layers``
-in ``SamplingParams``.
+on ``ModelConfig`` (engine-level) and ``extract_activations`` on
+``SamplingParams`` (request-level).
 """
 
 from __future__ import annotations
@@ -53,6 +54,7 @@ class VLLMActivationExtractor:
 
         self.llm = LLM(
             model=config.model_name,
+            extract_activation_layers=config.layers,
             enforce_eager=True,
             trust_remote_code=config.trust_remote_code,
             gpu_memory_utilization=config.gpu_memory_utilization,
@@ -89,7 +91,7 @@ class VLLMActivationExtractor:
         sp = SamplingParams(
             max_tokens=1,
             temperature=0.0,
-            extract_activation_layers=self.config.layers,
+            extract_activations=True,
         )
         outputs = self.llm.generate([prompt], sp)
         activations = outputs[0].outputs[0].activations
@@ -130,7 +132,7 @@ class VLLMActivationExtractor:
         sp = SamplingParams(
             max_tokens=1,
             temperature=0.0,
-            extract_activation_layers=self.config.layers,
+            extract_activations=True,
         )
         results: list[dict[str, np.ndarray]] = []
 
