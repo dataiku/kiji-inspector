@@ -7,7 +7,7 @@ with manual forward hooks.  Significantly faster for bulk extraction
 thanks to vLLM's continuous batching and optimized kernels.
 
 Requires a patched vLLM build that supports ``extract_activation_layers``
-in ``LLM.__init__`` and ``extract_activations`` in ``SamplingParams``.
+in ``SamplingParams``.
 """
 
 from __future__ import annotations
@@ -53,7 +53,6 @@ class VLLMActivationExtractor:
 
         self.llm = LLM(
             model=config.model_name,
-            extract_activation_layers=config.layers,
             enforce_eager=True,
             trust_remote_code=config.trust_remote_code,
             gpu_memory_utilization=config.gpu_memory_utilization,
@@ -87,11 +86,15 @@ class VLLMActivationExtractor:
         """
         from vllm import SamplingParams
 
-        sp = SamplingParams(max_tokens=1, extract_activations=True)
+        sp = SamplingParams(
+            max_tokens=1,
+            temperature=0.0,
+            extract_activation_layers=self.config.layers,
+        )
         outputs = self.llm.generate([prompt], sp)
         activations = outputs[0].outputs[0].activations
 
-        if activations is None:
+        if not activations:
             raise RuntimeError("vLLM did not return activations. Check extract_activation_layers.")
 
         result = {}
@@ -124,7 +127,11 @@ class VLLMActivationExtractor:
         """
         from vllm import SamplingParams
 
-        sp = SamplingParams(max_tokens=1, extract_activations=True)
+        sp = SamplingParams(
+            max_tokens=1,
+            temperature=0.0,
+            extract_activation_layers=self.config.layers,
+        )
         results: list[dict[str, np.ndarray]] = []
 
         for i in range(0, len(prompts), batch_size):
@@ -133,7 +140,7 @@ class VLLMActivationExtractor:
 
             for output in outputs:
                 activations = output.outputs[0].activations
-                if activations is None:
+                if not activations:
                     raise RuntimeError("vLLM did not return activations.")
 
                 item = {}
