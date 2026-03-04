@@ -98,6 +98,20 @@ class ActivationExtractor:
                 f"  model.model attrs: {[a for a in dir(self.model.model) if not a.startswith('_')]}"
             )
 
+    def _get_inner_model(self):
+        """Get the transformer body, skipping lm_head to avoid allocating logits.
+
+        Walks common inner-model attribute paths used by various architectures:
+        - language_model       (multimodal wrappers: Gemma3, LLaVA, etc.)
+        - model                (standard: Llama, Qwen, Mistral, Gemma, etc.)
+        - backbone             (NemotronH)
+        - transformer          (GPT-NeoX, GPT-2)
+        """
+        for attr in ("language_model", "model", "backbone", "transformer"):
+            if hasattr(self.model, attr):
+                return getattr(self.model, attr)
+        return self.model
+
     def _find_input_device(self) -> torch.device:
         """Find the device of the model's embedding layer.
 
@@ -106,6 +120,7 @@ class ActivationExtractor:
         """
         # Try common embedding attribute names
         for attr_path in (
+            "language_model.model.embed_tokens",
             "model.embed_tokens",
             "backbone.embed_tokens",
             "backbone.embedding",
@@ -126,7 +141,12 @@ class ActivationExtractor:
 
     def _get_model_layers(self):
         """Get the layer list, handling different model architectures."""
-        # Standard Llama/Nemotron architecture
+        # Gemma3 multimodal (Gemma3ForConditionalGeneration): language_model.model.layers
+        if hasattr(self.model, "language_model"):
+            lm = self.model.language_model
+            if hasattr(lm, "model") and hasattr(lm.model, "layers"):
+                return lm.model.layers
+        # Standard Llama/Nemotron/Gemma architecture
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers
         # NemotronH architecture uses 'backbone' instead of 'model'
@@ -238,7 +258,7 @@ class ActivationExtractor:
 
         # Run the transformer body only — skip lm_head to avoid
         # allocating the huge (batch × seq × vocab) logit tensor.
-        inner_model = getattr(self.model, "model", self.model)
+        inner_model = self._get_inner_model()
         with torch.no_grad():
             inner_model(**inputs)
 
@@ -284,7 +304,7 @@ class ActivationExtractor:
 
             # Run the transformer body only — skip lm_head to avoid
             # allocating the huge (batch × seq × vocab) logit tensor.
-            inner_model = getattr(self.model, "model", self.model)
+            inner_model = self._get_inner_model()
             with torch.no_grad():
                 inner_model(**inputs)
 

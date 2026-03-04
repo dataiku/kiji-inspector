@@ -62,6 +62,7 @@ def extract_per_token_activations(
     layers: list[int],
     layer_key: str,
     batch_size: int,
+    backend: str = "vllm",
 ) -> tuple[list[list[str]], list[np.ndarray]]:
     """Extract per-token activations for a list of formatted prompts.
 
@@ -72,20 +73,20 @@ def extract_per_token_activations(
         layers: Transformer layers to hook.
         layer_key: Which layer's activations to use.
         batch_size: GPU batch size.
+        backend: ``"vllm"`` or ``"hf"`` extraction backend.
 
     Returns:
         token_strings: List of list-of-token-strings per prompt.
         token_activations: List of (seq_len, d_model) numpy arrays per prompt.
     """
-    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction import create_extractor
 
-    config = ActivationConfig(
+    extractor = create_extractor(
+        backend=backend,
         model_name=subject_model,
         layers=layers,
-        dtype=torch.bfloat16,
         token_positions="all",
     )
-    extractor = ActivationExtractor(config=config)
 
     all_token_strings: list[list[str]] = []
     all_token_activations: list[np.ndarray] = []
@@ -670,7 +671,7 @@ def _build_judge_prompts(
 
 def _run_judge_subprocess(
     chatml_prompts: list[str],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_path: str,
@@ -678,9 +679,9 @@ def _run_judge_subprocess(
     """Child process: load vLLM, judge all examples, save results, exit."""
     from vllm import LLM, SamplingParams
 
-    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
+    print(f"  [subprocess] Loading vLLM model: {judging_model}")
     llm = LLM(
-        model=qwen_model,
+        model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
@@ -713,7 +714,7 @@ def _run_judge_subprocess(
 def evaluate_fuzzing(
     examples: list[FuzzingExample],
     feature_descriptions: dict[str, dict],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_dir: str | Path,
@@ -732,7 +733,7 @@ def evaluate_fuzzing(
     ctx = mp.get_context("spawn")
     p = ctx.Process(
         target=_run_judge_subprocess,
-        args=(chatml_prompts, qwen_model, tp_size, max_model_len, judgments_path),
+        args=(chatml_prompts, judging_model, tp_size, max_model_len, judgments_path),
     )
     p.start()
     p.join()

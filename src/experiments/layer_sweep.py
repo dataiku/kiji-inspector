@@ -71,10 +71,19 @@ def parse_args() -> argparse.Namespace:
         help=argparse.SUPPRESS,
     )
     p.add_argument(
-        "--qwen-model",
+        "--judging-model",
         type=str,
         default="Qwen/Qwen3-VL-235B-A22B-Instruct-FP8",
+        dest="judging_model",
         help="LLM for labeling and judging (steps 5-6).",
+    )
+    # Backward-compatible alias (hidden from help)
+    p.add_argument(
+        "--qwen-model",
+        type=str,
+        default=argparse.SUPPRESS,
+        dest="judging_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--generation-tp-size",
@@ -130,6 +139,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None,
         help="Limit number of pairs to use (default: all).",
+    )
+    p.add_argument(
+        "--backend",
+        type=str,
+        default="vllm",
+        choices=["vllm", "hf"],
+        help="Backend for activation extraction: 'vllm' (fast, default) "
+        "or 'hf' (HuggingFace Transformers).",
     )
     return p.parse_args()
 
@@ -188,6 +205,7 @@ def run_layer(
             batch_size=args.batch_size,
             shard_size=args.shard_size,
             scenarios_meta=scenarios_meta,
+            backend=args.backend,
         )
         summary["step2_time"] = round(time.time() - t0, 1)
     else:
@@ -235,6 +253,7 @@ def run_layer(
             top_k=200,
             output_dir=activations_dir,
             scenarios_meta=scenarios_meta,
+            backend=args.backend,
         )
         summary["step4_time"] = round(time.time() - t0, 1)
 
@@ -285,7 +304,7 @@ def run_layer(
 
         feature_labels = label_features_via_llm(
             feature_examples=feature_examples,
-            qwen_model=args.qwen_model,
+            judging_model=args.judging_model,
             tp_size=args.generation_tp_size,
             max_model_len=args.max_model_len,
             output_dir=activations_dir,
@@ -353,6 +372,7 @@ def run_layer(
             layers=[layer],
             layer_key=layer_key,
             batch_size=64,
+            backend=args.backend,
         )
 
         prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
@@ -378,7 +398,7 @@ def run_layer(
         results = evaluate_fuzzing(
             examples=examples,
             feature_descriptions=feature_descriptions,
-            qwen_model=args.qwen_model,
+            judging_model=args.judging_model,
             tp_size=args.generation_tp_size,
             max_model_len=args.max_model_len,
             output_dir=activations_dir,
@@ -494,6 +514,7 @@ def main() -> None:
     print(f"  Output base     : {args.base_output_dir}")
     print(f"  Skip steps      : {args.skip_steps or 'none'}")
     print(f"  Subject model   : {args.subject_model}")
+    print(f"  Backend         : {args.backend}")
     print("=" * 70)
 
     summaries: list[dict] = []

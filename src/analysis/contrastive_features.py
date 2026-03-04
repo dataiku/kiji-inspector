@@ -29,6 +29,7 @@ def identify_contrastive_features(
     min_effect_size: float = 0.3,
     min_activation: float = 0.01,
     scenarios_meta: dict | None = None,
+    backend: str = "vllm",
 ) -> Path:
     """Identify which SAE features are decision-relevant using contrastive pairs.
 
@@ -40,7 +41,7 @@ def identify_contrastive_features(
     import torch
 
     from data.scenario import default_scenario
-    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction import create_extractor
     from extraction.extractor import build_agent_prompt
     from sae.model import JumpReLUSAE
 
@@ -55,12 +56,12 @@ def identify_contrastive_features(
     print(f"  Loaded SAE: d_model={sae.d_model}, d_sae={sae.d_sae}")
 
     # Load subject model for live extraction of contrastive pairs
-    config = ActivationConfig(
+    extractor = create_extractor(
+        backend=backend,
         model_name=subject_model,
         layers=layers,
-        dtype=torch.bfloat16,
+        token_positions="decision",
     )
-    extractor = ActivationExtractor(config=config)
     tokenizer = extractor.tokenizer
 
     # Build scenario lookup for per-pair prompt construction

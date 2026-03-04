@@ -224,7 +224,7 @@ def _format_label_prompt(feat_idx: int, examples: dict) -> str:
 
 def _run_labeling_subprocess(
     label_prompts: list[tuple[int, str]],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_path: str,
@@ -233,9 +233,9 @@ def _run_labeling_subprocess(
 
     from vllm import LLM, SamplingParams
 
-    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
+    print(f"  [subprocess] Loading vLLM model: {judging_model}")
     llm = LLM(
-        model=qwen_model,
+        model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
@@ -296,7 +296,7 @@ def _run_labeling_subprocess(
 
 def label_features_via_llm(
     feature_examples: dict[int, dict],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_dir: str | Path,
@@ -321,7 +321,7 @@ def label_features_via_llm(
     ctx = mp.get_context("spawn")
     p = ctx.Process(
         target=_run_labeling_subprocess,
-        args=(label_prompts, qwen_model, tp_size, max_model_len, labels_path),
+        args=(label_prompts, judging_model, tp_size, max_model_len, labels_path),
     )
     p.start()
     p.join()

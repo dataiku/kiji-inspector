@@ -17,7 +17,7 @@ import numpy as np
 from tqdm import tqdm
 
 from data.contrastive_dataset import ContrastivePair
-from extraction.activation_extractor import ActivationExtractor
+from typing import Any
 
 
 def build_agent_prompt_from_tokenizer(
@@ -170,7 +170,7 @@ class RawActivationExtractor:
 
     def __init__(
         self,
-        base_extractor: ActivationExtractor,
+        base_extractor: Any,
         model_type: str = "auto",
         layer_key: str = "residual_20",
         tokenizer=None,

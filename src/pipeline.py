@@ -2,7 +2,7 @@
 """
 End-to-end pipeline for contrastive SAE analysis of tool-selection decisions.
 
-Step 1: Generate contrastive pairs via Qwen3-VL (vLLM subprocess)
+Step 1: Generate contrastive pairs via LLM (vLLM subprocess)
 Step 2: Extract raw activations from the subject model as numpy shards
 Step 3: Train a JumpReLU SAE on the raw activations
 Step 4: Identify decision-relevant SAE features using contrastive pairs
@@ -101,12 +101,21 @@ def parse_args() -> argparse.Namespace:
         default=500_000,
         help="Activation vectors per numpy shard (default: 500000).",
     )
-    # -- Generation model (Step 1) --
+    # -- Generation / judging model (Steps 1, 5, 6) --
+    p.add_argument(
+        "--judging-model",
+        type=str,
+        default="Qwen/Qwen3-VL-235B-A22B-Instruct-FP8",
+        dest="judging_model",
+        help="HuggingFace model for pair generation, labeling, and judging via vLLM.",
+    )
+    # Backward-compatible alias (hidden from help)
     p.add_argument(
         "--qwen-model",
         type=str,
-        default="Qwen/Qwen3-VL-235B-A22B-Instruct-FP8",
-        help="HuggingFace model for pair generation via vLLM.",
+        default=argparse.SUPPRESS,
+        dest="judging_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--generation-tp-size",
@@ -305,6 +314,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path to existing pairs parquet directory to skip generation.",
     )
+    p.add_argument(
+        "--backend",
+        type=str,
+        default="vllm",
+        choices=["vllm", "hf"],
+        help="Backend for activation extraction: 'vllm' (fast, default) "
+        "or 'hf' (HuggingFace Transformers, required for ablation).",
+    )
 
     args = p.parse_args()
 
@@ -323,7 +340,7 @@ def parse_args() -> argparse.Namespace:
 def _run_generation_subprocess(
     num_samples: int,
     scenario_dicts: list[dict],
-    qwen_model: str,
+    judging_model: str,
     generation_batch: int,
     vllm_batch_size: int,
     tp_size: int,
@@ -348,11 +365,11 @@ def _run_generation_subprocess(
             f"  [subprocess] Found {len(existing_pairs)} existing pairs in {output_dir}, will append"
         )
 
-    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
+    print(f"  [subprocess] Loading vLLM model: {judging_model}")
     print(f"  [subprocess] tensor_parallel_size={tp_size}, max_model_len={max_model_len}")
 
     llm = LLM(
-        model=qwen_model,
+        model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
@@ -447,7 +464,7 @@ def _run_generation_subprocess(
 def generate_pairs(
     num_samples: int,
     scenario_dicts: list[dict],
-    qwen_model: str,
+    judging_model: str,
     generation_batch: int,
     vllm_batch_size: int,
     tp_size: int,
@@ -461,7 +478,7 @@ def generate_pairs(
         args=(
             num_samples,
             scenario_dicts,
-            qwen_model,
+            judging_model,
             generation_batch,
             vllm_batch_size,
             tp_size,
@@ -495,20 +512,18 @@ def extract_activations(
     batch_size: int,
     shard_size: int,
     scenarios_meta: dict | None = None,
+    backend: str = "vllm",
 ) -> Path:
     """Load subject model, extract raw activations, save as numpy shards."""
-    import torch
-
-    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction import create_extractor
     from extraction.extractor import RawActivationExtractor
 
-    config = ActivationConfig(
+    extractor = create_extractor(
+        backend=backend,
         model_name=subject_model,
         layers=layers,
-        dtype=torch.bfloat16,
+        token_positions="decision",
     )
-
-    extractor = ActivationExtractor(config=config)
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
         layer_key=layer_key,
@@ -634,7 +649,7 @@ def _run_step1(args, pairs_dir: str) -> None:
     pairs = generate_pairs(
         num_samples=args.num_samples,
         scenario_dicts=[s.to_dict() for s in scenarios],
-        qwen_model=args.qwen_model,
+        judging_model=args.judging_model,
         generation_batch=args.generation_batch,
         vllm_batch_size=args.vllm_batch_size,
         tp_size=args.generation_tp_size,
@@ -674,6 +689,7 @@ def _run_step2(args, pairs_dir: str) -> None:
         batch_size=args.batch_size,
         shard_size=args.shard_size,
         scenarios_meta=scenarios_meta,
+        backend=args.backend,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
@@ -732,6 +748,7 @@ def _run_step4(args, pairs_dir: str, sae_checkpoint: str | None = None) -> None:
         min_effect_size=args.min_effect_size,
         min_activation=args.min_activation,
         scenarios_meta=scenarios_meta,
+        backend=args.backend,
     )
     elapsed = time.time() - t0
     print(f"  Feature identification complete ({elapsed:.1f}s)")
@@ -818,7 +835,7 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
     t0 = time.time()
     feature_labels = label_features_via_llm(
         feature_examples=feature_examples,
-        qwen_model=args.qwen_model,
+        judging_model=args.judging_model,
         tp_size=args.generation_tp_size,
         max_model_len=args.max_model_len,
         output_dir=args.output_dir,
@@ -929,6 +946,7 @@ def _run_step6(args, pairs_dir: str) -> None:
         layers=args.layers,
         layer_key=args.layer_key,
         batch_size=args.fuzz_batch_size,
+        backend=args.backend,
     )
     elapsed = time.time() - t0
     print(f"  6a complete ({elapsed:.1f}s): {len(token_strings_list)} prompts")
@@ -969,7 +987,7 @@ def _run_step6(args, pairs_dir: str) -> None:
     results = evaluate_fuzzing(
         examples=examples,
         feature_descriptions=feature_descriptions,
-        qwen_model=args.qwen_model,
+        judging_model=args.judging_model,
         tp_size=args.generation_tp_size,
         max_model_len=args.max_model_len,
         output_dir=args.output_dir,
@@ -1026,9 +1044,10 @@ def main() -> None:
     print(f"  Contrast types    : {total_contrast_types} total across {len(scenarios)} scenario(s)")
     print(f"  Steps to run      : {', '.join(steps)}")
     if "1" in steps:
-        print(f"  Generation model  : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
+        print(f"  Generation model  : {args.judging_model} (vLLM, TP={args.generation_tp_size})")
     if "2" in steps:
         print(f"  Subject model     : {args.subject_model}")
+        print(f"  Extraction backend: {args.backend}")
         print(f"  Layers            : {args.layers}")
         print(f"  Layer key         : {args.layer_key}")
         print(f"  GPU batch size    : {args.batch_size}")
@@ -1046,13 +1065,13 @@ def main() -> None:
         print(f"  Activations dir   : {args.output_dir}")
         print(f"  Label top-N       : {args.label_top_n}")
         print(f"  Label bottom-N    : {args.label_bottom_n}")
-        print(f"  Labeling model    : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
+        print(f"  Labeling model    : {args.judging_model} (vLLM, TP={args.generation_tp_size})")
     if "6" in steps:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 3)'}")
         print(f"  Fuzz top-K tokens : {args.fuzz_top_k_tokens}")
         print(f"  Fuzz examples/feat: {args.fuzz_examples_per_feature}")
         print(f"  Fuzz batch size   : {args.fuzz_batch_size}")
-        print(f"  Judge model       : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
+        print(f"  Judge model       : {args.judging_model} (vLLM, TP={args.generation_tp_size})")
     print("=" * 60)
 
     sae_final_path = None
