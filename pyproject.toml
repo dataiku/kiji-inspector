@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "torch==2.9.1",
+    "torch>=2.9.1",
     "torchvision",
     "vllm>=0.11.0",
     "numpy>=1.26.0",
