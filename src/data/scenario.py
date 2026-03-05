@@ -172,6 +172,32 @@ def default_scenario() -> ScenarioConfig:
     )
 
 
+def discover_scenarios(scenario_paths: list[str | Path] | None = None) -> list[ScenarioConfig]:
+    """Load scenario configs from explicit paths, or discover all *.json in scenarios/.
+
+    When no paths are provided, all *.json files in the project's
+    scenarios/ directory are loaded automatically.
+
+    Args:
+        scenario_paths: Explicit paths to scenario JSON files.
+            If None, discovers all *.json in the project's scenarios/ directory.
+
+    Returns:
+        List of validated ScenarioConfig objects.
+    """
+    if scenario_paths:
+        return load_scenarios(scenario_paths)
+
+    scenarios_dir = Path(__file__).resolve().parent.parent.parent / "scenarios"
+    paths = sorted(scenarios_dir.glob("*.json"))
+    if not paths:
+        raise FileNotFoundError(
+            f"No scenario files found in {scenarios_dir}. "
+            "Create at least one .json file or use --scenario."
+        )
+    return load_scenarios(paths)
+
+
 def save_scenarios_meta(scenarios: list[ScenarioConfig], output_dir: Path) -> Path:
     """Write scenarios_meta.json to the pairs output directory."""
     output_dir = Path(output_dir)

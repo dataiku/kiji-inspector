@@ -6,6 +6,10 @@ For each contrastive pair, encode both the anchor and contrast prompts
 through the SAE and compare which features activate differently.  Features
 that consistently differ across many pairs of the same contrast type are
 the decision-relevant features for that contrast.
+
+When multiple layers are specified, the subject model is loaded once and
+activations for all layers are extracted in a single pass.  Each layer's
+SAE is then applied independently to produce per-layer reports.
 """
 
 from __future__ import annotations
@@ -17,35 +21,35 @@ from pathlib import Path
 import numpy as np
 
 
-def identify_contrastive_features(
-    pairs: list,
-    sae_checkpoint: str,
-    subject_model: str,
-    layers: list[int],
+def _analyze_layer(
     layer_key: str,
-    batch_size: int,
+    sae_checkpoint: str,
+    pairs_by_type: dict[str, list],
+    all_acts_by_type: dict[str, list[dict[str, np.ndarray]]],
     top_k: int,
-    output_dir: str,
-    min_effect_size: float = 0.3,
-    min_activation: float = 0.01,
-    scenarios_meta: dict | None = None,
-    backend: str = "vllm",
+    min_effect_size: float,
+    min_activation: float,
+    output_dir: Path,
 ) -> Path:
-    """Identify which SAE features are decision-relevant using contrastive pairs.
+    """Analyze contrastive features for a single layer using pre-extracted activations.
 
-    For each contrastive pair, encode both the anchor and contrast prompts
-    through the SAE and compare which features activate differently.  Features
-    that consistently differ across many pairs of the same contrast type are
-    the decision-relevant features for that contrast.
+    Args:
+        layer_key: e.g. "residual_20".
+        sae_checkpoint: Path to this layer's trained SAE.
+        pairs_by_type: {contrast_type: [pairs]}.
+        all_acts_by_type: {contrast_type: [act_dicts]} — each dict has all layer keys.
+        top_k: Number of top features per contrast type.
+        min_effect_size: Minimum Cohen's d.
+        min_activation: Minimum mean activation.
+        output_dir: Directory to write contrastive_features.json.
+
+    Returns:
+        Path to the report file.
     """
     import torch
 
-    from data.scenario import default_scenario
-    from extraction import create_extractor
-    from extraction.extractor import build_agent_prompt
     from sae.model import JumpReLUSAE
 
-    # Load the trained SAE
     sae_path = Path(sae_checkpoint)
     if not sae_path.exists():
         raise FileNotFoundError(f"SAE checkpoint not found: {sae_path}")
@@ -53,67 +57,18 @@ def identify_contrastive_features(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sae = JumpReLUSAE.from_pretrained(str(sae_path), device=device)
     sae.eval()
-    print(f"  Loaded SAE: d_model={sae.d_model}, d_sae={sae.d_sae}")
-
-    # Load subject model for live extraction of contrastive pairs
-    extractor = create_extractor(
-        backend=backend,
-        model_name=subject_model,
-        layers=layers,
-        token_positions="decision",
-    )
-    tokenizer = extractor.tokenizer
-
-    # Build scenario lookup for per-pair prompt construction
-    _scenarios_meta = scenarios_meta or {}
-    _default_scenario = default_scenario()
-
-    # Group pairs by contrast type
-    pairs_by_type: dict[str, list] = defaultdict(list)
-    for pair in pairs:
-        pairs_by_type[pair.contrast_type].append(pair)
+    sae_dtype = next(sae.parameters()).dtype
+    print(f"    Loaded SAE: d_model={sae.d_model}, d_sae={sae.d_sae}")
 
     results: dict[str, dict] = {}
-    sae_dtype = next(sae.parameters()).dtype
-    from tqdm import tqdm
-
-    pbar = tqdm(total=len(pairs), desc="Extracting pair activations", unit="pair")
 
     for ct_value, ct_pairs in pairs_by_type.items():
-        # Build all prompts for this contrast type
-        anchor_prompts = []
-        contrast_prompts = []
-        for pair in ct_pairs:
-            scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
-            anchor_prompts.append(
-                build_agent_prompt(
-                    system_prompt=scenario.system_prompt,
-                    tools=scenario.tools,
-                    user_request=pair.anchor_prompt,
-                    tokenizer=tokenizer,
-                )
-            )
-            contrast_prompts.append(
-                build_agent_prompt(
-                    system_prompt=scenario.system_prompt,
-                    tools=scenario.tools,
-                    user_request=pair.contrast_prompt,
-                    tokenizer=tokenizer,
-                )
-            )
-
-        # Extract in batches, accumulating results
-        all_prompts = anchor_prompts + contrast_prompts
-        all_acts: list[dict[str, np.ndarray]] = []
-        for bi in range(0, len(all_prompts), batch_size):
-            batch_prompts = all_prompts[bi : bi + batch_size]
-            all_acts.extend(extractor.extract_batch(batch_prompts, batch_size=len(batch_prompts)))
-
-        pbar.update(len(ct_pairs))
-
+        ct_acts = all_acts_by_type[ct_value]
         n = len(ct_pairs)
-        anchor_acts = [all_acts[i][layer_key] for i in range(n)]
-        contrast_acts = [all_acts[n + i][layer_key] for i in range(n)]
+
+        # Split into anchor (first n) and contrast (last n)
+        anchor_acts = [ct_acts[i][layer_key] for i in range(n)]
+        contrast_acts = [ct_acts[n + i][layer_key] for i in range(n)]
 
         anchor_vecs = torch.from_numpy(np.stack(anchor_acts)).to(device=device, dtype=sae_dtype)
         contrast_vecs = torch.from_numpy(np.stack(contrast_acts)).to(device=device, dtype=sae_dtype)
@@ -150,7 +105,6 @@ def identify_contrastive_features(
         k_actual = min(top_k, int(valid_mask.sum().item()), feature_diffs.shape[0])
         if k_actual > 0:
             topk_vals, topk_indices = masked_diffs.topk(k_actual)
-            # Keep only features that passed the mask
             keep = topk_vals > 0
             topk_vals = topk_vals[keep]
             topk_indices = topk_indices[keep]
@@ -188,9 +142,9 @@ def identify_contrastive_features(
 
         del anchor_vecs, contrast_vecs, anchor_features, contrast_features
 
-    pbar.close()
-
-    extractor.cleanup()
+    del sae
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     # Compute utilization summary
     all_feature_indices: list[int] = []
@@ -214,19 +168,14 @@ def identify_contrastive_features(
         "min_activation": min_activation,
     }
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    report_path = output_path / "contrastive_features.json"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = output_dir / "contrastive_features.json"
     with open(report_path, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\nContrastive feature report saved to {report_path}")
-    print(f"  Contrast types analyzed: {len(results) - 1}")  # exclude _summary
-    print(f"  Max top-{top_k} features per type (filtered by Cohen's d >= {min_effect_size})")
-    print(f"  Total feature slots: {total_slots}")
-    print(f"  Unique features: {len(unique_features)}")
-    print(f"  Features in multiple contrasts: {multi_contrast}")
-    print(f"  Dedup ratio: {results['_summary']['dedup_ratio']:.2%}")
+    print(f"    Report: {report_path}")
+    print(f"    Contrast types: {len(results) - 1}, unique features: {len(unique_features)}")
+    print(f"    Dedup ratio: {results['_summary']['dedup_ratio']:.2%}")
 
     for ct_value, info in results.items():
         if ct_value.startswith("_"):
@@ -234,6 +183,130 @@ def identify_contrastive_features(
         n_feats = len(info["top_features"])
         top3 = info["top_features"][:3]
         top3_str = ", ".join(f"#{f['feature_index']}(d={f['cohens_d']:.2f})" for f in top3)
-        print(f"  {ct_value}: {info['num_pairs']} pairs, {n_feats} features, top: {top3_str}")
+        print(f"    {ct_value}: {info['num_pairs']} pairs, {n_feats} features, top: {top3_str}")
 
     return report_path
+
+
+def identify_contrastive_features(
+    pairs: list,
+    sae_checkpoints: dict[str, str],
+    subject_model: str,
+    layers: list[int],
+    batch_size: int,
+    top_k: int,
+    base_output_dir: str,
+    min_effect_size: float = 0.3,
+    min_activation: float = 0.01,
+    scenarios_meta: dict | None = None,
+    backend: str = "vllm",
+) -> dict[str, Path]:
+    """Identify contrastive features for multiple layers.
+
+    Loads the subject model once, extracts activations for all layers in a
+    single pass, then loops over layers — loading each SAE and computing
+    contrastive features independently.
+
+    Args:
+        pairs: Contrastive pairs.
+        sae_checkpoints: {layer_key: checkpoint_path} for each layer.
+        subject_model: HuggingFace model ID.
+        layers: Transformer layer indices.
+        batch_size: GPU batch size for extraction.
+        top_k: Top features per contrast type.
+        base_output_dir: Base output directory. Per-layer reports go to
+            ``base_output_dir/layer_N/activations/contrastive_features.json``.
+        min_effect_size: Minimum Cohen's d.
+        min_activation: Minimum mean activation.
+        scenarios_meta: {scenario_name: ScenarioConfig}.
+        backend: ``"vllm"`` or ``"hf"``.
+
+    Returns:
+        Dict mapping layer_key to report path.
+    """
+    from tqdm import tqdm
+
+    from data.scenario import default_scenario
+    from extraction import create_extractor
+    from extraction.extractor import build_agent_prompt
+
+    # Load subject model ONCE for all layers
+    extractor = create_extractor(
+        backend=backend,
+        model_name=subject_model,
+        layers=layers,
+        token_positions="decision",
+    )
+    tokenizer = extractor.tokenizer
+
+    _scenarios_meta = scenarios_meta or {}
+    _default_scenario = default_scenario()
+
+    # Group pairs by contrast type
+    pairs_by_type: dict[str, list] = defaultdict(list)
+    for pair in pairs:
+        pairs_by_type[pair.contrast_type].append(pair)
+
+    # Extract activations for all contrast types — results contain all layers
+    all_acts_by_type: dict[str, list[dict[str, np.ndarray]]] = {}
+
+    pbar = tqdm(total=len(pairs), desc="Extracting pair activations", unit="pair")
+
+    for ct_value, ct_pairs in pairs_by_type.items():
+        anchor_prompts = []
+        contrast_prompts = []
+        for pair in ct_pairs:
+            scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
+            anchor_prompts.append(
+                build_agent_prompt(
+                    system_prompt=scenario.system_prompt,
+                    tools=scenario.tools,
+                    user_request=pair.anchor_prompt,
+                    tokenizer=tokenizer,
+                )
+            )
+            contrast_prompts.append(
+                build_agent_prompt(
+                    system_prompt=scenario.system_prompt,
+                    tools=scenario.tools,
+                    user_request=pair.contrast_prompt,
+                    tokenizer=tokenizer,
+                )
+            )
+
+        all_prompts = anchor_prompts + contrast_prompts
+        all_acts: list[dict[str, np.ndarray]] = []
+        for bi in range(0, len(all_prompts), batch_size):
+            batch_prompts = all_prompts[bi : bi + batch_size]
+            all_acts.extend(extractor.extract_batch(batch_prompts, batch_size=len(batch_prompts)))
+
+        all_acts_by_type[ct_value] = all_acts
+        pbar.update(len(ct_pairs))
+
+    pbar.close()
+    extractor.cleanup()
+
+    # Now loop over layers — each gets its own SAE and report
+    report_paths: dict[str, Path] = {}
+    layer_keys = [f"residual_{layer}" for layer in layers]
+
+    for layer, layer_key in zip(layers, layer_keys, strict=True):
+        checkpoint = sae_checkpoints[layer_key]
+        output_dir = Path(base_output_dir) / f"layer_{layer}" / "activations"
+
+        print(f"\n  --- Layer {layer} ---")
+        print(f"    SAE checkpoint: {checkpoint}")
+
+        report_path = _analyze_layer(
+            layer_key=layer_key,
+            sae_checkpoint=checkpoint,
+            pairs_by_type=pairs_by_type,
+            all_acts_by_type=all_acts_by_type,
+            top_k=top_k,
+            min_effect_size=min_effect_size,
+            min_activation=min_activation,
+            output_dir=output_dir,
+        )
+        report_paths[layer_key] = report_path
+
+    return report_paths

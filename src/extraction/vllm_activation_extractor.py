@@ -164,9 +164,7 @@ class VLLMActivationExtractor:
                     elif self.config.token_positions == "all":
                         item[key] = tensor.float().numpy()
                     else:
-                        raise ValueError(
-                            f"Unknown token_positions: {self.config.token_positions}"
-                        )
+                        raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
 
                 results.append(item)
 

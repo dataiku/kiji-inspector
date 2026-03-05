@@ -12,12 +12,12 @@ from __future__ import annotations
 import json
 import warnings
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from tqdm import tqdm
 
 from data.contrastive_dataset import ContrastivePair
-from typing import Any
 
 
 def build_agent_prompt_from_tokenizer(
@@ -184,6 +184,7 @@ class RawActivationExtractor:
         self,
         pairs: list[ContrastivePair],
         output_dir: str | Path,
+        layer_keys: list[str] | None = None,
         batch_size: int = 512,
         shard_size: int = 500_000,
         show_progress: bool = True,
@@ -191,21 +192,25 @@ class RawActivationExtractor:
         # Legacy single-scenario args (backward compat)
         system_prompt: str | None = None,
         tools: list[dict] | None = None,
-    ) -> Path:
+    ) -> dict[str, Path]:
         """Extract raw activations for every prompt and save as numpy shards.
 
         Each contrastive pair contributes TWO activation vectors (one per
         prompt).  Activations are saved as float16 numpy shards compatible
         with ``CachedActivationBuffer``.
 
-        Per-pair tools and system prompts are looked up from
-        ``scenarios_meta`` (a dict mapping scenario name to ScenarioConfig).
-        Falls back to the legacy ``system_prompt``/``tools`` args or
-        the built-in default scenario.
+        When multiple ``layer_keys`` are provided, the base extractor returns
+        all layers in a single forward pass.  Activations for each layer are
+        written to separate subdirectories::
+
+            output_dir/layer_10/activations/shard_*.npy
+            output_dir/layer_20/activations/shard_*.npy
 
         Args:
             pairs: Contrastive pairs (text only).
-            output_dir: Directory for numpy shards + metadata.json.
+            output_dir: Base directory for output.
+            layer_keys: Layer keys to save (e.g. ``["residual_10", "residual_20"]``).
+                If ``None``, falls back to ``[self.layer_key]``.
             batch_size: Number of prompts per GPU forward-pass batch.
             shard_size: Number of activation vectors per shard file.
             show_progress: Show a tqdm progress bar.
@@ -214,18 +219,19 @@ class RawActivationExtractor:
             tools: (Legacy) Single tool list for all pairs.
 
         Returns:
-            Path to the output directory.
+            Dict mapping each layer_key to its output directory path.
         """
         from data.scenario import default_scenario
 
         output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
+
+        if layer_keys is None:
+            layer_keys = [self.layer_key]
 
         # Build scenario lookup
         if scenarios_meta is not None:
             _scenarios = scenarios_meta
         elif system_prompt is not None and tools is not None:
-            # Legacy single-scenario mode
             from data.scenario import ScenarioConfig
 
             legacy = ScenarioConfig(
@@ -270,16 +276,27 @@ class RawActivationExtractor:
         total_prompts = len(all_prompts)
         d_model = self.extractor.hidden_size
 
-        # Streaming extraction: accumulate into shard buffer, flush when full
-        shard_buffer: list[np.ndarray] = []
-        shard_buffer_count = 0
-        shard_idx = 0
-        total_written = 0
-        shard_paths: list[Path] = []
+        # Per-layer output directories and shard state
+        layer_dirs: dict[str, Path] = {}
+        shard_buffers: dict[str, list[np.ndarray]] = {}
+        shard_counts: dict[str, int] = {}
+        shard_indices: dict[str, int] = {}
+        total_written: dict[str, int] = {}
+
+        for lk in layer_keys:
+            # Parse layer number from "residual_N"
+            layer_num = lk.split("_", 1)[1]
+            ldir = output_dir / f"layer_{layer_num}" / "activations"
+            ldir.mkdir(parents=True, exist_ok=True)
+            layer_dirs[lk] = ldir
+            shard_buffers[lk] = []
+            shard_counts[lk] = 0
+            shard_indices[lk] = 0
+            total_written[lk] = 0
 
         pbar = tqdm(
             total=total_prompts,
-            desc="Extracting activations",
+            desc=f"Extracting activations ({len(layer_keys)} layer(s))",
             unit="prompt",
             disable=not show_progress,
         )
@@ -287,65 +304,62 @@ class RawActivationExtractor:
         for i in range(0, total_prompts, batch_size):
             batch_prompts = all_prompts[i : i + batch_size]
 
-            # Batched forward pass
+            # Batched forward pass — returns all layers per prompt
             all_acts = self.extractor.extract_batch(batch_prompts, batch_size=len(batch_prompts))
 
             for act_dict in all_acts:
-                vec = act_dict[self.layer_key]  # shape (d_model,), float32
-                shard_buffer.append(vec.astype(np.float16))
-                shard_buffer_count += 1
+                for lk in layer_keys:
+                    vec = act_dict[lk]  # shape (d_model,), float32
+                    shard_buffers[lk].append(vec.astype(np.float16))
+                    shard_counts[lk] += 1
 
-                if shard_buffer_count >= shard_size:
-                    shard_path = self._flush_shard(output_dir, shard_idx, shard_buffer)
-                    shard_paths.append(shard_path)
-                    total_written += shard_buffer_count
-                    shard_idx += 1
-                    shard_buffer = []
-                    shard_buffer_count = 0
+                    if shard_counts[lk] >= shard_size:
+                        self._flush_shard(layer_dirs[lk], shard_indices[lk], shard_buffers[lk])
+                        total_written[lk] += shard_counts[lk]
+                        shard_indices[lk] += 1
+                        shard_buffers[lk] = []
+                        shard_counts[lk] = 0
 
             pbar.update(len(batch_prompts))
 
-        # Flush remaining
-        if shard_buffer:
-            shard_path = self._flush_shard(output_dir, shard_idx, shard_buffer)
-            shard_paths.append(shard_path)
-            total_written += shard_buffer_count
-            shard_idx += 1
+        # Flush remaining buffers
+        for lk in layer_keys:
+            if shard_buffers[lk]:
+                self._flush_shard(layer_dirs[lk], shard_indices[lk], shard_buffers[lk])
+                total_written[lk] += shard_counts[lk]
+                shard_indices[lk] += 1
 
         pbar.close()
 
-        # Write metadata.json
-        metadata = {
-            "model": self.extractor.config.model_name,
-            "layer": self.layer_key,
-            "d_model": d_model,
-            "total_tokens": total_written,
-            "num_shards": shard_idx,
-            "shard_size": shard_size,
-            "dtype": "float16",
-            "source": "agentbench-sae-dataset",
-            "prompts_per_pair": 2,
-            "total_pairs": len(pairs),
-        }
-        metadata_path = output_dir / "metadata.json"
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
+        # Write per-layer metadata.json and prompts.json
+        for lk in layer_keys:
+            ldir = layer_dirs[lk]
 
-        # Write prompts.json -- user request text for each activation vector,
-        # in the same order as the numpy shards.  Used by Step 5 to map
-        # activations back to prompt text without re-running inference.
-        prompts_path = output_dir / "prompts.json"
-        with open(prompts_path, "w") as f:
-            json.dump(user_requests, f)
+            metadata = {
+                "model": self.extractor.config.model_name,
+                "layer": lk,
+                "d_model": d_model,
+                "total_tokens": total_written[lk],
+                "num_shards": shard_indices[lk],
+                "shard_size": shard_size,
+                "dtype": "float16",
+                "source": "agentbench-sae-dataset",
+                "prompts_per_pair": 2,
+                "total_pairs": len(pairs),
+            }
+            with open(ldir / "metadata.json", "w") as f:
+                json.dump(metadata, f, indent=2)
 
-        print(
-            f"Wrote {total_written} activation vectors across {shard_idx} shard(s) to {output_dir}"
-        )
+            with open(ldir / "prompts.json", "w") as f:
+                json.dump(user_requests, f)
+
+            print(
+                f"  {lk}: {total_written[lk]} vectors across {shard_indices[lk]} shard(s) → {ldir}"
+            )
+
         print(f"  Shape per vector: ({d_model},), dtype=float16")
-        print(f"  Metadata: {metadata_path}")
-        print(f"  Prompts: {prompts_path} ({len(user_requests)} entries)")
 
-        return output_dir
+        return layer_dirs
 
     @staticmethod
     def _flush_shard(

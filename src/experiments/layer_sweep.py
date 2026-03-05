@@ -196,17 +196,18 @@ def run_layer(
     if 2 not in skip:
         print(f"\n  [Layer {layer}] Step 2: Extracting activations...")
         t0 = time.time()
-        extract_activations(
+        layer_dirs = extract_activations(
             pairs=pairs,
-            output_dir=activations_dir,
+            output_dir=str(layer_output_dir.parent),
             subject_model=args.subject_model,
             layers=[layer],
-            layer_key=layer_key,
             batch_size=args.batch_size,
             shard_size=args.shard_size,
             scenarios_meta=scenarios_meta,
             backend=args.backend,
         )
+        # extract_activations writes to parent/layer_N/activations/
+        activations_dir = str(layer_dirs[layer_key])
         summary["step2_time"] = round(time.time() - t0, 1)
     else:
         print(f"\n  [Layer {layer}] Step 2: Skipped")
@@ -245,13 +246,12 @@ def run_layer(
         t0 = time.time()
         identify_contrastive_features(
             pairs=pairs,
-            sae_checkpoint=sae_path,
+            sae_checkpoints={layer_key: sae_path},
             subject_model=args.subject_model,
             layers=[layer],
-            layer_key=layer_key,
             batch_size=args.batch_size,
             top_k=200,
-            output_dir=activations_dir,
+            base_output_dir=str(layer_output_dir.parent),
             scenarios_meta=scenarios_meta,
             backend=args.backend,
         )
@@ -370,7 +370,6 @@ def run_layer(
             formatted_prompts=formatted_prompts,
             subject_model=args.subject_model,
             layers=[layer],
-            layer_key=layer_key,
             batch_size=64,
             backend=args.backend,
         )
@@ -382,6 +381,7 @@ def run_layer(
             prompt_to_idx=prompt_to_idx,
             token_strings_list=token_strings_list,
             token_activations_list=token_activations_list,
+            layer_key=layer_key,
             sae_checkpoint=sae_path,
             tokenizer=tokenizer,
         )

@@ -60,26 +60,30 @@ def extract_per_token_activations(
     formatted_prompts: list[str],
     subject_model: str,
     layers: list[int],
-    layer_key: str,
     batch_size: int,
     backend: str = "vllm",
-) -> tuple[list[list[str]], list[np.ndarray]]:
+) -> tuple[list[list[str]], list[dict[str, np.ndarray]]]:
     """Extract per-token activations for a list of formatted prompts.
+
+    Returns activations for ALL requested layers so the caller can loop
+    over layers for per-SAE encoding without reloading the subject model.
 
     Args:
         prompts: Original user request strings (for display).
         formatted_prompts: Full formatted prompts for the subject model.
         subject_model: HuggingFace model name.
         layers: Transformer layers to hook.
-        layer_key: Which layer's activations to use.
         batch_size: GPU batch size.
         backend: ``"vllm"`` or ``"hf"`` extraction backend.
 
     Returns:
         token_strings: List of list-of-token-strings per prompt.
-        token_activations: List of (seq_len, d_model) numpy arrays per prompt.
+        token_activations: List of dicts mapping layer_key to (seq_len, d_model)
+            numpy arrays, one dict per prompt.
     """
     from extraction import create_extractor
+
+    layer_keys = [f"residual_{layer}" for layer in layers]
 
     extractor = create_extractor(
         backend=backend,
@@ -89,7 +93,7 @@ def extract_per_token_activations(
     )
 
     all_token_strings: list[list[str]] = []
-    all_token_activations: list[np.ndarray] = []
+    all_token_activations: list[dict[str, np.ndarray]] = []
 
     pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
 
@@ -109,13 +113,14 @@ def extract_per_token_activations(
             token_ids = encoding.input_ids[0].tolist()
             tokens = extractor.tokenizer.convert_ids_to_tokens(token_ids)
 
-            act_array = acts[j][layer_key]  # (seq_len, d_model)
+            # Use first layer key to determine sequence length
+            first_act = acts[j][layer_keys[0]]  # (seq_len, d_model)
+            min_len = min(len(tokens), first_act.shape[0])
 
-            # Lengths should match -- extract_batch with "all" returns
-            # only non-padded tokens, and we tokenized without padding
-            min_len = min(len(tokens), act_array.shape[0])
             all_token_strings.append(tokens[:min_len])
-            all_token_activations.append(act_array[:min_len])
+            # Truncate all layers to same length
+            act_dict = {lk: acts[j][lk][:min_len] for lk in layer_keys}
+            all_token_activations.append(act_dict)
 
         pbar.update(len(batch_formatted))
 
@@ -375,7 +380,8 @@ def _compute_highlighted_user_text(
     feat_id: int,
     prompt_to_idx: dict[str, int],
     token_strings_list: list[list[str]],
-    token_activations_list: list[np.ndarray],
+    token_activations_list: list[dict[str, np.ndarray]],
+    layer_key: str,
     sae,
     device: str,
     sae_dtype,
@@ -396,7 +402,7 @@ def _compute_highlighted_user_text(
 
     idx = prompt_to_idx[user_request]
     tok_strs = token_strings_list[idx]
-    tok_acts = token_activations_list[idx]  # (seq_len, d_model)
+    tok_acts = token_activations_list[idx][layer_key]  # (seq_len, d_model)
 
     # Encode through SAE
     with torch.no_grad():
@@ -429,7 +435,8 @@ def build_fuzzing_examples(
     feature_descriptions: dict[str, dict],
     prompt_to_idx: dict[str, int],
     token_strings_list: list[list[str]],
-    token_activations_list: list[np.ndarray],
+    token_activations_list: list[dict[str, np.ndarray]],
+    layer_key: str,
     sae_checkpoint: str,
     tokenizer,
     top_k_tokens: int = 5,
@@ -448,7 +455,8 @@ def build_fuzzing_examples(
         feature_descriptions: From feature_descriptions.json (keyed by str feature ID).
         prompt_to_idx: Maps user request text -> index into token_strings/activations.
         token_strings_list: Per-prompt list of token strings.
-        token_activations_list: Per-prompt (seq_len, d_model) arrays.
+        token_activations_list: Per-prompt dicts mapping layer_key to (seq_len, d_model).
+        layer_key: Which layer's activations to use for SAE encoding.
         sae_checkpoint: Path to trained SAE.
         tokenizer: The subject model tokenizer (for text reconstruction).
         top_k_tokens: Number of tokens to highlight.
@@ -486,6 +494,7 @@ def build_fuzzing_examples(
                 prompt_to_idx,
                 token_strings_list,
                 token_activations_list,
+                layer_key,
                 sae,
                 device,
                 sae_dtype,
@@ -504,6 +513,7 @@ def build_fuzzing_examples(
                 prompt_to_idx,
                 token_strings_list,
                 token_activations_list,
+                layer_key,
                 sae,
                 device,
                 sae_dtype,
