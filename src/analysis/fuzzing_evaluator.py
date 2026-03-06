@@ -62,6 +62,7 @@ def extract_per_token_activations(
     layers: list[int],
     batch_size: int,
     backend: str = "vllm",
+    tensor_parallel_size: int = 1,
 ) -> tuple[list[list[str]], list[dict[str, np.ndarray]]]:
     """Extract per-token activations for a list of formatted prompts.
 
@@ -75,6 +76,7 @@ def extract_per_token_activations(
         layers: Transformer layers to hook.
         batch_size: GPU batch size.
         backend: ``"vllm"`` or ``"hf"`` extraction backend.
+        tensor_parallel_size: Tensor parallel size for vLLM extraction.
 
     Returns:
         token_strings: List of list-of-token-strings per prompt.
@@ -90,6 +92,7 @@ def extract_per_token_activations(
         model_name=subject_model,
         layers=layers,
         token_positions="all",
+        tensor_parallel_size=tensor_parallel_size,
     )
 
     all_token_strings: list[list[str]] = []
