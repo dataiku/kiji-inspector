@@ -260,9 +260,14 @@ def extract_batch_data_parallel(
 
     config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}
 
-    # Split prompts across workers
-    chunk_size = (len(prompts) + dp_size - 1) // dp_size
-    chunks = [prompts[i : i + chunk_size] for i in range(0, len(prompts), chunk_size)]
+    # Split prompts into exactly dp_size contiguous chunks.
+    base, remainder = divmod(len(prompts), dp_size)
+    chunks: list[list[str]] = []
+    start = 0
+    for r in range(dp_size):
+        size = base + (1 if r < remainder else 0)
+        chunks.append(prompts[start : start + size])
+        start += size
 
     # Create temp files for output
     tmp_dir = tempfile.mkdtemp(prefix="kiji_dp_")
