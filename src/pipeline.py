@@ -113,6 +113,13 @@ def parse_args() -> argparse.Namespace:
         help="Tensor parallel size for vLLM generation (default: 4 for 4xGB200).",
     )
     p.add_argument(
+        "--generation-dp-size",
+        type=int,
+        default=1,
+        help="Data parallel size for vLLM generation: runs N model copies "
+        "on N GPUs for N× throughput (default: 1).",
+    )
+    p.add_argument(
         "--extraction-dp-size",
         type=int,
         default=1,
@@ -617,6 +624,7 @@ def _run_step4(args, sae_checkpoints: dict[str, str] | None = None) -> None:
             feature_examples=feature_examples,
             judging_model=args.judging_model,
             tp_size=args.generation_tp_size,
+            dp_size=args.generation_dp_size,
             max_model_len=args.max_model_len,
             output_dir=activations_dir,
         )
@@ -782,6 +790,7 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
             feature_descriptions=feature_descriptions,
             judging_model=args.judging_model,
             tp_size=args.generation_tp_size,
+            dp_size=args.generation_dp_size,
             max_model_len=args.max_model_len,
             output_dir=activations_dir,
         )
@@ -859,13 +868,13 @@ def main() -> None:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Label top-N       : {args.label_top_n}")
         print(f"  Label bottom-N    : {args.label_bottom_n}")
-        print(f"  Labeling model    : {args.judging_model} (vLLM, TP={args.generation_tp_size})")
+        print(f"  Labeling model    : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})")
     if "5" in steps:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Fuzz top-K tokens : {args.fuzz_top_k_tokens}")
         print(f"  Fuzz examples/feat: {args.fuzz_examples_per_feature}")
         print(f"  Fuzz batch size   : {args.fuzz_batch_size}")
-        print(f"  Judge model       : {args.judging_model} (vLLM, TP={args.generation_tp_size})")
+        print(f"  Judge model       : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})")
     print("=" * 60)
 
     sae_checkpoints: dict[str, str] | None = None

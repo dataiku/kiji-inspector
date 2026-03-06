@@ -720,8 +720,14 @@ def _run_judge_subprocess(
     tp_size: int,
     max_model_len: int,
     output_path: str,
+    gpu_ids: str | None = None,
 ) -> None:
     """Child process: load vLLM, judge all examples, save results, exit."""
+    import os
+
+    if gpu_ids is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
+
     from vllm import LLM, SamplingParams
 
     print(f"  [subprocess] Loading vLLM model: {judging_model}")
@@ -763,33 +769,73 @@ def evaluate_fuzzing(
     tp_size: int,
     max_model_len: int,
     output_dir: str | Path,
+    dp_size: int = 1,
 ) -> list[dict]:
     """Run LLM judge on fuzzing examples in a subprocess.
+
+    When ``dp_size > 1``, spawns N model copies on N GPUs (each with
+    ``tp_size=1``) to judge examples in parallel.
 
     Returns:
         List of dicts, one per example, with judgment results.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    judgments_path = str(output_dir / "_judge_temp.json")
 
     chatml_prompts = _build_judge_prompts(examples, feature_descriptions)
 
     ctx = mp.get_context("spawn")
-    p = ctx.Process(
-        target=_run_judge_subprocess,
-        args=(chatml_prompts, judging_model, tp_size, max_model_len, judgments_path),
-    )
-    p.start()
-    p.join()
 
-    if p.exitcode != 0:
-        raise RuntimeError(f"Judge subprocess failed with exit code {p.exitcode}")
+    if dp_size > 1:
+        # Data-parallel: split prompts across N GPUs
+        chunk_size = (len(chatml_prompts) + dp_size - 1) // dp_size
+        prompt_chunks = [
+            chatml_prompts[i : i + chunk_size]
+            for i in range(0, len(chatml_prompts), chunk_size)
+        ]
+        output_paths = [
+            str(output_dir / f"_judge_temp_rank{r}.json")
+            for r in range(len(prompt_chunks))
+        ]
 
-    with open(judgments_path) as f:
-        raw_judgments = json.load(f)
+        processes = []
+        for rank, (chunk, out_path) in enumerate(zip(prompt_chunks, output_paths)):
+            p = ctx.Process(
+                target=_run_judge_subprocess,
+                args=(chunk, judging_model, 1, max_model_len, out_path, str(rank)),
+            )
+            p.start()
+            processes.append(p)
 
-    Path(judgments_path).unlink(missing_ok=True)
+        for p in processes:
+            p.join()
+            if p.exitcode != 0:
+                raise RuntimeError(
+                    f"Judge subprocess (pid={p.pid}) failed with exit code {p.exitcode}"
+                )
+
+        # Merge results from all ranks in order
+        raw_judgments: list[str] = []
+        for out_path in output_paths:
+            with open(out_path) as f:
+                raw_judgments.extend(json.load(f))
+            Path(out_path).unlink(missing_ok=True)
+    else:
+        judgments_path = str(output_dir / "_judge_temp.json")
+        p = ctx.Process(
+            target=_run_judge_subprocess,
+            args=(chatml_prompts, judging_model, tp_size, max_model_len, judgments_path),
+        )
+        p.start()
+        p.join()
+
+        if p.exitcode != 0:
+            raise RuntimeError(f"Judge subprocess failed with exit code {p.exitcode}")
+
+        with open(judgments_path) as f:
+            raw_judgments = json.load(f)
+
+        Path(judgments_path).unlink(missing_ok=True)
 
     # Parse judgments -- both token-level and prompt-level use A/B format
     results = []

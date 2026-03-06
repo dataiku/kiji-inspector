@@ -228,8 +228,13 @@ def _run_labeling_subprocess(
     tp_size: int,
     max_model_len: int,
     output_path: str,
+    gpu_ids: str | None = None,
 ) -> None:
     """Child process: load vLLM, label all features, save results, exit."""
+    import os
+
+    if gpu_ids is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
 
     from vllm import LLM, SamplingParams
 
@@ -300,8 +305,12 @@ def label_features_via_llm(
     tp_size: int,
     max_model_len: int,
     output_dir: str | Path,
+    dp_size: int = 1,
 ) -> dict[int, dict]:
     """Label features using an LLM in a subprocess (GPU memory isolation).
+
+    When ``dp_size > 1``, spawns N model copies on N GPUs (each with
+    ``tp_size=1``) to label features in parallel.
 
     Returns:
         Dict mapping feature_index -> {"label": str, "description": str, "confidence": str}
@@ -310,7 +319,6 @@ def label_features_via_llm(
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    labels_path = str(output_dir / "_labels_temp.json")
 
     # Build prompts
     label_prompts = []
@@ -319,24 +327,59 @@ def label_features_via_llm(
         label_prompts.append((feat_idx, prompt))
 
     ctx = mp.get_context("spawn")
-    p = ctx.Process(
-        target=_run_labeling_subprocess,
-        args=(label_prompts, judging_model, tp_size, max_model_len, labels_path),
-    )
-    p.start()
-    p.join()
 
-    if p.exitcode != 0:
-        raise RuntimeError(f"Labeling subprocess failed with exit code {p.exitcode}")
+    if dp_size > 1:
+        # Data-parallel: split prompts across N GPUs
+        chunk_size = (len(label_prompts) + dp_size - 1) // dp_size
+        chunks = [
+            label_prompts[i : i + chunk_size]
+            for i in range(0, len(label_prompts), chunk_size)
+        ]
+        output_paths = [
+            str(output_dir / f"_labels_temp_rank{r}.json")
+            for r in range(len(chunks))
+        ]
 
-    with open(labels_path) as f:
-        raw_labels = json.load(f)
+        processes = []
+        for rank, (chunk, out_path) in enumerate(zip(chunks, output_paths)):
+            p = ctx.Process(
+                target=_run_labeling_subprocess,
+                args=(chunk, judging_model, 1, max_model_len, out_path, str(rank)),
+            )
+            p.start()
+            processes.append(p)
 
-    # Convert string keys back to int
-    labels = {int(k): v for k, v in raw_labels.items()}
+        for p in processes:
+            p.join()
+            if p.exitcode != 0:
+                raise RuntimeError(
+                    f"Labeling subprocess (pid={p.pid}) failed with exit code {p.exitcode}"
+                )
 
-    # Clean up temp file
-    Path(labels_path).unlink(missing_ok=True)
+        # Merge results from all ranks
+        labels: dict[int, dict] = {}
+        for out_path in output_paths:
+            with open(out_path) as f:
+                raw_labels = json.load(f)
+            labels.update({int(k): v for k, v in raw_labels.items()})
+            Path(out_path).unlink(missing_ok=True)
+    else:
+        labels_path = str(output_dir / "_labels_temp.json")
+        p = ctx.Process(
+            target=_run_labeling_subprocess,
+            args=(label_prompts, judging_model, tp_size, max_model_len, labels_path),
+        )
+        p.start()
+        p.join()
+
+        if p.exitcode != 0:
+            raise RuntimeError(f"Labeling subprocess failed with exit code {p.exitcode}")
+
+        with open(labels_path) as f:
+            raw_labels = json.load(f)
+
+        labels = {int(k): v for k, v in raw_labels.items()}
+        Path(labels_path).unlink(missing_ok=True)
 
     return labels
 
