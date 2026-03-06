@@ -201,12 +201,26 @@ def _dp_worker(
     """
     import os
 
+    from tqdm import tqdm
+
     os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
 
     config = VLLMActivationConfig(**config_kwargs)
     extractor = VLLMActivationExtractor(config)
 
-    results = extractor.extract_batch(prompts, batch_size=batch_size)
+    results: list[dict[str, np.ndarray]] = []
+    pbar = tqdm(
+        total=len(prompts),
+        desc=f"[GPU {rank}] Extracting",
+        unit="prompt",
+        position=rank,
+    )
+    for i in range(0, len(prompts), batch_size):
+        chunk = prompts[i : i + batch_size]
+        results.extend(extractor.extract_batch(chunk, batch_size=len(chunk)))
+        pbar.update(len(chunk))
+    pbar.close()
+
     extractor.cleanup()
 
     # Serialise results: list of dicts with string keys → numpy arrays.
