@@ -113,10 +113,11 @@ def parse_args() -> argparse.Namespace:
         help="Tensor parallel size for vLLM generation (default: 4 for 4xGB200).",
     )
     p.add_argument(
-        "--extraction-tp-size",
+        "--extraction-dp-size",
         type=int,
         default=1,
-        help="Tensor parallel size for subject model extraction via vLLM (default: 1).",
+        help="Data parallel size for subject model extraction: runs N model copies "
+        "on N GPUs for N× throughput (default: 1).",
     )
     p.add_argument(
         "--max-model-len",
@@ -310,7 +311,7 @@ def extract_activations(
     shard_size: int,
     scenarios_meta: dict | None = None,
     backend: str = "vllm",
-    tensor_parallel_size: int = 1,
+    dp_size: int = 1,
 ) -> dict[str, Path]:
     """Load subject model, extract raw activations for all layers, save as numpy shards.
 
@@ -327,7 +328,6 @@ def extract_activations(
         model_name=subject_model,
         layers=layers,
         token_positions="decision",
-        tensor_parallel_size=tensor_parallel_size,
     )
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
@@ -340,6 +340,7 @@ def extract_activations(
         batch_size=batch_size,
         shard_size=shard_size,
         scenarios_meta=scenarios_meta,
+        dp_size=dp_size,
     )
 
     extractor.cleanup()
@@ -430,7 +431,7 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
         shard_size=args.shard_size,
         scenarios_meta=scenarios_meta,
         backend=args.backend,
-        tensor_parallel_size=args.extraction_tp_size,
+        dp_size=args.extraction_dp_size,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
@@ -736,7 +737,7 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
         layers=args.layers,
         batch_size=args.fuzz_batch_size,
         backend=args.backend,
-        tensor_parallel_size=args.extraction_tp_size,
+        dp_size=args.extraction_dp_size,
     )
     elapsed = time.time() - t0
     print(f"  5a complete ({elapsed:.1f}s): {len(token_strings_list)} prompts")
@@ -842,7 +843,7 @@ def main() -> None:
     if "1" in steps:
         print(f"  Subject model     : {args.subject_model}")
         print(f"  Extraction backend: {args.backend}")
-        print(f"  Extraction TP size: {args.extraction_tp_size}")
+        print(f"  Extraction DP size: {args.extraction_dp_size}")
         print(f"  Layers            : {args.layers}")
         print(f"  GPU batch size    : {args.batch_size}")
         print(f"  Shard size        : {args.shard_size:,} vectors/shard")

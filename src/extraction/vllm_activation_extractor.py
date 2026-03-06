@@ -184,3 +184,105 @@ class VLLMActivationExtractor:
 
     def __del__(self):
         self.cleanup()
+
+
+def _dp_worker(
+    rank: int,
+    prompts: list[str],
+    config_kwargs: dict,
+    batch_size: int,
+    output_path: str,
+) -> None:
+    """Worker process for data-parallel extraction.
+
+    Pins to a single GPU via ``CUDA_VISIBLE_DEVICES``, creates a
+    ``VLLMActivationExtractor``, processes its prompt chunk, and
+    saves results to a temporary numpy file.
+    """
+    import os
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
+
+    config = VLLMActivationConfig(**config_kwargs)
+    extractor = VLLMActivationExtractor(config)
+
+    results = extractor.extract_batch(prompts, batch_size=batch_size)
+    extractor.cleanup()
+
+    # Serialise results: list of dicts with string keys → numpy arrays.
+    # Save as a single dict: {"{idx}:{layer_key}": array, ...}
+    flat: dict[str, np.ndarray] = {}
+    for i, item in enumerate(results):
+        for key, arr in item.items():
+            flat[f"{i}:{key}"] = arr
+    flat["__count__"] = np.array([len(results)])
+
+    np.savez(output_path, **flat)
+
+
+def extract_batch_data_parallel(
+    prompts: list[str],
+    dp_size: int,
+    config_kwargs: dict,
+    batch_size: int = 512,
+) -> list[dict[str, np.ndarray]]:
+    """Run extraction across multiple GPUs using data parallelism.
+
+    Splits prompts evenly across ``dp_size`` worker processes, each
+    pinned to a separate GPU.  Results are merged in original order.
+
+    Args:
+        prompts: All prompts to extract.
+        dp_size: Number of data-parallel workers (one per GPU).
+        config_kwargs: Keyword arguments for ``VLLMActivationConfig``.
+            ``tensor_parallel_size`` is forced to 1.
+        batch_size: Batch size per worker.
+
+    Returns:
+        List of activation dicts in the same order as ``prompts``.
+    """
+    import tempfile
+    from multiprocessing import Process
+
+    config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}
+
+    # Split prompts across workers
+    chunk_size = (len(prompts) + dp_size - 1) // dp_size
+    chunks = [prompts[i : i + chunk_size] for i in range(0, len(prompts), chunk_size)]
+
+    # Create temp files for output
+    tmp_dir = tempfile.mkdtemp(prefix="kiji_dp_")
+    output_paths = [f"{tmp_dir}/rank_{r}.npz" for r in range(len(chunks))]
+
+    # Spawn workers
+    processes = []
+    for rank, (chunk, out_path) in enumerate(zip(chunks, output_paths)):
+        p = Process(
+            target=_dp_worker,
+            args=(rank, chunk, config_kwargs, batch_size, out_path),
+        )
+        p.start()
+        processes.append(p)
+
+    # Wait for all workers
+    for p in processes:
+        p.join()
+        if p.exitcode != 0:
+            raise RuntimeError(f"DP worker (pid={p.pid}) failed with exit code {p.exitcode}")
+
+    # Merge results in order
+    all_results: list[dict[str, np.ndarray]] = []
+    for out_path in output_paths:
+        data = np.load(out_path, allow_pickle=False)
+        count = int(data["__count__"][0])
+        layer_keys = {k.split(":", 1)[1] for k in data.files if ":" in k}
+        for i in range(count):
+            item = {lk: data[f"{i}:{lk}"] for lk in layer_keys}
+            all_results.append(item)
+
+    # Cleanup temp files
+    import shutil
+
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    return all_results

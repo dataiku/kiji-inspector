@@ -62,7 +62,7 @@ def extract_per_token_activations(
     layers: list[int],
     batch_size: int,
     backend: str = "vllm",
-    tensor_parallel_size: int = 1,
+    dp_size: int = 1,
 ) -> tuple[list[list[str]], list[dict[str, np.ndarray]]]:
     """Extract per-token activations for a list of formatted prompts.
 
@@ -76,7 +76,7 @@ def extract_per_token_activations(
         layers: Transformer layers to hook.
         batch_size: GPU batch size.
         backend: ``"vllm"`` or ``"hf"`` extraction backend.
-        tensor_parallel_size: Tensor parallel size for vLLM extraction.
+        dp_size: Data parallel size (model copies across GPUs).
 
     Returns:
         token_strings: List of list-of-token-strings per prompt.
@@ -87,48 +87,80 @@ def extract_per_token_activations(
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
-    extractor = create_extractor(
-        backend=backend,
-        model_name=subject_model,
-        layers=layers,
-        token_positions="all",
-        tensor_parallel_size=tensor_parallel_size,
-    )
+    if dp_size > 1 and backend == "vllm":
+        from transformers import AutoTokenizer
+
+        from extraction.vllm_activation_extractor import extract_batch_data_parallel
+
+        config_kwargs = {
+            "model_name": subject_model,
+            "layers": layers,
+            "token_positions": "all",
+        }
+        acts_list = extract_batch_data_parallel(
+            prompts=formatted_prompts,
+            dp_size=dp_size,
+            config_kwargs=config_kwargs,
+            batch_size=batch_size,
+        )
+        tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+    else:
+        acts_list = None
+        extractor = create_extractor(
+            backend=backend,
+            model_name=subject_model,
+            layers=layers,
+            token_positions="all",
+        )
+        tokenizer = extractor.tokenizer
 
     all_token_strings: list[list[str]] = []
     all_token_activations: list[dict[str, np.ndarray]] = []
 
     pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
 
-    for i in range(0, len(formatted_prompts), batch_size):
-        batch_formatted = formatted_prompts[i : i + batch_size]
-
-        # Get per-token activations (token_positions="all")
-        acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
-
-        # Get token strings by tokenizing each prompt
-        for j, prompt_text in enumerate(batch_formatted):
-            encoding = extractor.tokenizer(
-                prompt_text,
-                return_tensors="pt",
-                truncation=True,
-            )
+    if acts_list is not None:
+        # DP path: activations already extracted
+        for j, prompt_text in enumerate(formatted_prompts):
+            encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
             token_ids = encoding.input_ids[0].tolist()
-            tokens = extractor.tokenizer.convert_ids_to_tokens(token_ids)
+            tokens = tokenizer.convert_ids_to_tokens(token_ids)
 
-            # Use first layer key to determine sequence length
-            first_act = acts[j][layer_keys[0]]  # (seq_len, d_model)
+            first_act = acts_list[j][layer_keys[0]]
             min_len = min(len(tokens), first_act.shape[0])
 
             all_token_strings.append(tokens[:min_len])
-            # Truncate all layers to same length
-            act_dict = {lk: acts[j][lk][:min_len] for lk in layer_keys}
+            act_dict = {lk: acts_list[j][lk][:min_len] for lk in layer_keys}
             all_token_activations.append(act_dict)
 
-        pbar.update(len(batch_formatted))
+        pbar.update(len(formatted_prompts))
+    else:
+        for i in range(0, len(formatted_prompts), batch_size):
+            batch_formatted = formatted_prompts[i : i + batch_size]
+
+            # Get per-token activations (token_positions="all")
+            acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
+
+            # Get token strings by tokenizing each prompt
+            for j, prompt_text in enumerate(batch_formatted):
+                encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
+                token_ids = encoding.input_ids[0].tolist()
+                tokens = tokenizer.convert_ids_to_tokens(token_ids)
+
+                first_act = acts[j][layer_keys[0]]
+                min_len = min(len(tokens), first_act.shape[0])
+
+                all_token_strings.append(tokens[:min_len])
+                act_dict = {lk: acts[j][lk][:min_len] for lk in layer_keys}
+                all_token_activations.append(act_dict)
+
+            pbar.update(len(batch_formatted))
+
+        extractor.cleanup()
 
     pbar.close()
-    extractor.cleanup()
 
     return all_token_strings, all_token_activations
 

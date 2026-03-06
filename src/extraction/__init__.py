@@ -1,6 +1,10 @@
 from extraction.activation_extractor import ActivationConfig, ActivationExtractor
 from extraction.extractor import RawActivationExtractor, build_agent_prompt
-from extraction.vllm_activation_extractor import VLLMActivationConfig, VLLMActivationExtractor
+from extraction.vllm_activation_extractor import (
+    VLLMActivationConfig,
+    VLLMActivationExtractor,
+    extract_batch_data_parallel,
+)
 
 __all__ = [
     "ActivationConfig",
@@ -10,6 +14,7 @@ __all__ = [
     "RawActivationExtractor",
     "build_agent_prompt",
     "create_extractor",
+    "extract_batch_data_parallel",
 ]
 
 

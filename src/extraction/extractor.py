@@ -189,6 +189,7 @@ class RawActivationExtractor:
         shard_size: int = 500_000,
         show_progress: bool = True,
         scenarios_meta: dict | None = None,
+        dp_size: int = 1,
         # Legacy single-scenario args (backward compat)
         system_prompt: str | None = None,
         tools: list[dict] | None = None,
@@ -301,15 +302,27 @@ class RawActivationExtractor:
             disable=not show_progress,
         )
 
-        for i in range(0, total_prompts, batch_size):
-            batch_prompts = all_prompts[i : i + batch_size]
+        if dp_size > 1 and hasattr(self.extractor, "config"):
+            # Data-parallel: spawn N model copies on N GPUs
+            from extraction.vllm_activation_extractor import extract_batch_data_parallel
 
-            # Batched forward pass — returns all layers per prompt
-            all_acts = self.extractor.extract_batch(batch_prompts, batch_size=len(batch_prompts))
-
+            config_kwargs = {
+                "model_name": self.extractor.config.model_name,
+                "layers": self.extractor.config.layers,
+                "token_positions": self.extractor.config.token_positions,
+                "gpu_memory_utilization": self.extractor.config.gpu_memory_utilization,
+                "max_model_len": self.extractor.config.max_model_len,
+                "trust_remote_code": self.extractor.config.trust_remote_code,
+            }
+            all_acts = extract_batch_data_parallel(
+                prompts=all_prompts,
+                dp_size=dp_size,
+                config_kwargs=config_kwargs,
+                batch_size=batch_size,
+            )
             for act_dict in all_acts:
                 for lk in layer_keys:
-                    vec = act_dict[lk]  # shape (d_model,), float32
+                    vec = act_dict[lk]
                     shard_buffers[lk].append(vec.astype(np.float16))
                     shard_counts[lk] += 1
 
@@ -320,7 +333,33 @@ class RawActivationExtractor:
                         shard_buffers[lk] = []
                         shard_counts[lk] = 0
 
-            pbar.update(len(batch_prompts))
+            pbar.update(len(all_acts))
+        else:
+            # Single-GPU: use the existing extractor directly
+            for i in range(0, total_prompts, batch_size):
+                batch_prompts = all_prompts[i : i + batch_size]
+
+                # Batched forward pass — returns all layers per prompt
+                all_acts = self.extractor.extract_batch(
+                    batch_prompts, batch_size=len(batch_prompts)
+                )
+
+                for act_dict in all_acts:
+                    for lk in layer_keys:
+                        vec = act_dict[lk]  # shape (d_model,), float32
+                        shard_buffers[lk].append(vec.astype(np.float16))
+                        shard_counts[lk] += 1
+
+                        if shard_counts[lk] >= shard_size:
+                            self._flush_shard(
+                                layer_dirs[lk], shard_indices[lk], shard_buffers[lk]
+                            )
+                            total_written[lk] += shard_counts[lk]
+                            shard_indices[lk] += 1
+                            shard_buffers[lk] = []
+                            shard_counts[lk] = 0
+
+                pbar.update(len(batch_prompts))
 
         # Flush remaining buffers
         for lk in layer_keys:
