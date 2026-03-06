@@ -330,12 +330,46 @@ def extract_activations(
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
-    extractor = create_extractor(
-        backend=backend,
-        model_name=subject_model,
-        layers=layers,
-        token_positions="decision",
-    )
+    if dp_size > 1 and backend == "vllm":
+        # DP path: don't load the full model in the main process — only
+        # load the tokenizer and config so we can format prompts and read
+        # hidden_size.  The DP workers will each load their own model copy.
+        from transformers import AutoConfig, AutoTokenizer
+
+        from extraction.vllm_activation_extractor import VLLMActivationConfig
+
+        tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        hf_config = AutoConfig.from_pretrained(subject_model, trust_remote_code=True)
+        hidden_size = hf_config.hidden_size
+
+        # Build a lightweight stub so RawActivationExtractor can format
+        # prompts and read hidden_size without a full model.
+        class _ConfigStub:
+            def __init__(self):
+                self.model_name = subject_model
+                self.layers = layers
+                self.token_positions = "decision"
+                self.gpu_memory_utilization = 0.90
+                self.max_model_len = 8192
+                self.trust_remote_code = True
+
+        class _ExtractorStub:
+            def __init__(self):
+                self.config = _ConfigStub()
+                self.tokenizer = tokenizer
+                self.hidden_size = hidden_size
+
+        extractor = _ExtractorStub()
+    else:
+        extractor = create_extractor(
+            backend=backend,
+            model_name=subject_model,
+            layers=layers,
+            token_positions="decision",
+        )
+
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
     )
@@ -350,7 +384,8 @@ def extract_activations(
         dp_size=dp_size,
     )
 
-    extractor.cleanup()
+    if hasattr(extractor, "cleanup"):
+        extractor.cleanup()
     return layer_dirs
 
 
