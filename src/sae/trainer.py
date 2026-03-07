@@ -559,15 +559,12 @@ def train_sae(
         print("Compiling SAE with torch.compile...")
         sae = torch.compile(sae, mode="max-autotune", fullgraph=True)
 
-    # Wrap with DataParallel if multiple GPUs are available
-    use_data_parallel = torch.cuda.is_available() and torch.cuda.device_count() > 1
-    if use_data_parallel:
-        print(f"Using DataParallel across {torch.cuda.device_count()} GPUs")
-        sae = torch.nn.DataParallel(sae)
+    # Note: DataParallel is not used for SAE training because the SAE is
+    # small (~58M params) and compute_loss() includes reduction steps that
+    # are incompatible with DP's scatter/gather.  A single GPU is sufficient.
 
-    # Helper to access the underlying SAE (unwrap DataParallel if needed)
     def _unwrap(model):
-        return model.module if isinstance(model, torch.nn.DataParallel) else model
+        return model
 
     # Optimiser + scheduler
     optimizer = AdamW(
