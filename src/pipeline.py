@@ -541,6 +541,7 @@ def _run_step3(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
         min_activation=args.min_activation,
         scenarios_meta=scenarios_meta,
         backend=args.backend,
+        dp_size=args.extraction_dp_size,
     )
     elapsed = time.time() - t0
     print(f"  Feature identification complete ({elapsed:.1f}s)")
