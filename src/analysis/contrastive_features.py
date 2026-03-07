@@ -91,6 +91,24 @@ def _analyze_layer(
         )
         cohens_d = (anchor_mean - contrast_mean).abs() / (pooled_std + 1e-8)
 
+        # Diagnostic: print stats for first contrast type to help debug 0-feature issues
+        if len(results) == 0:
+            max_d = cohens_d.max().item()
+            max_act = max(anchor_mean.abs().max().item(), contrast_mean.abs().max().item())
+            mean_act = (anchor_mean.abs().mean().item() + contrast_mean.abs().mean().item()) / 2
+            n_above_effect = int((cohens_d >= min_effect_size).sum().item())
+            n_above_act = int(
+                ((anchor_mean.abs() > min_activation) | (contrast_mean.abs() > min_activation))
+                .sum()
+                .item()
+            )
+            print(f"    [debug] max Cohen's d: {max_d:.4f} (threshold: {min_effect_size})")
+            print(
+                f"    [debug] max activation: {max_act:.6f}, mean: {mean_act:.6f} (threshold: {min_activation})"
+            )
+            print(f"    [debug] features above effect size: {n_above_effect}/{cohens_d.shape[0]}")
+            print(f"    [debug] features above min activation: {n_above_act}/{cohens_d.shape[0]}")
+
         # Filter: effect size >= threshold AND at least one side has meaningful activation
         effect_mask = cohens_d >= min_effect_size
         activation_mask = (anchor_mean.abs() > min_activation) | (
@@ -287,6 +305,7 @@ def identify_contrastive_features(
 
     for ct_value, ct_pairs in pairs_by_type.items():
         ct_start = len(all_prompts)
+        # Anchors first, then contrasts — _analyze_layer expects this order
         for pair in ct_pairs:
             scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
             all_prompts.append(
@@ -297,6 +316,8 @@ def identify_contrastive_features(
                     tokenizer=tokenizer,
                 )
             )
+        for pair in ct_pairs:
+            scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
             all_prompts.append(
                 build_agent_prompt(
                     system_prompt=scenario.system_prompt,
