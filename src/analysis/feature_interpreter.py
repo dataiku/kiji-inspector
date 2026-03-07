@@ -67,7 +67,7 @@ def load_activations_from_shards(
         raise FileNotFoundError(f"No shard_*.npy files found in {activations_dir}")
 
     shards = []
-    for sp in tqdm(shard_paths, desc="[5a] Loading shards", unit="shard"):
+    for sp in tqdm(shard_paths, desc="[4a] Loading shards", unit="shard"):
         shards.append(np.load(sp))
 
     all_activations = np.concatenate(shards, axis=0)  # (total_tokens, d_model), float16
@@ -139,7 +139,7 @@ def collect_max_activating_examples(
 
     with torch.no_grad():
         for i in tqdm(
-            range(0, len(activations), chunk_size), desc="[5b] SAE encoding", unit="chunk"
+            range(0, len(activations), chunk_size), desc="[4b] SAE encoding", unit="chunk"
         ):
             chunk = torch.from_numpy(activations[i : i + chunk_size]).to(
                 device=device, dtype=sae_dtype
@@ -153,7 +153,7 @@ def collect_max_activating_examples(
 
     results: dict[int, dict] = {}
 
-    for feat_idx in tqdm(feature_indices, desc="[5b] Collecting examples", unit="feature"):
+    for feat_idx in tqdm(feature_indices, desc="[4b] Collecting examples", unit="feature"):
         col = feature_matrix[:, feat_idx]  # (N,)
 
         # Top activating

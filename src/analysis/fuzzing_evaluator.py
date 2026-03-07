@@ -87,6 +87,15 @@ def extract_per_token_activations(
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
+    # Per-token extraction requires full sequence activations, which
+    # the vLLM backend cannot provide (it only returns the decode step).
+    # Force HF backend for this step.
+    if backend == "vllm":
+        print(
+            "  Note: switching to HF backend for per-token extraction (vLLM only returns decode-step activations)"
+        )
+        backend = "hf"
+
     # Per-token extraction uses a single GPU (small prompt count).
     # DP is handled at the judging step (5c) instead.
     acts_list = None
