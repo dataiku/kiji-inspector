@@ -3,7 +3,7 @@ from extraction.extractor import RawActivationExtractor, build_agent_prompt
 from extraction.vllm_activation_extractor import (
     VLLMActivationConfig,
     VLLMActivationExtractor,
-    extract_batch_data_parallel,
+    run_dp_extraction_to_shards,
 )
 
 __all__ = [
@@ -14,7 +14,7 @@ __all__ = [
     "RawActivationExtractor",
     "build_agent_prompt",
     "create_extractor",
-    "extract_batch_data_parallel",
+    "run_dp_extraction_to_shards",
 ]
 
 

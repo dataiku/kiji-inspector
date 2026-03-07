@@ -85,9 +85,11 @@ def main() -> None:
     all_scenarios = discover_scenarios()
     matched = [s for s in all_scenarios if s.name in scenario_names]
     if matched:
-        meta_path = save_scenarios_meta(matched, pairs_path)
-        print(f"  Wrote scenarios_meta.json with {len(matched)} scenario(s): "
-              f"{', '.join(s.name for s in matched)}")
+        save_scenarios_meta(matched, pairs_path)
+        print(
+            f"  Wrote scenarios_meta.json with {len(matched)} scenario(s): "
+            f"{', '.join(s.name for s in matched)}"
+        )
     else:
         print("  Warning: no matching scenario configs found for downloaded pairs")
 

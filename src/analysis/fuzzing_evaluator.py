@@ -87,34 +87,16 @@ def extract_per_token_activations(
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
-    if dp_size > 1 and backend == "vllm":
-        from transformers import AutoTokenizer
-
-        from extraction.vllm_activation_extractor import extract_batch_data_parallel
-
-        config_kwargs = {
-            "model_name": subject_model,
-            "layers": layers,
-            "token_positions": "all",
-        }
-        acts_list = extract_batch_data_parallel(
-            prompts=formatted_prompts,
-            dp_size=dp_size,
-            config_kwargs=config_kwargs,
-            batch_size=batch_size,
-        )
-        tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-    else:
-        acts_list = None
-        extractor = create_extractor(
-            backend=backend,
-            model_name=subject_model,
-            layers=layers,
-            token_positions="all",
-        )
-        tokenizer = extractor.tokenizer
+    # Per-token extraction uses a single GPU (small prompt count).
+    # DP is handled at the judging step (5c) instead.
+    acts_list = None
+    extractor = create_extractor(
+        backend=backend,
+        model_name=subject_model,
+        layers=layers,
+        token_positions="all",
+    )
+    tokenizer = extractor.tokenizer
 
     all_token_strings: list[list[str]] = []
     all_token_activations: list[dict[str, np.ndarray]] = []
@@ -790,16 +772,14 @@ def evaluate_fuzzing(
         # Data-parallel: split prompts across N GPUs
         chunk_size = (len(chatml_prompts) + dp_size - 1) // dp_size
         prompt_chunks = [
-            chatml_prompts[i : i + chunk_size]
-            for i in range(0, len(chatml_prompts), chunk_size)
+            chatml_prompts[i : i + chunk_size] for i in range(0, len(chatml_prompts), chunk_size)
         ]
         output_paths = [
-            str(output_dir / f"_judge_temp_rank{r}.json")
-            for r in range(len(prompt_chunks))
+            str(output_dir / f"_judge_temp_rank{r}.json") for r in range(len(prompt_chunks))
         ]
 
         processes = []
-        for rank, (chunk, out_path) in enumerate(zip(prompt_chunks, output_paths)):
+        for rank, (chunk, out_path) in enumerate(zip(prompt_chunks, output_paths, strict=True)):
             p = ctx.Process(
                 target=_run_judge_subprocess,
                 args=(chunk, judging_model, 1, max_model_len, out_path, str(rank)),

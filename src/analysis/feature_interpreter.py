@@ -332,16 +332,12 @@ def label_features_via_llm(
         # Data-parallel: split prompts across N GPUs
         chunk_size = (len(label_prompts) + dp_size - 1) // dp_size
         chunks = [
-            label_prompts[i : i + chunk_size]
-            for i in range(0, len(label_prompts), chunk_size)
+            label_prompts[i : i + chunk_size] for i in range(0, len(label_prompts), chunk_size)
         ]
-        output_paths = [
-            str(output_dir / f"_labels_temp_rank{r}.json")
-            for r in range(len(chunks))
-        ]
+        output_paths = [str(output_dir / f"_labels_temp_rank{r}.json") for r in range(len(chunks))]
 
         processes = []
-        for rank, (chunk, out_path) in enumerate(zip(chunks, output_paths)):
+        for rank, (chunk, out_path) in enumerate(zip(chunks, output_paths, strict=True)):
             p = ctx.Process(
                 target=_run_labeling_subprocess,
                 args=(chunk, judging_model, 1, max_model_len, out_path, str(rank)),

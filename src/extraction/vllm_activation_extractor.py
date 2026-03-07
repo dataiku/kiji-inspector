@@ -186,20 +186,24 @@ class VLLMActivationExtractor:
         self.cleanup()
 
 
-def _dp_worker(
+def _dp_shard_worker(
     rank: int,
     prompts: list[str],
     config_kwargs: dict,
     batch_size: int,
-    output_path: str,
+    layer_keys: list[str],
+    layer_dirs: dict[str, str],
+    shard_size: int,
+    shard_offset: int,
 ) -> None:
-    """Worker process for data-parallel extraction.
+    """Worker process for data-parallel extraction with direct shard writing.
 
-    Pins to a single GPU via ``CUDA_VISIBLE_DEVICES``, creates a
-    ``VLLMActivationExtractor``, processes its prompt chunk, and
-    saves results to a temporary numpy file.
+    Pins to a single GPU via ``CUDA_VISIBLE_DEVICES``, extracts activations,
+    and writes numpy shards directly to the output directories.  No temp
+    files or cross-process data transfer needed.
     """
     import os
+    from pathlib import Path
 
     from tqdm import tqdm
 
@@ -208,59 +212,92 @@ def _dp_worker(
     config = VLLMActivationConfig(**config_kwargs)
     extractor = VLLMActivationExtractor(config)
 
-    results: list[dict[str, np.ndarray]] = []
+    # Per-layer shard state
+    shard_buffers: dict[str, list[np.ndarray]] = {lk: [] for lk in layer_keys}
+    shard_counts: dict[str, int] = dict.fromkeys(layer_keys, 0)
+    shard_indices: dict[str, int] = dict.fromkeys(layer_keys, shard_offset)
+    total_written: dict[str, int] = dict.fromkeys(layer_keys, 0)
+
     pbar = tqdm(
         total=len(prompts),
         desc=f"[GPU {rank}] Extracting",
         unit="prompt",
         position=rank,
     )
+
     for i in range(0, len(prompts), batch_size):
         chunk = prompts[i : i + batch_size]
-        results.extend(extractor.extract_batch(chunk, batch_size=len(chunk)))
-        pbar.update(len(chunk))
-    pbar.close()
+        acts_list = extractor.extract_batch(chunk, batch_size=len(chunk))
 
+        for act_dict in acts_list:
+            for lk in layer_keys:
+                vec = act_dict[lk]
+                shard_buffers[lk].append(vec.astype(np.float16))
+                shard_counts[lk] += 1
+
+                if shard_counts[lk] >= shard_size:
+                    _flush_shard(Path(layer_dirs[lk]), shard_indices[lk], shard_buffers[lk])
+                    total_written[lk] += shard_counts[lk]
+                    shard_indices[lk] += 1
+                    shard_buffers[lk] = []
+                    shard_counts[lk] = 0
+
+        pbar.update(len(chunk))
+
+    # Flush remaining buffers
+    for lk in layer_keys:
+        if shard_buffers[lk]:
+            _flush_shard(Path(layer_dirs[lk]), shard_indices[lk], shard_buffers[lk])
+            total_written[lk] += shard_counts[lk]
+            shard_indices[lk] += 1
+
+    pbar.close()
     extractor.cleanup()
 
-    # Serialise results: list of dicts with string keys → numpy arrays.
-    # Save as a single dict: {"{idx}:{layer_key}": array, ...}
-    flat: dict[str, np.ndarray] = {}
-    for i, item in enumerate(results):
-        for key, arr in item.items():
-            flat[f"{i}:{key}"] = arr
-    flat["__count__"] = np.array([len(results)])
-
-    np.savez(output_path, **flat)
+    print(
+        f"  [GPU {rank}] Wrote {total_written[layer_keys[0]]} vectors "
+        f"across {shard_indices[layer_keys[0]] - shard_offset} shard(s)"
+    )
 
 
-def extract_batch_data_parallel(
+def _flush_shard(output_dir, shard_idx: int, buffer: list[np.ndarray]):
+    """Stack buffered vectors and save as a numpy shard."""
+    shard_data = np.stack(buffer, axis=0)
+    shard_path = output_dir / f"shard_{shard_idx:06d}.npy"
+    np.save(shard_path, shard_data)
+
+
+def run_dp_extraction_to_shards(
     prompts: list[str],
     dp_size: int,
     config_kwargs: dict,
-    batch_size: int = 512,
-) -> list[dict[str, np.ndarray]]:
-    """Run extraction across multiple GPUs using data parallelism.
+    batch_size: int,
+    layer_keys: list[str],
+    layer_dirs: dict[str, str],
+    shard_size: int,
+) -> dict[str, int]:
+    """Run data-parallel extraction, writing shards directly to output dirs.
 
-    Splits prompts evenly across ``dp_size`` worker processes, each
-    pinned to a separate GPU.  Results are merged in original order.
+    Each worker writes its own shard files with non-overlapping indices.
+    No temp files or merging needed.
 
     Args:
         prompts: All prompts to extract.
         dp_size: Number of data-parallel workers (one per GPU).
         config_kwargs: Keyword arguments for ``VLLMActivationConfig``.
-            ``tensor_parallel_size`` is forced to 1.
         batch_size: Batch size per worker.
+        layer_keys: Layer keys (e.g. ``["residual_8", "residual_20"]``).
+        layer_dirs: Dict mapping layer_key to output directory path (str).
+        shard_size: Vectors per shard file.
 
     Returns:
-        List of activation dicts in the same order as ``prompts``.
+        Dict mapping layer_key to total number of vectors written.
     """
-    import tempfile
     from multiprocessing import Process
 
     config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}
 
-    # Split prompts into exactly dp_size contiguous chunks.
+    # Split prompts into exactly dp_size contiguous chunks
     base, remainder = divmod(len(prompts), dp_size)
     chunks: list[list[str]] = []
     start = 0
@@ -269,16 +306,31 @@ def extract_batch_data_parallel(
         chunks.append(prompts[start : start + size])
         start += size
 
-    # Create temp files for output
-    tmp_dir = tempfile.mkdtemp(prefix="kiji_dp_")
-    output_paths = [f"{tmp_dir}/rank_{r}.npz" for r in range(len(chunks))]
+    # Compute shard index offsets so workers don't collide.
+    # Each worker gets enough shard indices to cover its chunk.
+    shard_offsets = []
+    offset = 0
+    for chunk in chunks:
+        shard_offsets.append(offset)
+        # Max shards this worker could write
+        max_shards = (len(chunk) + shard_size - 1) // shard_size + 1
+        offset += max_shards
 
     # Spawn workers
     processes = []
-    for rank, (chunk, out_path) in enumerate(zip(chunks, output_paths)):
+    for rank, (chunk, shard_offset) in enumerate(zip(chunks, shard_offsets, strict=True)):
         p = Process(
-            target=_dp_worker,
-            args=(rank, chunk, config_kwargs, batch_size, out_path),
+            target=_dp_shard_worker,
+            args=(
+                rank,
+                chunk,
+                config_kwargs,
+                batch_size,
+                layer_keys,
+                layer_dirs,
+                shard_size,
+                shard_offset,
+            ),
         )
         p.start()
         processes.append(p)
@@ -289,19 +341,14 @@ def extract_batch_data_parallel(
         if p.exitcode != 0:
             raise RuntimeError(f"DP worker (pid={p.pid}) failed with exit code {p.exitcode}")
 
-    # Merge results in order
-    all_results: list[dict[str, np.ndarray]] = []
-    for out_path in output_paths:
-        data = np.load(out_path, allow_pickle=False)
-        count = int(data["__count__"][0])
-        layer_keys = {k.split(":", 1)[1] for k in data.files if ":" in k}
-        for i in range(count):
-            item = {lk: data[f"{i}:{lk}"] for lk in layer_keys}
-            all_results.append(item)
+    # Count total vectors per layer from the shard files
+    from pathlib import Path
 
-    # Cleanup temp files
-    import shutil
+    totals: dict[str, int] = {}
+    for lk in layer_keys:
+        total = 0
+        for shard_path in sorted(Path(layer_dirs[lk]).glob("shard_*.npy")):
+            total += np.load(shard_path, mmap_mode="r").shape[0]
+        totals[lk] = total
 
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-
-    return all_results
+    return totals

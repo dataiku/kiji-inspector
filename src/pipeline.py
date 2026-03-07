@@ -336,8 +336,6 @@ def extract_activations(
         # hidden_size.  The DP workers will each load their own model copy.
         from transformers import AutoConfig, AutoTokenizer
 
-        from extraction.vllm_activation_extractor import VLLMActivationConfig
-
         tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
@@ -903,13 +901,17 @@ def main() -> None:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Label top-N       : {args.label_top_n}")
         print(f"  Label bottom-N    : {args.label_bottom_n}")
-        print(f"  Labeling model    : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})")
+        print(
+            f"  Labeling model    : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})"
+        )
     if "5" in steps:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Fuzz top-K tokens : {args.fuzz_top_k_tokens}")
         print(f"  Fuzz examples/feat: {args.fuzz_examples_per_feature}")
         print(f"  Fuzz batch size   : {args.fuzz_batch_size}")
-        print(f"  Judge model       : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})")
+        print(
+            f"  Judge model       : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})"
+        )
     print("=" * 60)
 
     sae_checkpoints: dict[str, str] | None = None

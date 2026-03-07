@@ -303,8 +303,8 @@ class RawActivationExtractor:
         )
 
         if dp_size > 1 and hasattr(self.extractor, "config"):
-            # Data-parallel: spawn N model copies on N GPUs
-            from extraction.vllm_activation_extractor import extract_batch_data_parallel
+            # Data-parallel: workers write shards directly — no temp files
+            from extraction.vllm_activation_extractor import run_dp_extraction_to_shards
 
             config_kwargs = {
                 "model_name": self.extractor.config.model_name,
@@ -314,26 +314,20 @@ class RawActivationExtractor:
                 "max_model_len": self.extractor.config.max_model_len,
                 "trust_remote_code": self.extractor.config.trust_remote_code,
             }
-            all_acts = extract_batch_data_parallel(
+            totals = run_dp_extraction_to_shards(
                 prompts=all_prompts,
                 dp_size=dp_size,
                 config_kwargs=config_kwargs,
                 batch_size=batch_size,
+                layer_keys=layer_keys,
+                layer_dirs={lk: str(layer_dirs[lk]) for lk in layer_keys},
+                shard_size=shard_size,
             )
-            for act_dict in all_acts:
-                for lk in layer_keys:
-                    vec = act_dict[lk]
-                    shard_buffers[lk].append(vec.astype(np.float16))
-                    shard_counts[lk] += 1
+            for lk in layer_keys:
+                total_written[lk] = totals[lk]
+                shard_indices[lk] = len(list(layer_dirs[lk].glob("shard_*.npy")))
 
-                    if shard_counts[lk] >= shard_size:
-                        self._flush_shard(layer_dirs[lk], shard_indices[lk], shard_buffers[lk])
-                        total_written[lk] += shard_counts[lk]
-                        shard_indices[lk] += 1
-                        shard_buffers[lk] = []
-                        shard_counts[lk] = 0
-
-            pbar.update(len(all_acts))
+            pbar.update(total_prompts)
         else:
             # Single-GPU: use the existing extractor directly
             for i in range(0, total_prompts, batch_size):
@@ -351,9 +345,7 @@ class RawActivationExtractor:
                         shard_counts[lk] += 1
 
                         if shard_counts[lk] >= shard_size:
-                            self._flush_shard(
-                                layer_dirs[lk], shard_indices[lk], shard_buffers[lk]
-                            )
+                            self._flush_shard(layer_dirs[lk], shard_indices[lk], shard_buffers[lk])
                             total_written[lk] += shard_counts[lk]
                             shard_indices[lk] += 1
                             shard_buffers[lk] = []
