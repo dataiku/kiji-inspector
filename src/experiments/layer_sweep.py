@@ -57,16 +57,33 @@ def parse_args() -> argparse.Namespace:
         help="Base directory for per-layer outputs (default: output/layer_sweep).",
     )
     p.add_argument(
-        "--nemotron-model",
+        "--subject-model",
         type=str,
         default="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+        dest="subject_model",
         help="Subject model for activation extraction.",
     )
     p.add_argument(
-        "--qwen-model",
+        "--nemotron-model",
+        type=str,
+        default=argparse.SUPPRESS,
+        dest="subject_model",
+        help=argparse.SUPPRESS,
+    )
+    p.add_argument(
+        "--judging-model",
         type=str,
         default="Qwen/Qwen3-VL-235B-A22B-Instruct-FP8",
+        dest="judging_model",
         help="LLM for labeling and judging (steps 5-6).",
+    )
+    # Backward-compatible alias (hidden from help)
+    p.add_argument(
+        "--qwen-model",
+        type=str,
+        default=argparse.SUPPRESS,
+        dest="judging_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--generation-tp-size",
@@ -123,6 +140,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Limit number of pairs to use (default: all).",
     )
+    p.add_argument(
+        "--backend",
+        type=str,
+        default="vllm",
+        choices=["vllm", "hf"],
+        help="Backend for activation extraction: 'vllm' (fast, default) "
+        "or 'hf' (HuggingFace Transformers).",
+    )
     return p.parse_args()
 
 
@@ -171,16 +196,18 @@ def run_layer(
     if 2 not in skip:
         print(f"\n  [Layer {layer}] Step 2: Extracting activations...")
         t0 = time.time()
-        extract_activations(
+        layer_dirs = extract_activations(
             pairs=pairs,
-            output_dir=activations_dir,
-            nemotron_model=args.nemotron_model,
+            output_dir=str(layer_output_dir.parent),
+            subject_model=args.subject_model,
             layers=[layer],
-            layer_key=layer_key,
             batch_size=args.batch_size,
             shard_size=args.shard_size,
             scenarios_meta=scenarios_meta,
+            backend=args.backend,
         )
+        # extract_activations writes to parent/layer_N/activations/
+        activations_dir = str(layer_dirs[layer_key])
         summary["step2_time"] = round(time.time() - t0, 1)
     else:
         print(f"\n  [Layer {layer}] Step 2: Skipped")
@@ -219,14 +246,14 @@ def run_layer(
         t0 = time.time()
         identify_contrastive_features(
             pairs=pairs,
-            sae_checkpoint=sae_path,
-            nemotron_model=args.nemotron_model,
+            sae_checkpoints={layer_key: sae_path},
+            subject_model=args.subject_model,
             layers=[layer],
-            layer_key=layer_key,
             batch_size=args.batch_size,
             top_k=200,
-            output_dir=activations_dir,
+            base_output_dir=str(layer_output_dir.parent),
             scenarios_meta=scenarios_meta,
+            backend=args.backend,
         )
         summary["step4_time"] = round(time.time() - t0, 1)
 
@@ -277,7 +304,7 @@ def run_layer(
 
         feature_labels = label_features_via_llm(
             feature_examples=feature_examples,
-            qwen_model=args.qwen_model,
+            judging_model=args.judging_model,
             tp_size=args.generation_tp_size,
             max_model_len=args.max_model_len,
             output_dir=activations_dir,
@@ -328,31 +355,33 @@ def run_layer(
                     seen.add(prompt)
                     all_prompts.append(prompt)
 
+        tokenizer = AutoTokenizer.from_pretrained(args.subject_model, trust_remote_code=True)
+
         formatted_prompts = []
         for req in all_prompts:
             sc_name = prompt_to_scenario.get(req, "")
             sc = scenarios_meta.get(sc_name, _default_sc)
             formatted_prompts.append(
-                build_agent_prompt(sc.system_prompt, sc.tools, req, "nemotron")
+                build_agent_prompt(sc.system_prompt, sc.tools, req, tokenizer=tokenizer)
             )
 
         token_strings_list, token_activations_list = extract_per_token_activations(
             prompts=all_prompts,
             formatted_prompts=formatted_prompts,
-            nemotron_model=args.nemotron_model,
+            subject_model=args.subject_model,
             layers=[layer],
-            layer_key=layer_key,
             batch_size=64,
+            backend=args.backend,
         )
 
         prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
-        tokenizer = AutoTokenizer.from_pretrained(args.nemotron_model, trust_remote_code=True)
 
         examples = build_fuzzing_examples(
             feature_descriptions=feature_descriptions,
             prompt_to_idx=prompt_to_idx,
             token_strings_list=token_strings_list,
             token_activations_list=token_activations_list,
+            layer_key=layer_key,
             sae_checkpoint=sae_path,
             tokenizer=tokenizer,
         )
@@ -369,7 +398,7 @@ def run_layer(
         results = evaluate_fuzzing(
             examples=examples,
             feature_descriptions=feature_descriptions,
-            qwen_model=args.qwen_model,
+            judging_model=args.judging_model,
             tp_size=args.generation_tp_size,
             max_model_len=args.max_model_len,
             output_dir=activations_dir,
@@ -484,7 +513,8 @@ def main() -> None:
     print(f"  Pairs           : {args.pairs_dir}")
     print(f"  Output base     : {args.base_output_dir}")
     print(f"  Skip steps      : {args.skip_steps or 'none'}")
-    print(f"  Model           : {args.nemotron_model}")
+    print(f"  Subject model   : {args.subject_model}")
+    print(f"  Backend         : {args.backend}")
     print("=" * 70)
 
     summaries: list[dict] = []

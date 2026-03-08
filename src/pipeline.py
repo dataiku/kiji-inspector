@@ -2,58 +2,81 @@
 """
 End-to-end pipeline for contrastive SAE analysis of tool-selection decisions.
 
-Step 1: Generate contrastive pairs via Qwen3-VL (vLLM subprocess)
-Step 2: Extract raw activations from Nemotron as numpy shards
-Step 3: Train a JumpReLU SAE on the raw activations
-Step 4: Identify decision-relevant SAE features using contrastive pairs
-Step 5: Interpret features -- label with LLM, generate decision report
-Step 6: Evaluate feature explanations via fuzzing
+Step 1: Extract raw activations from the subject model as numpy shards
+Step 2: Train a JumpReLU SAE on the raw activations
+Step 3: Identify decision-relevant SAE features using contrastive pairs
+Step 4: Interpret features -- label with LLM, generate decision report
+Step 5: Evaluate feature explanations via fuzzing
+
+Pair generation is a separate CLI tool:
+    uv run python -m generate_pairs 1300
 
 Usage:
-    # Run steps 1 + 2 + 3 (full data pipeline + training)
-    uv run python -m pipeline 1300
+    # Run all steps (1-5)
+    uv run python -m pipeline
 
-    # Generate pairs (num_samples required)
-    uv run python -m pipeline 1300 --step 1
-
-    # Steps 2-6 read pairs from disk (num_samples optional)
-    uv run python -m pipeline --step 2 --pairs-dir output/pairs
+    # Individual steps
+    uv run python -m pipeline --step 1
+    uv run python -m pipeline --step 2
     uv run python -m pipeline --step 3
     uv run python -m pipeline --step 4
     uv run python -m pipeline --step 5
-    uv run python -m pipeline --step 6
 
-    # Large-scale
-    uv run python -m pipeline 100000 --output-dir output/activations
+    # Multi-layer: extract 3 layers in one pass, train 3 SAEs
+    uv run python -m pipeline --layers 10 20 30
+
+    # Use a different subject model
+    uv run python -m pipeline --subject-model Qwen/Qwen2.5-3B-Instruct
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
-import multiprocessing as mp
 import sys
 import time
 from pathlib import Path
 
+_SUBJECT_MODEL_DEFAULT = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+
+
+def _resolve_model_defaults(args: argparse.Namespace) -> None:
+    """Auto-detect layer and d_sae defaults based on the subject model config.
+
+    Called after parse_args() so we can inspect the model's actual architecture
+    before any heavy loading happens.
+    """
+    needs_layer = args.layers is None
+    needs_d_sae = args.d_sae is None
+    if not needs_layer and not needs_d_sae:
+        return
+
+    from transformers import AutoConfig
+
+    print(f"  Auto-detecting model config for {args.subject_model}...")
+    config = AutoConfig.from_pretrained(args.subject_model, trust_remote_code=True)
+
+    if needs_layer:
+        num_layers = getattr(config, "num_hidden_layers", 30)
+        default_layer = int(num_layers * 2 / 3)
+        args.layers = [default_layer]
+        print(f"  Auto-selected layer {default_layer} (~2/3 of {num_layers} layers)")
+
+    if needs_d_sae:
+        hidden_size = getattr(config, "hidden_size", 4096)
+        args.d_sae = 4 * hidden_size
+        print(f"  Auto-selected d_sae={args.d_sae} (4x hidden_size={hidden_size})")
+
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Generate a contrastive SAE training set.",
-    )
-    p.add_argument(
-        "num_samples",
-        type=int,
-        nargs="?",
-        default=None,
-        help="Number of contrastive pairs to generate (required for step 1).",
+        description="Contrastive SAE analysis pipeline (steps 1-5).",
     )
     p.add_argument(
         "--output-dir",
         type=str,
-        default="output/activations",
-        help="Directory for numpy activation shards (default: output/activations).",
+        default="output",
+        help="Base output directory. Per-layer outputs go to output/layer_N/ (default: output).",
     )
     p.add_argument(
         "--batch-size",
@@ -67,12 +90,21 @@ def parse_args() -> argparse.Namespace:
         default=500_000,
         help="Activation vectors per numpy shard (default: 500000).",
     )
-    # -- Generation model (Step 1) --
+    # -- Judging model (Steps 4, 5) --
+    p.add_argument(
+        "--judging-model",
+        type=str,
+        default="Qwen/Qwen3-VL-235B-A22B-Instruct-FP8",
+        dest="judging_model",
+        help="HuggingFace model for feature labeling and fuzzing judging via vLLM.",
+    )
+    # Backward-compatible alias (hidden from help)
     p.add_argument(
         "--qwen-model",
         type=str,
-        default="Qwen/Qwen3-VL-235B-A22B-Instruct-FP8",
-        help="HuggingFace model for pair generation via vLLM.",
+        default=argparse.SUPPRESS,
+        dest="judging_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--generation-tp-size",
@@ -81,49 +113,56 @@ def parse_args() -> argparse.Namespace:
         help="Tensor parallel size for vLLM generation (default: 4 for 4xGB200).",
     )
     p.add_argument(
+        "--generation-dp-size",
+        type=int,
+        default=1,
+        help="Data parallel size for vLLM generation: runs N model copies "
+        "on N GPUs for N× throughput (default: 1).",
+    )
+    p.add_argument(
+        "--extraction-dp-size",
+        type=int,
+        default=1,
+        help="Data parallel size for subject model extraction: runs N model copies "
+        "on N GPUs for N× throughput (default: 1).",
+    )
+    p.add_argument(
         "--max-model-len",
         type=int,
         default=16384,
         help="Max sequence length for vLLM generation model (default: 16384).",
     )
+    # -- Subject model (Step 1) --
     p.add_argument(
-        "--generation-batch",
-        type=int,
-        default=50,
-        help="Max pairs to request per LLM prompt (default: 50).",
+        "--subject-model",
+        type=str,
+        default=_SUBJECT_MODEL_DEFAULT,
+        dest="subject_model",
+        help="HuggingFace model ID for activation extraction — the model under study "
+        f"(default: {_SUBJECT_MODEL_DEFAULT}).",
     )
-    p.add_argument(
-        "--vllm-batch-size",
-        type=int,
-        default=128,
-        help="Max prompts per vLLM generate() call (default: 128).",
-    )
-    # -- Extraction model (Step 2) --
+    # Backward-compatible alias (hidden from help)
     p.add_argument(
         "--nemotron-model",
         type=str,
-        default="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
-        help="HuggingFace model for activation extraction.",
+        default=argparse.SUPPRESS,
+        dest="subject_model",
+        help=argparse.SUPPRESS,
     )
     p.add_argument(
         "--layers",
         type=int,
         nargs="+",
-        default=[20],
-        help="Transformer layers to hook (default: 20).",
+        default=None,
+        help="Transformer layers to extract and analyze (default: auto-detect ~2/3 depth). "
+        "Multiple layers produce per-layer SAEs and reports.",
     )
-    p.add_argument(
-        "--layer-key",
-        type=str,
-        default="residual_20",
-        help="Layer key for activation extraction (default: residual_20).",
-    )
-    # -- SAE training (Step 3) --
+    # -- SAE training (Step 2) --
     p.add_argument(
         "--d-sae",
         type=int,
-        default=16384,
-        help="SAE hidden dimension (default: 16384, typically 4-8x d_model).",
+        default=None,
+        help="SAE hidden dimension (default: auto 4x d_model).",
     )
     p.add_argument(
         "--sae-lr",
@@ -173,12 +212,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Resume SAE training from checkpoint.",
     )
-    # -- Feature identification (Step 4) --
+    # -- Feature identification (Step 3) --
     p.add_argument(
         "--sae-checkpoint",
         type=str,
         default=None,
-        help="Path to trained SAE checkpoint for step 4 (default: auto from step 3).",
+        help="Path to trained SAE checkpoint for step 3 (default: auto from step 2).",
     )
     p.add_argument(
         "--top-k-features",
@@ -198,7 +237,7 @@ def parse_args() -> argparse.Namespace:
         default=0.01,
         help="Minimum mean activation for at least one condition (default: 0.01).",
     )
-    # -- Feature interpretation (Step 5) --
+    # -- Feature interpretation (Step 4) --
     p.add_argument(
         "--label-top-n",
         type=int,
@@ -215,9 +254,9 @@ def parse_args() -> argparse.Namespace:
         "--label-batch-size",
         type=int,
         default=512,
-        help="GPU batch size for activation extraction in step 5a (default: 512).",
+        help="GPU batch size for activation extraction in step 4a (default: 512).",
     )
-    # -- Fuzzing evaluation (Step 6) --
+    # -- Fuzzing evaluation (Step 5) --
     p.add_argument(
         "--fuzz-top-k-tokens",
         type=int,
@@ -234,250 +273,122 @@ def parse_args() -> argparse.Namespace:
         "--fuzz-batch-size",
         type=int,
         default=64,
-        help="GPU batch size for per-token extraction in step 6a (default: 64).",
-    )
-    # -- Scenario configs --
-    p.add_argument(
-        "--scenario",
-        action="append",
-        dest="scenarios",
-        default=None,
-        help="Path to scenario JSON config. Can be specified multiple times "
-        "to select a subset. Default: all *.json files in scenarios/.",
+        help="GPU batch size for per-token extraction in step 5a (default: 64).",
     )
     # -- Flow control --
     p.add_argument(
         "--step",
         type=str,
         default="all",
-        choices=["1", "2", "3", "4", "5", "6", "all", "2+"],
-        help="Run a single step: 1=generate, 2=extract, 3=train SAE, "
-        "4=identify features, 5=interpret features, 6=fuzzing eval. "
-        "Shortcuts: all=1+2+3, 2+=2+3+4+5+6 (default: all).",
+        choices=["1", "2", "3", "4", "5", "6", "all"],
+        help="Run a single step: 1=extract activations, 2=train SAE, "
+        "3=identify features, 4=interpret features, 5=fuzzing eval. "
+        "all=1+2+3+4+5 (default: all).",
     )
     p.add_argument(
         "--pairs-dir",
         type=str,
-        default=None,
-        help="Path to existing pairs parquet directory to skip generation.",
+        default="output/pairs",
+        help="Path to pre-generated pairs parquet directory (default: output/pairs).",
     )
-    return p.parse_args()
+    p.add_argument(
+        "--backend",
+        type=str,
+        default="vllm",
+        choices=["vllm", "hf"],
+        help="Backend for activation extraction: 'vllm' (fast, default) "
+        "or 'hf' (HuggingFace Transformers, required for ablation).",
+    )
+
+    args = p.parse_args()
+    return args
 
 
 # ---------------------------------------------------------------------------
-# Step 1: Generate contrastive pairs (runs in a SUBPROCESS)
-# ---------------------------------------------------------------------------
-
-
-def _run_generation_subprocess(
-    num_samples: int,
-    scenario_dicts: list[dict],
-    qwen_model: str,
-    generation_batch: int,
-    vllm_batch_size: int,
-    tp_size: int,
-    max_model_len: int,
-    output_dir: str,
-) -> None:
-    """Child-process entry point: load vLLM, generate pairs for all scenarios, save, exit."""
-    from vllm import LLM, SamplingParams
-
-    from data.contrastive_dataset import ContrastiveDataset
-    from data.generator import ContrastivePairGenerator
-    from data.scenario import ScenarioConfig
-
-    # Check for existing pairs to append to
-    existing_pairs: list = []
-    output_path = Path(output_dir)
-    existing_shards = sorted(output_path.glob("shard_*.parquet")) if output_path.exists() else []
-    if existing_shards:
-        existing_dataset = ContrastiveDataset.from_parquet(output_dir)
-        existing_pairs = existing_dataset.pairs
-        print(
-            f"  [subprocess] Found {len(existing_pairs)} existing pairs in {output_dir}, will append"
-        )
-
-    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
-    print(f"  [subprocess] tensor_parallel_size={tp_size}, max_model_len={max_model_len}")
-
-    llm = LLM(
-        model=qwen_model,
-        tensor_parallel_size=tp_size,
-        max_model_len=max_model_len,
-        trust_remote_code=True,
-        gpu_memory_utilization=0.80,
-        enforce_eager=True,
-        enable_expert_parallel=True,
-        disable_log_stats=True,
-    )
-
-    sampling_params = SamplingParams(
-        temperature=0.7,
-        top_p=0.8,
-        max_tokens=8000,
-    )
-
-    scenarios = [ScenarioConfig.from_dict(d) for d in scenario_dicts]
-    pairs_per_scenario = math.ceil(num_samples / len(scenarios))
-
-    from tqdm import tqdm
-
-    all_pairs: list = []
-
-    # Single overall progress bar
-    pbar = tqdm(
-        total=num_samples,
-        desc="Generating pairs",
-        unit="pair",
-        unit_scale=True,
-        smoothing=0.1,
-    )
-
-    for scenario in scenarios:
-        gen = ContrastivePairGenerator(
-            llm=llm,
-            tools=scenario.tools,
-            contrast_types=scenario.contrast_types,
-            scenario_name=scenario.name,
-            sampling_params=sampling_params,
-        )
-
-        n_types = len(scenario.contrast_types)
-        pairs_per_type = math.ceil(pairs_per_scenario / n_types)
-
-        requests: list[tuple[str, int]] = []
-        for ct in scenario.contrast_types:
-            remaining = pairs_per_type
-            while remaining > 0:
-                chunk = min(remaining, generation_batch)
-                requests.append((ct, chunk))
-                remaining -= chunk
-
-        pair_counters: dict[str, int] = {}
-        scenario_pairs: list = []
-
-        for round_start in range(0, len(requests), vllm_batch_size):
-            round_requests = requests[round_start : round_start + vllm_batch_size]
-            results = gen.generate_batched(round_requests)
-
-            for (ct, _n), pairs in zip(round_requests, results, strict=True):
-                base = pair_counters.get(ct, 0)
-                for i, pair in enumerate(pairs):
-                    pair.pair_id = f"{scenario.name}_{ct}_{base + i}"
-                pair_counters[ct] = base + len(pairs)
-                scenario_pairs.extend(pairs)
-                pbar.update(len(pairs))
-
-            # Update description with current scenario context
-            pbar.set_postfix_str(f"{scenario.name} ({len(scenario_pairs)}/{pairs_per_scenario})")
-
-        if gen._malformed_count > 0:
-            print(f"  [subprocess] {scenario.name}: {gen._malformed_count} malformed pairs skipped")
-        all_pairs.extend(scenario_pairs[:pairs_per_scenario])
-
-    pbar.close()
-    all_pairs = all_pairs[:num_samples]
-    print(f"  [subprocess] New pairs generated: {len(all_pairs)}")
-
-    # Merge with existing pairs if any were found
-    if existing_pairs:
-        combined_pairs = existing_pairs + all_pairs
-        print(
-            f"  [subprocess] Combined total: {len(existing_pairs)} existing + {len(all_pairs)} new = {len(combined_pairs)} pairs"
-        )
-    else:
-        combined_pairs = all_pairs
-
-    dataset = ContrastiveDataset(pairs=combined_pairs)
-    shards = dataset.to_parquet(output_dir)
-    print(f"  [subprocess] Saved {len(shards)} shard(s) to {output_dir}")
-
-
-def generate_pairs(
-    num_samples: int,
-    scenario_dicts: list[dict],
-    qwen_model: str,
-    generation_batch: int,
-    vllm_batch_size: int,
-    tp_size: int,
-    max_model_len: int,
-    pairs_dir: str,
-) -> list:
-    """Spawn a subprocess to generate pairs via vLLM, then load results."""
-    ctx = mp.get_context("spawn")
-    p = ctx.Process(
-        target=_run_generation_subprocess,
-        args=(
-            num_samples,
-            scenario_dicts,
-            qwen_model,
-            generation_batch,
-            vllm_batch_size,
-            tp_size,
-            max_model_len,
-            pairs_dir,
-        ),
-    )
-    p.start()
-    p.join()
-
-    if p.exitcode != 0:
-        raise RuntimeError(f"Generation subprocess failed with exit code {p.exitcode}")
-
-    from data.contrastive_dataset import ContrastiveDataset
-
-    dataset = ContrastiveDataset.from_parquet(pairs_dir)
-    return dataset.pairs
-
-
-# ---------------------------------------------------------------------------
-# Step 2: Extract raw activations (numpy shards)
+# Step 1: Extract raw activations (numpy shards)
 # ---------------------------------------------------------------------------
 
 
 def extract_activations(
     pairs: list,
     output_dir: str,
-    nemotron_model: str,
+    subject_model: str,
     layers: list[int],
-    layer_key: str,
     batch_size: int,
     shard_size: int,
     scenarios_meta: dict | None = None,
-) -> Path:
-    """Load Nemotron, extract raw activations, save as numpy shards."""
-    import torch
+    backend: str = "vllm",
+    dp_size: int = 1,
+) -> dict[str, Path]:
+    """Load subject model, extract raw activations for all layers, save as numpy shards.
 
-    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    Returns:
+        Dict mapping layer_key (e.g. "residual_20") to its activations directory.
+    """
+    from extraction import create_extractor
     from extraction.extractor import RawActivationExtractor
 
-    config = ActivationConfig(
-        model_name=nemotron_model,
-        layers=layers,
-        dtype=torch.bfloat16,
-    )
+    layer_keys = [f"residual_{layer}" for layer in layers]
 
-    extractor = ActivationExtractor(config=config)
+    if dp_size > 1 and backend == "vllm":
+        # DP path: don't load the full model in the main process — only
+        # load the tokenizer and config so we can format prompts and read
+        # hidden_size.  The DP workers will each load their own model copy.
+        from transformers import AutoConfig, AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        hf_config = AutoConfig.from_pretrained(subject_model, trust_remote_code=True)
+        hidden_size = hf_config.hidden_size
+
+        # Build a lightweight stub so RawActivationExtractor can format
+        # prompts and read hidden_size without a full model.
+        class _ConfigStub:
+            def __init__(self):
+                self.model_name = subject_model
+                self.layers = layers
+                self.token_positions = "decision"
+                self.gpu_memory_utilization = 0.90
+                self.max_model_len = 8192
+                self.trust_remote_code = True
+
+        class _ExtractorStub:
+            def __init__(self):
+                self.config = _ConfigStub()
+                self.tokenizer = tokenizer
+                self.hidden_size = hidden_size
+
+        extractor = _ExtractorStub()
+    else:
+        extractor = create_extractor(
+            backend=backend,
+            model_name=subject_model,
+            layers=layers,
+            token_positions="decision",
+        )
+
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
-        model_type="nemotron",
-        layer_key=layer_key,
     )
 
-    result_dir = raw_extractor.extract_to_shards(
+    layer_dirs = raw_extractor.extract_to_shards(
         pairs=pairs,
         output_dir=output_dir,
+        layer_keys=layer_keys,
         batch_size=batch_size,
         shard_size=shard_size,
         scenarios_meta=scenarios_meta,
+        dp_size=dp_size,
     )
 
-    extractor.cleanup()
-    return result_dir
+    if hasattr(extractor, "cleanup"):
+        extractor.cleanup()
+    return layer_dirs
 
 
 # ---------------------------------------------------------------------------
-# Step 3: Train JumpReLU SAE
+# Step 2: Train JumpReLU SAE
 # ---------------------------------------------------------------------------
 
 
@@ -493,7 +404,7 @@ def train_sae_step(
     resume_from: str | None,
     auto_scale_steps: bool = True,
 ) -> str:
-    """Train a JumpReLU SAE on the numpy activation shards from Step 2."""
+    """Train a JumpReLU SAE on the numpy activation shards from Step 1."""
     from sae.trainer import SAETrainingConfig, train_sae
 
     config = SAETrainingConfig(
@@ -512,7 +423,7 @@ def train_sae_step(
 
 
 # ---------------------------------------------------------------------------
-# Step 4: Contrastive feature identification (see analysis/contrastive_features.py)
+# Step 3: Contrastive feature identification (see analysis/contrastive_features.py)
 # ---------------------------------------------------------------------------
 
 from analysis.contrastive_features import identify_contrastive_features  # noqa: E402
@@ -522,200 +433,165 @@ from analysis.contrastive_features import identify_contrastive_features  # noqa:
 # ---------------------------------------------------------------------------
 
 
-def _load_pairs(args, pairs_dir: str) -> list:
+def _load_pairs(pairs_dir: str) -> list:
     from data.contrastive_dataset import ContrastiveDataset
 
-    src = args.pairs_dir or pairs_dir
-    src_path = Path(src)
+    src_path = Path(pairs_dir)
     if not src_path.exists() or not list(src_path.glob("shard_*.parquet")):
-        print(f"  ERROR: no pair parquet shards found in {src}")
-        print("  Run step 1 first, or provide --pairs-dir.")
+        print(f"  ERROR: no pair parquet shards found in {pairs_dir}")
+        print("  Run generate_pairs first: uv run python -m generate_pairs <num_samples>")
         sys.exit(1)
-    dataset = ContrastiveDataset.from_parquet(src)
+    dataset = ContrastiveDataset.from_parquet(pairs_dir)
     pairs = dataset.pairs
-    if args.num_samples is not None:
-        pairs = pairs[: args.num_samples]
-    print(f"  Loaded {len(pairs)} pairs from {src}")
+    print(f"  Loaded {len(pairs)} pairs from {pairs_dir}")
     return pairs
 
 
-def _load_scenarios(args) -> list:
-    """Load scenario configs from CLI args or discover all from scenarios/.
-
-    When no --scenario flags are provided, all *.json files in the
-    scenarios/ directory are loaded automatically.  Use --scenario to
-    select a subset for targeted runs.
-    """
-    from data.scenario import load_scenarios
-
-    if args.scenarios:
-        scenario_paths = args.scenarios
-    else:
-        # Default: load all scenario files from scenarios/ directory
-        scenarios_dir = Path(__file__).resolve().parent.parent / "scenarios"
-        scenario_paths = sorted(scenarios_dir.glob("*.json"))
-        if not scenario_paths:
-            raise FileNotFoundError(
-                f"No scenario files found in {scenarios_dir}. "
-                "Create at least one .json file or use --scenario."
-            )
-
-    return load_scenarios(scenario_paths)
-
-
-def _run_step1(args, pairs_dir: str) -> None:
-    if args.pairs_dir:
-        print(f"\n[Step 1] Pairs already provided via --pairs-dir {args.pairs_dir}, skipping.")
-        return
-
-    if args.num_samples is None:
-        print("\n[Step 1] ERROR: num_samples is required for pair generation.")
-        print("  Usage: generate_training_set.py 1300 --step 1")
-        sys.exit(1)
-
-    from data.scenario import save_scenarios_meta
-
-    scenarios = _load_scenarios(args)
-    scenario_names = [s.name for s in scenarios]
-    print("\n[Step 1] Generating contrastive pairs via vLLM (subprocess)...")
-    print(f"  Scenarios: {', '.join(scenario_names)}")
-
-    t0 = time.time()
-    pairs = generate_pairs(
-        num_samples=args.num_samples,
-        scenario_dicts=[s.to_dict() for s in scenarios],
-        qwen_model=args.qwen_model,
-        generation_batch=args.generation_batch,
-        vllm_batch_size=args.vllm_batch_size,
-        tp_size=args.generation_tp_size,
-        max_model_len=args.max_model_len,
-        pairs_dir=pairs_dir,
-    )
-
-    # Save scenarios_meta.json alongside the pairs
-    meta_path = save_scenarios_meta(scenarios, Path(pairs_dir))
-    print(f"  Saved scenarios metadata: {meta_path}")
-
-    elapsed = time.time() - t0
-    print(f"  Generation complete ({elapsed:.1f}s)")
-    print(f"  {len(pairs)} total pairs in {pairs_dir}")
-
-
-def _run_step2(args, pairs_dir: str) -> None:
-    pairs = _load_pairs(args, pairs_dir)
+def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
+    pairs = _load_pairs(pairs_dir)
 
     from data.scenario import load_scenarios_meta
 
-    scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
+    scenarios_meta = load_scenarios_meta(Path(pairs_dir))
     scenario_names = list(scenarios_meta.keys())
 
-    print("\n[Step 2] Extracting raw activations to numpy shards...")
+    print("\n[Step 1] Extracting raw activations to numpy shards...")
     print(f"  Output: {args.output_dir}")
+    print(f"  Layers: {args.layers}")
     print(f"  Scenarios: {', '.join(scenario_names)}")
     print("  Each pair -> 2 activation vectors (anchor + contrast)")
     print(f"  Total prompts: {len(pairs) * 2}")
     t0 = time.time()
-    extract_activations(
+    layer_dirs = extract_activations(
         pairs=pairs,
         output_dir=args.output_dir,
-        nemotron_model=args.nemotron_model,
+        subject_model=args.subject_model,
         layers=args.layers,
-        layer_key=args.layer_key,
         batch_size=args.batch_size,
         shard_size=args.shard_size,
         scenarios_meta=scenarios_meta,
+        backend=args.backend,
+        dp_size=args.extraction_dp_size,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
+    return layer_dirs
 
 
-def _run_step3(args) -> str:
-    checkpoint_dir = args.sae_checkpoint_dir or str(
-        Path(args.output_dir).parent / "sae_checkpoints"
-    )
-
-    print("\n[Step 3] Training JumpReLU SAE...")
-    print(f"  Activations: {args.output_dir}")
+def _run_step2(args) -> dict[str, str]:
+    """Train one SAE per layer. Returns {layer_key: checkpoint_path}."""
+    print(f"\n[Step 2] Training JumpReLU SAEs for {len(args.layers)} layer(s)...")
     print(f"  d_sae: {args.d_sae}")
-    print(f"  Checkpoints: {checkpoint_dir}")
-    t0 = time.time()
-    final_path = train_sae_step(
-        activations_dir=args.output_dir,
-        checkpoint_dir=checkpoint_dir,
-        d_sae=args.d_sae,
-        learning_rate=args.sae_lr,
-        batch_size=args.sae_batch_size,
-        l1_coefficient=args.l1_coefficient,
-        total_steps=args.sae_steps,
-        num_epochs=args.sae_epochs,
-        resume_from=args.sae_resume,
-        auto_scale_steps=not args.no_auto_scale_steps,
-    )
-    elapsed = time.time() - t0
-    print(f"  SAE training complete ({elapsed:.1f}s)")
-    print(f"  Final checkpoint: {final_path}")
-    return final_path
+
+    sae_checkpoints: dict[str, str] = {}
+    t0_total = time.time()
+
+    for layer in args.layers:
+        layer_key = f"residual_{layer}"
+        layer_dir = Path(args.output_dir) / f"layer_{layer}"
+        activations_dir = str(layer_dir / "activations")
+        checkpoint_dir = args.sae_checkpoint_dir or str(layer_dir / "sae_checkpoints")
+
+        print(f"\n  [Layer {layer}] Training SAE...")
+        print(f"    Activations: {activations_dir}")
+        print(f"    Checkpoints: {checkpoint_dir}")
+        t0 = time.time()
+        final_path = train_sae_step(
+            activations_dir=activations_dir,
+            checkpoint_dir=checkpoint_dir,
+            d_sae=args.d_sae,
+            learning_rate=args.sae_lr,
+            batch_size=args.sae_batch_size,
+            l1_coefficient=args.l1_coefficient,
+            total_steps=args.sae_steps,
+            num_epochs=args.sae_epochs,
+            resume_from=args.sae_resume,
+            auto_scale_steps=not args.no_auto_scale_steps,
+        )
+        elapsed = time.time() - t0
+        print(f"    SAE training complete ({elapsed:.1f}s): {final_path}")
+        sae_checkpoints[layer_key] = final_path
+
+    elapsed_total = time.time() - t0_total
+    print(f"\n  All SAEs trained ({elapsed_total:.1f}s)")
+    return sae_checkpoints
 
 
-def _run_step4(args, pairs_dir: str, sae_checkpoint: str | None = None) -> None:
-    checkpoint = sae_checkpoint or _resolve_sae_checkpoint(args)
+def _run_step3(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = None) -> None:
+    checkpoints = sae_checkpoints or _resolve_sae_checkpoints(args)
 
-    pairs = _load_pairs(args, pairs_dir)
+    pairs = _load_pairs(pairs_dir)
 
     from data.scenario import load_scenarios_meta
 
-    scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
+    scenarios_meta = load_scenarios_meta(Path(pairs_dir))
 
-    print("\n[Step 4] Identifying contrastive SAE features...")
-    print(f"  SAE checkpoint: {checkpoint}")
+    print(f"\n[Step 3] Identifying contrastive SAE features for {len(args.layers)} layer(s)...")
     print(f"  Scenarios: {', '.join(scenarios_meta.keys())}")
     t0 = time.time()
     identify_contrastive_features(
         pairs=pairs,
-        sae_checkpoint=checkpoint,
-        nemotron_model=args.nemotron_model,
+        sae_checkpoints=checkpoints,
+        subject_model=args.subject_model,
         layers=args.layers,
-        layer_key=args.layer_key,
         batch_size=args.batch_size,
         top_k=args.top_k_features,
-        output_dir=args.output_dir,
+        base_output_dir=args.output_dir,
         min_effect_size=args.min_effect_size,
         min_activation=args.min_activation,
         scenarios_meta=scenarios_meta,
+        backend=args.backend,
+        dp_size=args.extraction_dp_size,
     )
     elapsed = time.time() - t0
     print(f"  Feature identification complete ({elapsed:.1f}s)")
 
 
-def _resolve_sae_checkpoint(args) -> str:
-    """Find the SAE checkpoint path from CLI args or default location."""
-    if args.sae_checkpoint:
-        return args.sae_checkpoint
-    default_path = (
-        Path(args.sae_checkpoint_dir or str(Path(args.output_dir).parent / "sae_checkpoints"))
-        / "sae_final.pt"
-    )
-    if default_path.exists():
-        return str(default_path)
-    print("\n  ERROR: SAE checkpoint not found.")
-    print("  Run step 3 first, or provide --sae-checkpoint.")
-    sys.exit(1)
+def _resolve_sae_checkpoints(args) -> dict[str, str]:
+    """Resolve SAE checkpoint paths for all layers.
+
+    Returns:
+        Dict mapping layer_key (e.g. "residual_20") to checkpoint path.
+    """
+    checkpoints: dict[str, str] = {}
+    for layer in args.layers:
+        layer_key = f"residual_{layer}"
+        if args.sae_checkpoint:
+            # Single explicit checkpoint — only valid for single-layer
+            checkpoints[layer_key] = args.sae_checkpoint
+        else:
+            layer_dir = Path(args.output_dir) / f"layer_{layer}"
+            default_path = (
+                Path(args.sae_checkpoint_dir or str(layer_dir / "sae_checkpoints")) / "sae_final.pt"
+            )
+            if default_path.exists():
+                checkpoints[layer_key] = str(default_path)
+            else:
+                print(f"\n  ERROR: SAE checkpoint not found for layer {layer}.")
+                print(f"  Expected at: {default_path}")
+                print("  Run step 2 first, or provide --sae-checkpoint.")
+                sys.exit(1)
+    return checkpoints
 
 
-def _resolve_contrastive_features(args) -> str:
-    """Find the contrastive_features.json from step 4 output."""
-    path = Path(args.output_dir) / "contrastive_features.json"
+def _resolve_contrastive_features(output_dir: str | Path, layer: int) -> str:
+    """Find the contrastive_features.json for a specific layer."""
+    layer_dir = Path(output_dir) / f"layer_{layer}"
+    path = layer_dir / "activations" / "contrastive_features.json"
     if path.exists():
         return str(path)
-    print("\n  ERROR: contrastive_features.json not found.")
+    print(f"\n  ERROR: contrastive_features.json not found for layer {layer}.")
     print(f"  Expected at: {path}")
-    print("  Run step 4 first.")
+    print("  Run step 3 first.")
     sys.exit(1)
 
 
-def _run_step5(args, sae_checkpoint: str | None = None) -> None:
-    """Step 5: Interpret features -- load activations from shards, encode
-    through SAE, label via LLM, generate decision report."""
+def _run_step4(args, sae_checkpoints: dict[str, str] | None = None) -> None:
+    """Step 4: Per-layer feature interpretation.
+
+    For each layer: load activation shards, encode through that layer's SAE,
+    label features via LLM subprocess, generate report.
+    """
     from analysis.feature_interpreter import (
         collect_max_activating_examples,
         generate_explanation_report,
@@ -723,89 +599,110 @@ def _run_step5(args, sae_checkpoint: str | None = None) -> None:
         load_activations_from_shards,
     )
 
-    checkpoint = sae_checkpoint or _resolve_sae_checkpoint(args)
-    contrastive_path = _resolve_contrastive_features(args)
+    checkpoints = sae_checkpoints or _resolve_sae_checkpoints(args)
 
-    # Determine which features to analyze from contrastive_features.json
-    with open(contrastive_path) as f:
-        contrastive = json.load(f)
+    print(f"\n[Step 4] Interpreting features for {len(args.layers)} layer(s)...")
+    t0_total = time.time()
 
-    feature_indices_set: set[int] = set()
-    for ct_info in contrastive.values():
-        for feat in ct_info.get("top_features", []):
-            feature_indices_set.add(feat["feature_index"])
-    feature_indices = sorted(feature_indices_set)
-    print(f"\n[Step 5] Interpreting {len(feature_indices)} unique features")
+    for layer in args.layers:
+        layer_key = f"residual_{layer}"
+        layer_dir = Path(args.output_dir) / f"layer_{layer}"
+        activations_dir = str(layer_dir / "activations")
+        checkpoint = checkpoints[layer_key]
+        contrastive_path = _resolve_contrastive_features(args.output_dir, layer)
 
-    # 5a: Load activations from Step 2 numpy shards (no Nemotron needed)
-    print("\n[Step 5a] Loading activations from numpy shards...")
-    t0 = time.time()
-    prompts, activations = load_activations_from_shards(
-        activations_dir=args.output_dir,
-    )
-    elapsed = time.time() - t0
-    print(f"  5a complete ({elapsed:.1f}s): {len(prompts)} prompts, shape {activations.shape}")
+        print(f"\n  --- Layer {layer} ---")
 
-    # 5b: Encode through SAE, collect examples
-    print("\n[Step 5b] Encoding through SAE and collecting max-activating examples...")
-    t0 = time.time()
-    feature_examples = collect_max_activating_examples(
-        prompts=prompts,
-        activations=activations,
-        sae_checkpoint=checkpoint,
-        feature_indices=feature_indices,
-        top_n=args.label_top_n,
-        bottom_n=args.label_bottom_n,
-    )
-    elapsed = time.time() - t0
-    print(f"  5b complete ({elapsed:.1f}s): {len(feature_examples)} features analyzed")
+        # Determine which features to analyze from contrastive_features.json
+        with open(contrastive_path) as f:
+            contrastive = json.load(f)
 
-    # Free Nemotron activations before loading vLLM for labeling
-    del activations
+        feature_indices_set: set[int] = set()
+        for ct_info in contrastive.values():
+            for feat in ct_info.get("top_features", []):
+                feature_indices_set.add(feat["feature_index"])
+        feature_indices = sorted(feature_indices_set)
+        print(f"  {len(feature_indices)} unique features to interpret")
 
-    # 5c: Label features via LLM (subprocess for GPU isolation)
-    print("\n[Step 5c] Labeling features via LLM (subprocess)...")
-    t0 = time.time()
-    feature_labels = label_features_via_llm(
-        feature_examples=feature_examples,
-        qwen_model=args.qwen_model,
-        tp_size=args.generation_tp_size,
-        max_model_len=args.max_model_len,
-        output_dir=args.output_dir,
-    )
-    elapsed = time.time() - t0
-    print(f"  5c complete ({elapsed:.1f}s): {len(feature_labels)} features labeled")
+        # 4a: Load activations from Step 1 numpy shards
+        print(f"\n  [Layer {layer}] 4a: Loading activations from numpy shards...")
+        t0 = time.time()
+        prompts, activations = load_activations_from_shards(
+            activations_dir=activations_dir,
+        )
+        elapsed = time.time() - t0
+        print(
+            f"    4a complete ({elapsed:.1f}s): {len(prompts)} prompts, shape {activations.shape}"
+        )
 
-    # 5d: Generate report
-    print("\n[Step 5d] Generating explanation report...")
-    t0 = time.time()
-    report_path = generate_explanation_report(
-        contrastive_features_path=contrastive_path,
-        feature_examples=feature_examples,
-        feature_labels=feature_labels,
-        output_dir=args.output_dir,
-    )
-    elapsed = time.time() - t0
-    print(f"  5d complete ({elapsed:.1f}s): {report_path}")
+        # 4b: Encode through SAE, collect examples
+        print(f"\n  [Layer {layer}] 4b: Encoding through SAE...")
+        t0 = time.time()
+        feature_examples = collect_max_activating_examples(
+            prompts=prompts,
+            activations=activations,
+            sae_checkpoint=checkpoint,
+            feature_indices=feature_indices,
+            top_n=args.label_top_n,
+            bottom_n=args.label_bottom_n,
+        )
+        elapsed = time.time() - t0
+        print(f"    4b complete ({elapsed:.1f}s): {len(feature_examples)} features analyzed")
+
+        del activations
+
+        # 4c: Label features via LLM (subprocess)
+        print(f"\n  [Layer {layer}] 4c: Labeling features via LLM (subprocess)...")
+        t0 = time.time()
+        feature_labels = label_features_via_llm(
+            feature_examples=feature_examples,
+            judging_model=args.judging_model,
+            tp_size=args.generation_tp_size,
+            dp_size=args.generation_dp_size,
+            max_model_len=args.max_model_len,
+            output_dir=activations_dir,
+        )
+        elapsed = time.time() - t0
+        print(f"    4c complete ({elapsed:.1f}s): {len(feature_labels)} features labeled")
+
+        # 4d: Generate report
+        print(f"\n  [Layer {layer}] 4d: Generating explanation report...")
+        t0 = time.time()
+        report_path = generate_explanation_report(
+            contrastive_features_path=contrastive_path,
+            feature_examples=feature_examples,
+            feature_labels=feature_labels,
+            output_dir=activations_dir,
+        )
+        elapsed = time.time() - t0
+        print(f"    4d complete ({elapsed:.1f}s): {report_path}")
+
+    elapsed_total = time.time() - t0_total
+    print(f"\n  Step 4 complete for all layers ({elapsed_total:.1f}s)")
 
 
-def _resolve_feature_descriptions(args) -> str:
-    """Find the feature_descriptions.json from step 5 output."""
+def _resolve_feature_descriptions(output_dir: str | Path, layer: int) -> str:
+    """Find the feature_descriptions.json for a specific layer."""
+    layer_dir = Path(output_dir) / f"layer_{layer}"
     candidates = [
-        Path(args.output_dir) / "feature_descriptions.json",
-        Path(args.output_dir) / "activations" / "feature_descriptions.json",
+        layer_dir / "activations" / "feature_descriptions.json",
+        layer_dir / "feature_descriptions.json",
     ]
     for path in candidates:
         if path.exists():
             return str(path)
-    print("\n  ERROR: feature_descriptions.json not found.")
+    print(f"\n  ERROR: feature_descriptions.json not found for layer {layer}.")
     print(f"  Searched: {[str(p) for p in candidates]}")
-    print("  Run step 5 first.")
+    print("  Run step 4 first.")
     sys.exit(1)
 
 
-def _run_step6(args, pairs_dir: str) -> None:
-    """Step 6: Evaluate feature explanations via fuzzing."""
+def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = None) -> None:
+    """Step 5: Evaluate feature explanations via fuzzing.
+
+    Loads subject model once for per-token extraction, then loops per-layer
+    for SAE encoding, fuzzing example building, and LLM judging.
+    """
     from analysis.fuzzing_evaluator import (
         build_fuzzing_examples,
         compute_fuzzing_metrics,
@@ -816,38 +713,49 @@ def _run_step6(args, pairs_dir: str) -> None:
     from data.scenario import default_scenario, load_scenarios_meta
     from extraction.extractor import build_agent_prompt
 
-    desc_path = _resolve_feature_descriptions(args)
-    checkpoint = _resolve_sae_checkpoint(args)
+    checkpoints = sae_checkpoints or _resolve_sae_checkpoints(args)
 
-    with open(desc_path) as f:
-        feature_descriptions = json.load(f)
-
-    # Load scenarios for per-prompt formatting
-    scenarios_meta = load_scenarios_meta(Path(args.pairs_dir or pairs_dir))
+    # Load scenarios and pairs (shared across layers)
+    scenarios_meta = load_scenarios_meta(Path(pairs_dir))
     _default_scenario = default_scenario()
 
-    # Load pairs to map prompts back to their scenario
-    pairs = _load_pairs(args, pairs_dir)
+    pairs = _load_pairs(pairs_dir)
     prompt_to_scenario: dict[str, str] = {}
     for pair in pairs:
         prompt_to_scenario[pair.anchor_prompt] = pair.scenario_name
         prompt_to_scenario[pair.contrast_prompt] = pair.scenario_name
 
-    print(f"\n[Step 6] Fuzzing evaluation of {len(feature_descriptions)} features")
+    print(f"\n[Step 5] Fuzzing evaluation for {len(args.layers)} layer(s)")
     print(f"  Scenarios: {', '.join(scenarios_meta.keys())}")
 
-    # Collect all unique prompts referenced in feature descriptions
+    # Collect all unique prompts across ALL layers' feature descriptions
     all_prompts: list[str] = []
     seen: set[str] = set()
-    for desc in feature_descriptions.values():
-        for prompt in desc.get("top_examples", []) + desc.get("bottom_examples", []):
-            if prompt not in seen:
-                seen.add(prompt)
-                all_prompts.append(prompt)
+    per_layer_descs: dict[int, dict] = {}
 
-    print(f"  Unique prompts to process: {len(all_prompts)}")
+    for layer in args.layers:
+        desc_path = _resolve_feature_descriptions(args.output_dir, layer)
+        with open(desc_path) as f:
+            feature_descriptions = json.load(f)
+        per_layer_descs[layer] = feature_descriptions
 
-    # Build formatted prompts for Nemotron (per-prompt scenario lookup)
+        for desc in feature_descriptions.values():
+            for prompt in desc.get("top_examples", []) + desc.get("bottom_examples", []):
+                if prompt not in seen:
+                    seen.add(prompt)
+                    all_prompts.append(prompt)
+
+    print(f"  Unique prompts across all layers: {len(all_prompts)}")
+
+    # Load tokenizer once for prompt formatting and text reconstruction
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.subject_model,
+        trust_remote_code=True,
+    )
+
+    # Build formatted prompts using subject model's chat template
     formatted_prompts = []
     for req in all_prompts:
         scenario_name = prompt_to_scenario.get(req, "")
@@ -857,53 +765,90 @@ def _run_step6(args, pairs_dir: str) -> None:
                 system_prompt=scenario.system_prompt,
                 tools=scenario.tools,
                 user_request=req,
-                model_type="nemotron",
+                tokenizer=tokenizer,
             )
         )
 
-    # 6a: Extract per-token activations
-    print("\n[Step 6a] Extracting per-token activations...")
+    # 5a: Extract per-token activations ONCE for all layers
+    print("\n[Step 5a] Extracting per-token activations (shared across layers)...")
     t0 = time.time()
     token_strings_list, token_activations_list = extract_per_token_activations(
         prompts=all_prompts,
         formatted_prompts=formatted_prompts,
-        nemotron_model=args.nemotron_model,
+        subject_model=args.subject_model,
         layers=args.layers,
-        layer_key=args.layer_key,
         batch_size=args.fuzz_batch_size,
+        backend=args.backend,
+        dp_size=args.extraction_dp_size,
     )
     elapsed = time.time() - t0
-    print(f"  6a complete ({elapsed:.1f}s): {len(token_strings_list)} prompts")
+    print(f"  5a complete ({elapsed:.1f}s): {len(token_strings_list)} prompts")
 
-    # Build prompt -> index mapping
+    # Free GPU memory from HF subject model before 5c loads the judge model
+    import gc
+
+    import torch
+
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
 
-    # We need the tokenizer for text reconstruction in 6b.
-    # Load it once (lightweight, no GPU).
-    from transformers import AutoTokenizer
+    t0_total = time.time()
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.nemotron_model,
-        trust_remote_code=True,
-    )
+    # Per-layer: build fuzzing examples, judge, compute metrics
+    for layer in args.layers:
+        layer_key = f"residual_{layer}"
+        layer_dir = Path(args.output_dir) / f"layer_{layer}"
+        activations_dir = str(layer_dir / "activations")
+        checkpoint = checkpoints[layer_key]
+        feature_descriptions = per_layer_descs[layer]
 
-    # 6b: Build fuzzing examples
-    print("\n[Step 6b] Building fuzzing examples...")
-    t0 = time.time()
-    examples = build_fuzzing_examples(
-        feature_descriptions=feature_descriptions,
-        prompt_to_idx=prompt_to_idx,
-        token_strings_list=token_strings_list,
-        token_activations_list=token_activations_list,
-        sae_checkpoint=checkpoint,
-        tokenizer=tokenizer,
-        top_k_tokens=args.fuzz_top_k_tokens,
-        max_examples_per_feature=args.fuzz_examples_per_feature,
-    )
-    elapsed = time.time() - t0
-    print(f"  6b complete ({elapsed:.1f}s): {len(examples)} examples")
+        print(f"\n  --- Layer {layer} ---")
+        print(f"  {len(feature_descriptions)} features to evaluate")
 
-    # Free per-token data and GPU memory before loading vLLM
+        # 5b: Build fuzzing examples for this layer's SAE
+        print(f"\n  [Layer {layer}] 5b: Building fuzzing examples...")
+        t0 = time.time()
+        examples = build_fuzzing_examples(
+            feature_descriptions=feature_descriptions,
+            prompt_to_idx=prompt_to_idx,
+            token_strings_list=token_strings_list,
+            token_activations_list=token_activations_list,
+            layer_key=layer_key,
+            sae_checkpoint=checkpoint,
+            tokenizer=tokenizer,
+            top_k_tokens=args.fuzz_top_k_tokens,
+            max_examples_per_feature=args.fuzz_examples_per_feature,
+        )
+        elapsed = time.time() - t0
+        print(f"    5b complete ({elapsed:.1f}s): {len(examples)} examples")
+
+        # 5c: LLM judge (subprocess) — one call per layer
+        print(f"\n  [Layer {layer}] 5c: Running LLM judge (subprocess)...")
+        t0 = time.time()
+        results = evaluate_fuzzing(
+            examples=examples,
+            feature_descriptions=feature_descriptions,
+            judging_model=args.judging_model,
+            tp_size=args.generation_tp_size,
+            dp_size=args.generation_dp_size,
+            max_model_len=args.max_model_len,
+            output_dir=activations_dir,
+        )
+        elapsed = time.time() - t0
+        print(f"    5c complete ({elapsed:.1f}s): {len(results)} judgments")
+
+        # 5d: Compute metrics and save
+        print(f"\n  [Layer {layer}] 5d: Computing metrics and saving report...")
+        t0 = time.time()
+        per_feature, summary = compute_fuzzing_metrics(results, feature_descriptions)
+        save_fuzzing_report(per_feature, summary, results, activations_dir)
+        elapsed = time.time() - t0
+        print(f"    5d complete ({elapsed:.1f}s)")
+
+    # Free per-token data
     del token_strings_list, token_activations_list
     import gc
 
@@ -912,114 +857,89 @@ def _run_step6(args, pairs_dir: str) -> None:
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
 
-    # 6c: LLM judge (subprocess)
-    print("\n[Step 6c] Running LLM judge (subprocess)...")
-    t0 = time.time()
-    results = evaluate_fuzzing(
-        examples=examples,
-        feature_descriptions=feature_descriptions,
-        qwen_model=args.qwen_model,
-        tp_size=args.generation_tp_size,
-        max_model_len=args.max_model_len,
-        output_dir=args.output_dir,
-    )
-    elapsed = time.time() - t0
-    print(f"  6c complete ({elapsed:.1f}s): {len(results)} judgments")
-
-    # 6d: Compute metrics and save
-    print("\n[Step 6d] Computing metrics and saving report...")
-    t0 = time.time()
-    per_feature, summary = compute_fuzzing_metrics(results, feature_descriptions)
-    save_fuzzing_report(per_feature, summary, results, args.output_dir)
-    elapsed = time.time() - t0
-    print(f"  6d complete ({elapsed:.1f}s)")
+    elapsed_total = time.time() - t0_total
+    print(f"\n  Step 5 complete for all layers ({elapsed_total:.1f}s)")
 
 
 def main() -> None:
     args = parse_args()
 
-    # "all" runs steps 1 + 2 + 3; "2+" runs steps 2 through 6
+    # "all" runs steps 1 through 5
     if args.step == "all":
-        steps = ["1", "2", "3"]
-    elif args.step == "2+":
-        steps = ["2", "3", "4", "5", "6"]
+        steps = ["1", "2", "3", "4", "5"]
     else:
         steps = [args.step]
 
-    # num_samples is required when generating pairs (step 1 or "all")
-    if "1" in steps and not args.pairs_dir and args.num_samples is None:
-        print("ERROR: num_samples is required for pair generation (step 1).")
-        print("  Usage: generate_training_set.py 1300")
-        print("  Or skip generation: generate_training_set.py --step 2 --pairs-dir output/pairs")
-        sys.exit(1)
+    # Auto-detect layer/d_sae defaults from model config
+    _resolve_model_defaults(args)
 
-    pairs_dir = str(Path(args.output_dir).parent / "pairs")
+    pairs_dir = args.pairs_dir
 
-    # Resolve scenarios for display
-    scenarios = _load_scenarios(args)
-    scenario_names = [s.name for s in scenarios]
-    total_contrast_types = sum(len(s.contrast_types) for s in scenarios)
+    # Load scenarios metadata from pairs directory for display
+    from data.scenario import load_scenarios_meta
+
+    scenarios_meta = load_scenarios_meta(Path(pairs_dir))
+    scenario_names = list(scenarios_meta.keys())
+    total_contrast_types = sum(len(s.contrast_types) for s in scenarios_meta.values())
 
     print("=" * 60)
     print("  Contrastive SAE Pipeline")
-    if args.num_samples is not None:
-        print(f"  Requested samples : {args.num_samples:,}")
     print(f"  Output directory  : {args.output_dir}")
-    print(f"  Pairs directory   : {args.pairs_dir or pairs_dir}")
+    print(f"  Pairs directory   : {pairs_dir}")
     print(f"  Scenarios         : {', '.join(scenario_names)}")
-    print(f"  Contrast types    : {total_contrast_types} total across {len(scenarios)} scenario(s)")
+    print(
+        f"  Contrast types    : {total_contrast_types} total across {len(scenarios_meta)} scenario(s)"
+    )
     print(f"  Steps to run      : {', '.join(steps)}")
     if "1" in steps:
-        print(f"  Generation model  : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
-    if "2" in steps:
-        print(f"  Extraction model  : {args.nemotron_model}")
+        print(f"  Subject model     : {args.subject_model}")
+        print(f"  Extraction backend: {args.backend}")
+        print(f"  Extraction DP size: {args.extraction_dp_size}")
         print(f"  Layers            : {args.layers}")
-        print(f"  Layer key         : {args.layer_key}")
         print(f"  GPU batch size    : {args.batch_size}")
         print(f"  Shard size        : {args.shard_size:,} vectors/shard")
-    if "3" in steps:
+    if "2" in steps:
         print(f"  SAE d_sae         : {args.d_sae}")
         print(f"  SAE batch size    : {args.sae_batch_size:,}")
         print(f"  SAE lr            : {args.sae_lr}")
         print(f"  SAE L1 coeff      : {args.l1_coefficient}")
-    if "4" in steps:
-        print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 3)'}")
+    if "3" in steps:
+        print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Top-K features    : {args.top_k_features}")
-    if "5" in steps:
-        print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 3)'}")
-        print(f"  Activations dir   : {args.output_dir}")
+    if "4" in steps:
+        print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Label top-N       : {args.label_top_n}")
         print(f"  Label bottom-N    : {args.label_bottom_n}")
-        print(f"  Labeling model    : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
-    if "6" in steps:
-        print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 3)'}")
+        print(
+            f"  Labeling model    : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})"
+        )
+    if "5" in steps:
+        print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Fuzz top-K tokens : {args.fuzz_top_k_tokens}")
         print(f"  Fuzz examples/feat: {args.fuzz_examples_per_feature}")
         print(f"  Fuzz batch size   : {args.fuzz_batch_size}")
-        print(f"  Judge model       : {args.qwen_model} (vLLM, TP={args.generation_tp_size})")
+        print(
+            f"  Judge model       : {args.judging_model} (vLLM, TP={args.generation_tp_size}, DP={args.generation_dp_size})"
+        )
     print("=" * 60)
 
-    sae_final_path = None
+    sae_checkpoints: dict[str, str] | None = None
 
     if "1" in steps:
         _run_step1(args, pairs_dir)
 
     if "2" in steps:
-        _run_step2(args, pairs_dir)
+        sae_checkpoints = _run_step2(args)
 
     if "3" in steps:
-        sae_final_path = _run_step3(args)
+        _run_step3(args, pairs_dir, sae_checkpoints=sae_checkpoints)
 
     if "4" in steps:
-        _run_step4(args, pairs_dir, sae_checkpoint=sae_final_path)
+        _run_step4(args, sae_checkpoints=sae_checkpoints)
 
     if "5" in steps:
-        _run_step5(args, sae_checkpoint=sae_final_path)
-
-    if "6" in steps:
-        _run_step6(args, pairs_dir)
+        _run_step5(args, pairs_dir, sae_checkpoints=sae_checkpoints)
 
     print("\nDone.")
 

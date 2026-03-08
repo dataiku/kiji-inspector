@@ -17,6 +17,7 @@ from pathlib import Path
 from datasets import load_dataset
 
 from data.contrastive_dataset import ContrastiveDataset, ContrastivePair
+from data.scenario import discover_scenarios, save_scenarios_meta
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,6 +79,20 @@ def main() -> None:
     print(f"\nSaving {len(pairs)} pairs to {pairs_path}...")
     written = cd.to_parquet(pairs_path, shard_size=args.shard_size)
     print(f"  Wrote {len(written)} shard(s)")
+
+    # Save scenarios_meta.json so the pipeline knows which scenarios are present
+    scenario_names = {p.scenario_name for p in pairs if p.scenario_name}
+    all_scenarios = discover_scenarios()
+    matched = [s for s in all_scenarios if s.name in scenario_names]
+    if matched:
+        save_scenarios_meta(matched, pairs_path)
+        print(
+            f"  Wrote scenarios_meta.json with {len(matched)} scenario(s): "
+            f"{', '.join(s.name for s in matched)}"
+        )
+    else:
+        print("  Warning: no matching scenario configs found for downloaded pairs")
+
     print("Done.")
 
 

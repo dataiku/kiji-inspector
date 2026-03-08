@@ -559,6 +559,13 @@ def train_sae(
         print("Compiling SAE with torch.compile...")
         sae = torch.compile(sae, mode="max-autotune", fullgraph=True)
 
+    # Note: DataParallel is not used for SAE training because the SAE is
+    # small (~58M params) and compute_loss() includes reduction steps that
+    # are incompatible with DP's scatter/gather.  A single GPU is sufficient.
+
+    def _unwrap(model):
+        return model
+
     # Optimiser + scheduler
     optimizer = AdamW(
         sae.parameters(),
@@ -597,7 +604,7 @@ def train_sae(
         optimizer.zero_grad()
         scheduler.step()
 
-        sae.normalize_decoder()
+        _unwrap(sae).normalize_decoder()
 
         for k, v in metrics.items():
             running.setdefault(k, []).append(v)
@@ -616,21 +623,22 @@ def train_sae(
         # Dead feature resampling
         if config.resample_dead_features and step > 0 and step % config.resample_every == 0:
             print(f"\n[Step {step}] Checking for dead features...")
-            dev = next(sae.parameters()).device
-            activated = torch.zeros(sae.d_sae, dtype=torch.bool, device=dev)
+            raw_sae = _unwrap(sae)
+            dev = next(raw_sae.parameters()).device
+            activated = torch.zeros(raw_sae.d_sae, dtype=torch.bool, device=dev)
 
-            sae.eval()
+            raw_sae.eval()
             with torch.inference_mode():
                 for i, batch in enumerate(buffer):
                     if i >= 20:
                         break
-                    features = sae.encode(batch.to(dev))
+                    features = raw_sae.encode(batch.to(dev))
                     activated |= (features.abs() > config.dead_feature_threshold).any(dim=0)
 
             dead = torch.where(~activated)[0]
             if len(dead) > 0:
-                print(f"  {len(dead)} dead features ({100 * len(dead) / sae.d_sae:.1f}%)")
-                n = _resample_dead_features(sae, dead, buffer)
+                print(f"  {len(dead)} dead features ({100 * len(dead) / raw_sae.d_sae:.1f}%)")
+                n = _resample_dead_features(raw_sae, dead, buffer)
                 print(f"  Resampled {n} features")
             else:
                 print("  No dead features found")
@@ -639,19 +647,20 @@ def train_sae(
         # Checkpoint
         if step % config.checkpoint_every == 0:
             avg = {k: sum(v) / len(v) for k, v in running.items()} if running else {}
-            _save_checkpoint(sae, optimizer, scheduler, step, config, avg)
+            _save_checkpoint(_unwrap(sae), optimizer, scheduler, step, config, avg)
 
     pbar.close()
 
-    # Final save
-    _save_checkpoint(sae, optimizer, scheduler, step, config, {})
+    # Final save (unwrap DataParallel for serialisation)
+    raw_sae = _unwrap(sae)
+    _save_checkpoint(raw_sae, optimizer, scheduler, step, config, {})
     final_path = str(Path(config.output_dir) / "sae_final.pt")
-    sae.save_pretrained(final_path)
+    raw_sae.save_pretrained(final_path)
     print(f"Saved final model: {final_path}")
 
     # Post-training feature health analysis
     analyze_feature_health(
-        sae=sae,
+        sae=raw_sae,
         activations_dir=activations_dir,
         batch_size=config.batch_size,
         output_dir=config.output_dir,

@@ -8,7 +8,7 @@ each feature, not just which texts. This catches explanations that are
 Based on Eleuther AI's autointerp approach:
 https://blog.eleuther.ai/autointerp/
 
-6a: Extract per-token activations via Nemotron.
+6a: Extract per-token activations from the subject model.
 6b: Encode through SAE, build cross-prompt A/B fuzzing examples.
 6c: LLM judge evaluates highlights in subprocess.
 6d: Compute metrics and save report.
@@ -58,68 +58,100 @@ class FuzzingExample:
 def extract_per_token_activations(
     prompts: list[str],
     formatted_prompts: list[str],
-    nemotron_model: str,
+    subject_model: str,
     layers: list[int],
-    layer_key: str,
     batch_size: int,
-) -> tuple[list[list[str]], list[np.ndarray]]:
+    backend: str = "vllm",
+    dp_size: int = 1,
+) -> tuple[list[list[str]], list[dict[str, np.ndarray]]]:
     """Extract per-token activations for a list of formatted prompts.
+
+    Returns activations for ALL requested layers so the caller can loop
+    over layers for per-SAE encoding without reloading the subject model.
 
     Args:
         prompts: Original user request strings (for display).
-        formatted_prompts: Full ChatML-formatted prompts for the model.
-        nemotron_model: HuggingFace model name.
+        formatted_prompts: Full formatted prompts for the subject model.
+        subject_model: HuggingFace model name.
         layers: Transformer layers to hook.
-        layer_key: Which layer's activations to use.
         batch_size: GPU batch size.
+        backend: ``"vllm"`` or ``"hf"`` extraction backend.
+        dp_size: Data parallel size (model copies across GPUs).
 
     Returns:
         token_strings: List of list-of-token-strings per prompt.
-        token_activations: List of (seq_len, d_model) numpy arrays per prompt.
+        token_activations: List of dicts mapping layer_key to (seq_len, d_model)
+            numpy arrays, one dict per prompt.
     """
-    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from extraction import create_extractor
 
-    config = ActivationConfig(
-        model_name=nemotron_model,
+    layer_keys = [f"residual_{layer}" for layer in layers]
+
+    # Per-token extraction requires full sequence activations, which
+    # the vLLM backend cannot provide (it only returns the decode step).
+    # Force HF backend for this step.
+    if backend == "vllm":
+        print(
+            "  Note: switching to HF backend for per-token extraction (vLLM only returns decode-step activations)"
+        )
+        backend = "hf"
+
+    # Per-token extraction uses a single GPU (small prompt count).
+    # DP is handled at the judging step (5c) instead.
+    acts_list = None
+    extractor = create_extractor(
+        backend=backend,
+        model_name=subject_model,
         layers=layers,
-        dtype=torch.bfloat16,
         token_positions="all",
     )
-    extractor = ActivationExtractor(config=config)
+    tokenizer = extractor.tokenizer
 
     all_token_strings: list[list[str]] = []
-    all_token_activations: list[np.ndarray] = []
+    all_token_activations: list[dict[str, np.ndarray]] = []
 
     pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
 
-    for i in range(0, len(formatted_prompts), batch_size):
-        batch_formatted = formatted_prompts[i : i + batch_size]
-
-        # Get per-token activations (token_positions="all")
-        acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
-
-        # Get token strings by tokenizing each prompt
-        for j, prompt_text in enumerate(batch_formatted):
-            encoding = extractor.tokenizer(
-                prompt_text,
-                return_tensors="pt",
-                truncation=True,
-            )
+    if acts_list is not None:
+        # DP path: activations already extracted
+        for j, prompt_text in enumerate(formatted_prompts):
+            encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
             token_ids = encoding.input_ids[0].tolist()
-            tokens = extractor.tokenizer.convert_ids_to_tokens(token_ids)
+            tokens = tokenizer.convert_ids_to_tokens(token_ids)
 
-            act_array = acts[j][layer_key]  # (seq_len, d_model)
+            first_act = acts_list[j][layer_keys[0]]
+            min_len = min(len(tokens), first_act.shape[0])
 
-            # Lengths should match -- extract_batch with "all" returns
-            # only non-padded tokens, and we tokenized without padding
-            min_len = min(len(tokens), act_array.shape[0])
             all_token_strings.append(tokens[:min_len])
-            all_token_activations.append(act_array[:min_len])
+            act_dict = {lk: acts_list[j][lk][:min_len] for lk in layer_keys}
+            all_token_activations.append(act_dict)
 
-        pbar.update(len(batch_formatted))
+        pbar.update(len(formatted_prompts))
+    else:
+        for i in range(0, len(formatted_prompts), batch_size):
+            batch_formatted = formatted_prompts[i : i + batch_size]
+
+            # Get per-token activations (token_positions="all")
+            acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
+
+            # Get token strings by tokenizing each prompt
+            for j, prompt_text in enumerate(batch_formatted):
+                encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
+                token_ids = encoding.input_ids[0].tolist()
+                tokens = tokenizer.convert_ids_to_tokens(token_ids)
+
+                first_act = acts[j][layer_keys[0]]
+                min_len = min(len(tokens), first_act.shape[0])
+
+                all_token_strings.append(tokens[:min_len])
+                act_dict = {lk: acts[j][lk][:min_len] for lk in layer_keys}
+                all_token_activations.append(act_dict)
+
+            pbar.update(len(batch_formatted))
+
+        extractor.cleanup()
 
     pbar.close()
-    extractor.cleanup()
 
     return all_token_strings, all_token_activations
 
@@ -129,30 +161,17 @@ def extract_per_token_activations(
 # ---------------------------------------------------------------------------
 
 
-def _find_user_request_span(
+def _try_chatml_span(
     token_strings: list[str],
-    user_request: str,
     tokenizer,
-) -> tuple[int, int]:
-    """Find the token index range corresponding to the user request.
+) -> tuple[int, int] | None:
+    """Try to find user request span using ChatML markers.
 
-    Uses ChatML structural markers (<|im_start|> / <|im_end|>) to
-    deterministically locate the user turn, avoiding BPE context-
-    sensitivity issues with standalone tokenization.
-
-    The formatted prompt has structure:
-        <|im_start|>system\\n...<|im_end|>\\n
-        <|im_start|>user\\n{request}<|im_end|>\\n
-        <|im_start|>assistant\\n...
-
-    Returns:
-        (start_idx, end_idx) -- inclusive start, exclusive end.
-        The span covers only the user request content tokens.
+    Works with Qwen, Nemotron, Yi, and other ChatML-based models.
     """
     im_start_str = "<|im_start|>"
     im_end_str = "<|im_end|>"
 
-    # Find positions of ChatML markers in token strings
     im_start_positions = [i for i, tok in enumerate(token_strings) if im_start_str in tok]
     im_end_positions = [i for i, tok in enumerate(token_strings) if im_end_str in tok]
 
@@ -180,12 +199,167 @@ def _find_user_request_span(
         if content_start < user_turn_end_marker:
             return content_start, user_turn_end_marker
 
+    return None
+
+
+def _try_llama3_span(
+    token_strings: list[str],
+    tokenizer,
+) -> tuple[int, int] | None:
+    """Try to find user request span using Llama 3 markers.
+
+    Looks for <|start_header_id|>user<|end_header_id|> boundaries.
+    """
+    header_start = "<|start_header_id|>"
+    eot = "<|eot_id|>"
+
+    header_positions = [i for i, tok in enumerate(token_strings) if header_start in tok]
+    eot_positions = [i for i, tok in enumerate(token_strings) if eot in tok]
+
+    # Find the "user" header (typically the 2nd header after "system")
+    user_header_idx = None
+    for pos in header_positions:
+        # Check if next few tokens contain "user"
+        for offset in range(1, 4):
+            if pos + offset < len(token_strings):
+                decoded = (
+                    tokenizer.decode(
+                        tokenizer.convert_tokens_to_ids([token_strings[pos + offset]]),
+                        skip_special_tokens=False,
+                    )
+                    .strip()
+                    .lower()
+                )
+                if decoded == "user":
+                    user_header_idx = pos
+                    break
+        if user_header_idx is not None:
+            break
+
+    if user_header_idx is None:
+        return None
+
+    # Find the end_header_id after the user header
+    end_header = "<|end_header_id|>"
+    content_start = None
+    for i in range(user_header_idx, min(user_header_idx + 5, len(token_strings))):
+        if end_header in token_strings[i]:
+            content_start = i + 1
+            break
+
+    if content_start is None:
+        return None
+
+    # Skip whitespace tokens after the header
+    while content_start < len(token_strings):
+        decoded = tokenizer.decode(
+            tokenizer.convert_tokens_to_ids([token_strings[content_start]]),
+            skip_special_tokens=False,
+        ).strip()
+        if decoded == "":
+            content_start += 1
+        else:
+            break
+
+    # Find the eot_id that ends the user turn
+    content_end = None
+    for pos in eot_positions:
+        if pos > content_start:
+            content_end = pos
+            break
+
+    if content_end is not None and content_start < content_end:
+        return content_start, content_end
+
+    return None
+
+
+def _try_text_search_span(
+    token_strings: list[str],
+    user_request: str,
+    tokenizer,
+) -> tuple[int, int] | None:
+    """Find user request by text matching in the decoded token stream.
+
+    Decodes each token, reconstructs the full text, finds the user_request
+    substring, and maps character offsets back to token indices.
+    """
+    if not user_request:
+        return None
+
+    # Decode each token to get character boundaries
+    decoded_texts: list[str] = []
+    token_char_starts: list[int] = []
+    char_pos = 0
+    for tok_str in token_strings:
+        text = tokenizer.decode(
+            tokenizer.convert_tokens_to_ids([tok_str]),
+            skip_special_tokens=False,
+        )
+        token_char_starts.append(char_pos)
+        decoded_texts.append(text)
+        char_pos += len(text)
+
+    full_text = "".join(decoded_texts)
+    idx = full_text.find(user_request)
+    if idx == -1:
+        return None
+
+    end_char = idx + len(user_request)
+
+    # Map character positions to token indices
+    start_token = 0
+    for i, start in enumerate(token_char_starts):
+        if start <= idx:
+            start_token = i
+
+    end_token = len(token_strings)
+    for i, start in enumerate(token_char_starts):
+        if start >= end_char:
+            end_token = i
+            break
+
+    if start_token < end_token:
+        return start_token, end_token
+
+    return None
+
+
+def _find_user_request_span(
+    token_strings: list[str],
+    user_request: str,
+    tokenizer,
+) -> tuple[int, int]:
+    """Find the token index range corresponding to the user request.
+
+    Tries multiple strategies to support different chat template formats:
+    1. ChatML markers (<|im_start|>/<|im_end|>) -- Qwen, Nemotron, Yi
+    2. Llama 3 markers (<|start_header_id|>/<|end_header_id|>)
+    3. Text-search fallback -- decode tokens, find user_request substring
+
+    Returns:
+        (start_idx, end_idx) -- inclusive start, exclusive end.
+        The span covers only the user request content tokens.
+    """
+    # Strategy 1: ChatML markers
+    span = _try_chatml_span(token_strings, tokenizer)
+    if span is not None:
+        return span
+
+    # Strategy 2: Llama 3 markers
+    span = _try_llama3_span(token_strings, tokenizer)
+    if span is not None:
+        return span
+
+    # Strategy 3: Text search fallback
+    span = _try_text_search_span(token_strings, user_request, tokenizer)
+    if span is not None:
+        return span
+
     # Fallback: warn and return full prompt
     warnings.warn(
-        f"Could not locate user turn via ChatML markers. "
-        f"im_start positions: {im_start_positions}, "
-        f"im_end positions: {im_end_positions}, "
-        f"total tokens: {len(token_strings)}",
+        f"Could not locate user turn in token sequence. "
+        f"Falling back to full prompt ({len(token_strings)} tokens).",
         stacklevel=2,
     )
     return 0, len(token_strings)
@@ -232,7 +406,8 @@ def _compute_highlighted_user_text(
     feat_id: int,
     prompt_to_idx: dict[str, int],
     token_strings_list: list[list[str]],
-    token_activations_list: list[np.ndarray],
+    token_activations_list: list[dict[str, np.ndarray]],
+    layer_key: str,
     sae,
     device: str,
     sae_dtype,
@@ -242,7 +417,7 @@ def _compute_highlighted_user_text(
     """Compute highlighted user-request text for a single prompt/feature.
 
     Encodes per-token activations through the SAE, finds the user request
-    span via ChatML markers, and highlights the top-K activated tokens.
+    span via chat template markers, and highlights the top-K activated tokens.
 
     Returns:
         User request text with <<highlighted>> tokens, or None if the
@@ -253,7 +428,7 @@ def _compute_highlighted_user_text(
 
     idx = prompt_to_idx[user_request]
     tok_strs = token_strings_list[idx]
-    tok_acts = token_activations_list[idx]  # (seq_len, d_model)
+    tok_acts = token_activations_list[idx][layer_key]  # (seq_len, d_model)
 
     # Encode through SAE
     with torch.no_grad():
@@ -286,7 +461,8 @@ def build_fuzzing_examples(
     feature_descriptions: dict[str, dict],
     prompt_to_idx: dict[str, int],
     token_strings_list: list[list[str]],
-    token_activations_list: list[np.ndarray],
+    token_activations_list: list[dict[str, np.ndarray]],
+    layer_key: str,
     sae_checkpoint: str,
     tokenizer,
     top_k_tokens: int = 5,
@@ -305,9 +481,10 @@ def build_fuzzing_examples(
         feature_descriptions: From feature_descriptions.json (keyed by str feature ID).
         prompt_to_idx: Maps user request text -> index into token_strings/activations.
         token_strings_list: Per-prompt list of token strings.
-        token_activations_list: Per-prompt (seq_len, d_model) arrays.
+        token_activations_list: Per-prompt dicts mapping layer_key to (seq_len, d_model).
+        layer_key: Which layer's activations to use for SAE encoding.
         sae_checkpoint: Path to trained SAE.
-        tokenizer: The Nemotron tokenizer (for text reconstruction).
+        tokenizer: The subject model tokenizer (for text reconstruction).
         top_k_tokens: Number of tokens to highlight.
         max_examples_per_feature: Max fuzzing examples per feature.
 
@@ -343,6 +520,7 @@ def build_fuzzing_examples(
                 prompt_to_idx,
                 token_strings_list,
                 token_activations_list,
+                layer_key,
                 sae,
                 device,
                 sae_dtype,
@@ -361,6 +539,7 @@ def build_fuzzing_examples(
                 prompt_to_idx,
                 token_strings_list,
                 token_activations_list,
+                layer_key,
                 sae,
                 device,
                 sae_dtype,
@@ -479,7 +658,12 @@ def _build_judge_prompts(
     examples: list[FuzzingExample],
     feature_descriptions: dict[str, dict],
 ) -> list[str]:
-    """Build ChatML judge prompts for all fuzzing examples."""
+    """Build ChatML judge prompts for all fuzzing examples.
+
+    Note: These prompts target the generator/judge model (e.g. Qwen),
+    not the subject model. ChatML is used because the generator model
+    is assumed to be a Qwen model.
+    """
     system = (
         "You evaluate whether token highlights match feature descriptions. "
         "Answer concisely with A or B as instructed."
@@ -523,21 +707,27 @@ def _build_judge_prompts(
 
 def _run_judge_subprocess(
     chatml_prompts: list[str],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_path: str,
+    gpu_ids: str | None = None,
 ) -> None:
     """Child process: load vLLM, judge all examples, save results, exit."""
+    import os
+
+    if gpu_ids is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
+
     from vllm import LLM, SamplingParams
 
-    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
+    print(f"  [subprocess] Loading vLLM model: {judging_model}")
     llm = LLM(
-        model=qwen_model,
+        model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
-        gpu_memory_utilization=0.80,
+        gpu_memory_utilization=0.95,
         enforce_eager=True,
         enable_expert_parallel=True,
         disable_log_stats=True,
@@ -566,37 +756,75 @@ def _run_judge_subprocess(
 def evaluate_fuzzing(
     examples: list[FuzzingExample],
     feature_descriptions: dict[str, dict],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_dir: str | Path,
+    dp_size: int = 1,
 ) -> list[dict]:
     """Run LLM judge on fuzzing examples in a subprocess.
+
+    When ``dp_size > 1``, spawns N model copies on N GPUs (each with
+    ``tp_size=1``) to judge examples in parallel.
 
     Returns:
         List of dicts, one per example, with judgment results.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    judgments_path = str(output_dir / "_judge_temp.json")
 
     chatml_prompts = _build_judge_prompts(examples, feature_descriptions)
 
     ctx = mp.get_context("spawn")
-    p = ctx.Process(
-        target=_run_judge_subprocess,
-        args=(chatml_prompts, qwen_model, tp_size, max_model_len, judgments_path),
-    )
-    p.start()
-    p.join()
 
-    if p.exitcode != 0:
-        raise RuntimeError(f"Judge subprocess failed with exit code {p.exitcode}")
+    if dp_size > 1:
+        # Data-parallel: split prompts across N GPUs
+        chunk_size = (len(chatml_prompts) + dp_size - 1) // dp_size
+        prompt_chunks = [
+            chatml_prompts[i : i + chunk_size] for i in range(0, len(chatml_prompts), chunk_size)
+        ]
+        output_paths = [
+            str(output_dir / f"_judge_temp_rank{r}.json") for r in range(len(prompt_chunks))
+        ]
 
-    with open(judgments_path) as f:
-        raw_judgments = json.load(f)
+        processes = []
+        for rank, (chunk, out_path) in enumerate(zip(prompt_chunks, output_paths, strict=True)):
+            p = ctx.Process(
+                target=_run_judge_subprocess,
+                args=(chunk, judging_model, 1, max_model_len, out_path, str(rank)),
+            )
+            p.start()
+            processes.append(p)
 
-    Path(judgments_path).unlink(missing_ok=True)
+        for p in processes:
+            p.join()
+            if p.exitcode != 0:
+                raise RuntimeError(
+                    f"Judge subprocess (pid={p.pid}) failed with exit code {p.exitcode}"
+                )
+
+        # Merge results from all ranks in order
+        raw_judgments: list[str] = []
+        for out_path in output_paths:
+            with open(out_path) as f:
+                raw_judgments.extend(json.load(f))
+            Path(out_path).unlink(missing_ok=True)
+    else:
+        judgments_path = str(output_dir / "_judge_temp.json")
+        p = ctx.Process(
+            target=_run_judge_subprocess,
+            args=(chatml_prompts, judging_model, tp_size, max_model_len, judgments_path),
+        )
+        p.start()
+        p.join()
+
+        if p.exitcode != 0:
+            raise RuntimeError(f"Judge subprocess failed with exit code {p.exitcode}")
+
+        with open(judgments_path) as f:
+            raw_judgments = json.load(f)
+
+        Path(judgments_path).unlink(missing_ok=True)
 
     # Parse judgments -- both token-level and prompt-level use A/B format
     results = []

@@ -35,16 +35,16 @@ User Request -----> Formatted Prompt -----> | -----> Hidden State at Decision To
 
 ## Pipeline Steps
 
-The pipeline consists of six sequential steps, each building on the outputs of the previous:
+Pair generation is a standalone CLI tool (`generate_pairs`), separate from the main analysis pipeline (steps 1-5):
 
 | Step | Name | Input | Output | Key Algorithm |
 |------|------|-------|--------|---------------|
-| [1](step1_contrastive_pair_generation.md) | Contrastive Pair Generation | Scenario configs | Parquet shards of contrastive pairs | LLM-based synthetic data generation via vLLM |
-| [2](step2_activation_extraction.md) | Activation Extraction | Contrastive pairs | NumPy shards of activation vectors | Forward hooks on transformer layers |
-| [3](step3_sae_training.md) | SAE Training | Activation shards | Trained JumpReLU SAE checkpoint | JumpReLU with tanh sparsity loss |
-| [4](step4_contrastive_activation_analysis.md) | Contrastive Activation Analysis | SAE + contrastive pairs | Ranked feature lists per contrast type | Cohen's d effect size |
-| [5](step5_feature_interpretation.md) | Feature Interpretation | SAE + activations + features | Feature labels and decision report | LLM auto-labeling of max-activating examples |
-| [6](step6_fuzzing_evaluation.md) | Fuzzing Evaluation | Feature labels + per-token activations | Accuracy metrics per feature | A/B LLM judge on token-highlighted texts |
+| [Pair Generation](step1_contrastive_pair_generation.md) | Contrastive Pair Generation | Scenario configs | Parquet shards of contrastive pairs | LLM-based synthetic data generation via vLLM |
+| [1](step2_activation_extraction.md) | Activation Extraction | Contrastive pairs | NumPy shards of activation vectors | Forward hooks on transformer layers |
+| [2](step3_sae_training.md) | SAE Training | Activation shards | Trained JumpReLU SAE checkpoint | JumpReLU with tanh sparsity loss |
+| [3](step4_contrastive_activation_analysis.md) | Contrastive Activation Analysis | SAE + contrastive pairs | Ranked feature lists per contrast type | Cohen's d effect size |
+| [4](step5_feature_interpretation.md) | Feature Interpretation | SAE + activations + features | Feature labels and decision report | LLM auto-labeling of max-activating examples |
+| [5](step6_fuzzing_evaluation.md) | Fuzzing Evaluation | Feature labels + per-token activations | Accuracy metrics per feature | A/B LLM judge on token-highlighted texts |
 
 ## Key Design Decisions
 
@@ -54,11 +54,11 @@ Every formatted prompt ends with the string `"I'll use the "`. The hidden state 
 
 ### Contrastive Pairs as Post-Hoc Probes
 
-The SAE is trained on **all** activations from Step 2 without any contrastive signal. Contrastive pairs are used only in Step 4 as a post-hoc statistical test to identify which of the SAE's learned features correspond to decision-relevant dimensions. This separation means the SAE discovers the model's natural feature vocabulary, and the contrastive analysis merely queries that vocabulary.
+The SAE is trained on **all** activations from Step 1 without any contrastive signal. Contrastive pairs are used only in Step 3 as a post-hoc statistical test to identify which of the SAE's learned features correspond to decision-relevant dimensions. This separation means the SAE discovers the model's natural feature vocabulary, and the contrastive analysis merely queries that vocabulary.
 
 ### GPU Memory Isolation via Subprocesses
 
-The pipeline uses two large models that cannot coexist in GPU memory: the generation model (Qwen3-VL-235B, used in Steps 1, 5c, and 6c) and the subject model (Nemotron-3-Nano-30B, used in Steps 2, 4, and 6a). The orchestrator spawns subprocesses via `multiprocessing.spawn` to ensure each model fully releases GPU memory before the next model loads.
+The pipeline uses two large models that cannot coexist in GPU memory: the judging model (Qwen3-VL-235B, used in pair generation, Steps 4c, and 5c) and the subject model (Nemotron-3-Nano-30B, used in Steps 1, 3, and 5a). The orchestrator spawns subprocesses via `multiprocessing.spawn` to ensure each model fully releases GPU memory before the next model loads.
 
 ### Multi-Domain Scenario System
 
@@ -68,24 +68,26 @@ The pipeline supports training on activations from diverse agent scenarios (tool
 
 | Model | Role | Steps | Loading |
 |-------|------|-------|---------|
-| Qwen/Qwen3-VL-235B-A22B-Instruct-FP8 | Generator / Labeler / Judge | 1, 5c, 6c | vLLM with tensor + expert parallelism |
-| nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | Subject model (activation source) | 2, 4, 6a | HuggingFace Transformers with `device_map="auto"` |
+| Qwen/Qwen3-VL-235B-A22B-Instruct-FP8 | Generator / Labeler / Judge | Pair generation, 4c, 5c | vLLM with tensor + expert parallelism |
+| nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | Subject model (activation source) | 1, 3, 5a | HuggingFace Transformers with `device_map="auto"` |
 
 Nemotron-3-Nano is a Mixture-of-Experts model (30B total parameters, 3B active per token) with a hidden dimension of 4096.
 
 ## Quick Start
 
 ```bash
-# Full pipeline (steps 1 + 2 + 3)
-uv run python -m pipeline 500000
+# Generate contrastive pairs (one-time, or whenever you need new data)
+uv run python -m generate_pairs 500000
+
+# Full analysis pipeline (steps 1-5)
+uv run python -m pipeline
 
 # Individual steps
-uv run python -m pipeline 500000 --step 1   # Generate pairs
-uv run python -m pipeline --step 2           # Extract activations
-uv run python -m pipeline --step 3           # Train SAE
-uv run python -m pipeline --step 4           # Contrastive analysis
-uv run python -m pipeline --step 5           # Interpret features
-uv run python -m pipeline --step 6           # Fuzzing evaluation
+uv run python -m pipeline --step 1           # Extract activations
+uv run python -m pipeline --step 2           # Train SAE
+uv run python -m pipeline --step 3           # Contrastive analysis
+uv run python -m pipeline --step 4           # Interpret features
+uv run python -m pipeline --step 5           # Fuzzing evaluation
 ```
 
 ## Output Directory Structure
@@ -93,22 +95,23 @@ uv run python -m pipeline --step 6           # Fuzzing evaluation
 ```
 output/
     pairs/
-        shard_00000.parquet          # Contrastive pairs (Step 1)
+        shard_00000.parquet          # Contrastive pairs (generate_pairs)
         scenarios_meta.json          # Scenario configs used
-    activations/
-        shard_000000.npy             # Activation vectors, float16 (Step 2)
-        metadata.json                # Model, layer, dimensions
-        prompts.json                 # User request per activation vector
-        contrastive_features.json    # Ranked features per contrast type (Step 4)
-        feature_descriptions.json    # Feature labels and examples (Step 5)
-        decision_report.json         # Per-contrast-type explanations (Step 5)
-        fuzzing_results.json         # Per-feature evaluation scores (Step 6)
-        fuzzing_summary.json         # Aggregate evaluation metrics (Step 6)
-    sae_checkpoints/
-        sae_final.pt                 # Trained SAE model (Step 3)
-        feature_health.json          # Post-training feature health analysis
-        metrics.jsonl                # Training loss curves
-        config.json                  # Training hyperparameters
+    layer_N/
+        activations/
+            shard_000000.npy             # Activation vectors, float16 (Step 1)
+            metadata.json                # Model, layer, dimensions
+            prompts.json                 # User request per activation vector
+            contrastive_features.json    # Ranked features per contrast type (Step 3)
+            feature_descriptions.json    # Feature labels and examples (Step 4)
+            decision_report.json         # Per-contrast-type explanations (Step 4)
+            fuzzing_results.json         # Per-feature evaluation scores (Step 5)
+            fuzzing_summary.json         # Aggregate evaluation metrics (Step 5)
+        sae_checkpoints/
+            sae_final.pt                 # Trained SAE model (Step 2)
+            feature_health.json          # Post-training feature health analysis
+            metrics.jsonl                # Training loss curves
+            config.json                  # Training hyperparameters
 ```
 
 ## Source Files
@@ -117,7 +120,8 @@ The codebase is organized into subpackages by functional area:
 
 | Package | File | Purpose |
 |---------|------|---------|
-| (root) | `src/pipeline.py` | Main CLI orchestrator for all 6 steps |
+| (root) | `src/generate_pairs.py` | Standalone CLI tool for contrastive pair generation |
+| (root) | `src/pipeline.py` | Main CLI orchestrator for analysis steps 1-5 |
 | `data` | `src/data/scenario.py` | Scenario configuration loading and validation |
 | `data` | `src/data/generator.py` | Contrastive pair generation via vLLM |
 | `data` | `src/data/contrastive_dataset.py` | `ContrastivePair` / `ContrastiveDataset` data structures, Parquet I/O |
@@ -125,7 +129,7 @@ The codebase is organized into subpackages by functional area:
 | `extraction` | `src/extraction/activation_extractor.py` | Low-level forward-hook-based activation capture from HuggingFace models |
 | `sae` | `src/sae/model.py` | JumpReLU SAE architecture with STE gradients |
 | `sae` | `src/sae/trainer.py` | Training loop with cosine LR, sparsity warmup, dead feature resampling |
-| `analysis` | `src/analysis/contrastive_features.py` | Contrastive feature identification (Step 4) |
+| `analysis` | `src/analysis/contrastive_features.py` | Contrastive feature identification (Step 3) |
 | `analysis` | `src/analysis/feature_interpreter.py` | Feature labeling via LLM and report generation |
 | `analysis` | `src/analysis/fuzzing_evaluator.py` | A/B evaluation of feature explanations |
 | `experiments` | `src/experiments/ablation.py` | Causal intervention experiments |

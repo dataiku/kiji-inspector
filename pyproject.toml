@@ -20,7 +20,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "torch==2.9.1",
+    "torch>=2.9.1",
+    "torchvision",
     "vllm>=0.11.0",
     "numpy>=1.26.0",
     "tqdm>=4.66.0",
@@ -30,6 +31,7 @@ dependencies = [
     "pandas>=2.0.0",
     "scipy>=1.11.0",
     "scikit-learn>=1.3.0",
+    "datasets>=3.0.0",
     "flash-linear-attention>=0.4.1 ; sys_platform == 'linux'",
     "flash-attn-3 ; sys_platform == 'linux'",
     "causal-conv1d ; sys_platform == 'linux'",
@@ -82,17 +84,25 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "flash-attn-3-wheels"
+url = "https://windreamer.github.io/flash-attention3-wheels/cu128_torch280"
+format = "flat"
 explicit = true
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
 ]
-
-# TODO: @david.cardozo -> provide the builds to external contributors, in the mean time, please request them via email
-vllm = { path = "external-dist-packages/vllm-0.15.0+cu130-cp38-abi3-manylinux_2_35_aarch64.whl" }
-causal-conv1d = { path = "external-dist-packages/new-packages/causal_conv1d-1.6.0-cp313-cp313-linux_aarch64.whl" }
-flash-attn-3 = { path = "external-dist-packages/new-packages/flash_attn_3-3.0.0b1-cp39-abi3-linux_aarch64.whl" }
-mamba-ssm = { path = "external-dist-packages/new-packages/mamba_ssm-2.3.0-cp313-cp313-linux_aarch64.whl" }
+torchvision = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+torchaudio = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+vllm = { path = "../vllm", editable = true }
+flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }

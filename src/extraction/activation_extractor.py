@@ -1,9 +1,9 @@
 """
-Activation extractor for NVIDIA Nemotron-3-Nano-30B-A3B-BF16.
+Activation extractor for HuggingFace causal language models.
 
-Designed for multi-GPU inference on 4xGB200 (or similar).
-The model is sharded across GPUs via device_map="auto" and
-activations are captured via forward hooks at specified layers.
+Designed for multi-GPU inference. The model is sharded across GPUs
+via device_map="auto" and activations are captured via forward hooks
+at specified layers.
 """
 
 from dataclasses import dataclass, field
@@ -17,7 +17,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 class ActivationConfig:
     """Configuration for activation extraction."""
 
-    model_name: str = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+    model_name: str = ""  # Required — HuggingFace model ID (e.g. "Qwen/Qwen2.5-3B-Instruct")
     layers: list[int] = field(default_factory=lambda: [8, 12, 16, 20, 24])
     extract_residual_stream: bool = True
     extract_attention: bool = False
@@ -29,17 +29,17 @@ class ActivationConfig:
 
 
 class ActivationExtractor:
-    """
-    Extract activations from NVIDIA Nemotron-3-Nano-30B-A3B-BF16.
+    """Extract activations from any HuggingFace causal language model.
 
-    This model uses a Mixture-of-Experts architecture (30B total, 3B active).
-    It is automatically sharded across all available GPUs via device_map="auto".
-
-    Designed for 4xGB200 but works on any multi-GPU or single-GPU setup.
+    Supports models using standard architectures (Llama, Qwen, Mistral,
+    Nemotron, GPT-NeoX, etc.). The model is automatically sharded across
+    all available GPUs via device_map="auto".
     """
 
-    def __init__(self, config: ActivationConfig | None = None):
-        self.config = config or ActivationConfig()
+    def __init__(self, config: ActivationConfig):
+        if not config.model_name:
+            raise ValueError("ActivationConfig.model_name is required.")
+        self.config = config
         self._hooks: list[torch.utils.hooks.RemovableHook] = []
 
         num_gpus = torch.cuda.device_count()
@@ -98,6 +98,20 @@ class ActivationExtractor:
                 f"  model.model attrs: {[a for a in dir(self.model.model) if not a.startswith('_')]}"
             )
 
+    def _get_inner_model(self):
+        """Get the transformer body, skipping lm_head to avoid allocating logits.
+
+        Walks common inner-model attribute paths used by various architectures:
+        - language_model       (multimodal wrappers: Gemma3, LLaVA, etc.)
+        - model                (standard: Llama, Qwen, Mistral, Gemma, etc.)
+        - backbone             (NemotronH)
+        - transformer          (GPT-NeoX, GPT-2)
+        """
+        for attr in ("language_model", "model", "backbone", "transformer"):
+            if hasattr(self.model, attr):
+                return getattr(self.model, attr)
+        return self.model
+
     def _find_input_device(self) -> torch.device:
         """Find the device of the model's embedding layer.
 
@@ -106,6 +120,7 @@ class ActivationExtractor:
         """
         # Try common embedding attribute names
         for attr_path in (
+            "language_model.model.embed_tokens",
             "model.embed_tokens",
             "backbone.embed_tokens",
             "backbone.embedding",
@@ -126,7 +141,12 @@ class ActivationExtractor:
 
     def _get_model_layers(self):
         """Get the layer list, handling different model architectures."""
-        # Standard Llama/Nemotron architecture
+        # Gemma3 multimodal (Gemma3ForConditionalGeneration): language_model.model.layers
+        if hasattr(self.model, "language_model"):
+            lm = self.model.language_model
+            if hasattr(lm, "model") and hasattr(lm.model, "layers"):
+                return lm.model.layers
+        # Standard Llama/Nemotron/Gemma architecture
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers
         # NemotronH architecture uses 'backbone' instead of 'model'
@@ -161,8 +181,9 @@ class ActivationExtractor:
 
         raise AttributeError(
             f"Cannot locate transformer layers for {type(self.model).__name__}. "
-            "Supported architectures: LlamaForCausalLM, NemotronForCausalLM, "
-            "NemotronHForCausalLM, GPTNeoXForCausalLM. "
+            "Supported architectures: LlamaForCausalLM, Qwen2ForCausalLM, "
+            "MistralForCausalLM, NemotronForCausalLM, NemotronHForCausalLM, "
+            "GPTNeoXForCausalLM, and others using model.model.layers. "
             f"Model structure: {[attr for attr in dir(self.model) if not attr.startswith('_')]}"
         )
 
@@ -237,7 +258,7 @@ class ActivationExtractor:
 
         # Run the transformer body only — skip lm_head to avoid
         # allocating the huge (batch × seq × vocab) logit tensor.
-        inner_model = getattr(self.model, "model", self.model)
+        inner_model = self._get_inner_model()
         with torch.no_grad():
             inner_model(**inputs)
 
@@ -283,7 +304,7 @@ class ActivationExtractor:
 
             # Run the transformer body only — skip lm_head to avoid
             # allocating the huge (batch × seq × vocab) logit tensor.
-            inner_model = getattr(self.model, "model", self.model)
+            inner_model = self._get_inner_model()
             with torch.no_grad():
                 inner_model(**inputs)
 

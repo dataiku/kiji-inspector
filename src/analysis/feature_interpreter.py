@@ -1,9 +1,9 @@
 """
 Feature interpretation pipeline (Step 5).
 
-5a: Extract activations for all prompts via Nemotron (batched).
+5a: Load activations from Step 2 numpy shards.
 5b: Encode through SAE, collect top/bottom activating prompts per feature.
-5c: Auto-label features via LLM.
+5c: Auto-label features via LLM (generator model).
 5d: Generate user-facing explanation report.
 """
 
@@ -67,7 +67,7 @@ def load_activations_from_shards(
         raise FileNotFoundError(f"No shard_*.npy files found in {activations_dir}")
 
     shards = []
-    for sp in tqdm(shard_paths, desc="[5a] Loading shards", unit="shard"):
+    for sp in tqdm(shard_paths, desc="[4a] Loading shards", unit="shard"):
         shards.append(np.load(sp))
 
     all_activations = np.concatenate(shards, axis=0)  # (total_tokens, d_model), float16
@@ -139,7 +139,7 @@ def collect_max_activating_examples(
 
     with torch.no_grad():
         for i in tqdm(
-            range(0, len(activations), chunk_size), desc="[5b] SAE encoding", unit="chunk"
+            range(0, len(activations), chunk_size), desc="[4b] SAE encoding", unit="chunk"
         ):
             chunk = torch.from_numpy(activations[i : i + chunk_size]).to(
                 device=device, dtype=sae_dtype
@@ -153,7 +153,7 @@ def collect_max_activating_examples(
 
     results: dict[int, dict] = {}
 
-    for feat_idx in tqdm(feature_indices, desc="[5b] Collecting examples", unit="feature"):
+    for feat_idx in tqdm(feature_indices, desc="[4b] Collecting examples", unit="feature"):
         col = feature_matrix[:, feat_idx]  # (N,)
 
         # Top activating
@@ -224,18 +224,23 @@ def _format_label_prompt(feat_idx: int, examples: dict) -> str:
 
 def _run_labeling_subprocess(
     label_prompts: list[tuple[int, str]],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_path: str,
+    gpu_ids: str | None = None,
 ) -> None:
     """Child process: load vLLM, label all features, save results, exit."""
+    import os
+
+    if gpu_ids is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
 
     from vllm import LLM, SamplingParams
 
-    print(f"  [subprocess] Loading vLLM model: {qwen_model}")
+    print(f"  [subprocess] Loading vLLM model: {judging_model}")
     llm = LLM(
-        model=qwen_model,
+        model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
@@ -296,12 +301,16 @@ def _run_labeling_subprocess(
 
 def label_features_via_llm(
     feature_examples: dict[int, dict],
-    qwen_model: str,
+    judging_model: str,
     tp_size: int,
     max_model_len: int,
     output_dir: str | Path,
+    dp_size: int = 1,
 ) -> dict[int, dict]:
     """Label features using an LLM in a subprocess (GPU memory isolation).
+
+    When ``dp_size > 1``, spawns N model copies on N GPUs (each with
+    ``tp_size=1``) to label features in parallel.
 
     Returns:
         Dict mapping feature_index -> {"label": str, "description": str, "confidence": str}
@@ -310,7 +319,6 @@ def label_features_via_llm(
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    labels_path = str(output_dir / "_labels_temp.json")
 
     # Build prompts
     label_prompts = []
@@ -319,24 +327,55 @@ def label_features_via_llm(
         label_prompts.append((feat_idx, prompt))
 
     ctx = mp.get_context("spawn")
-    p = ctx.Process(
-        target=_run_labeling_subprocess,
-        args=(label_prompts, qwen_model, tp_size, max_model_len, labels_path),
-    )
-    p.start()
-    p.join()
 
-    if p.exitcode != 0:
-        raise RuntimeError(f"Labeling subprocess failed with exit code {p.exitcode}")
+    if dp_size > 1:
+        # Data-parallel: split prompts across N GPUs
+        chunk_size = (len(label_prompts) + dp_size - 1) // dp_size
+        chunks = [
+            label_prompts[i : i + chunk_size] for i in range(0, len(label_prompts), chunk_size)
+        ]
+        output_paths = [str(output_dir / f"_labels_temp_rank{r}.json") for r in range(len(chunks))]
 
-    with open(labels_path) as f:
-        raw_labels = json.load(f)
+        processes = []
+        for rank, (chunk, out_path) in enumerate(zip(chunks, output_paths, strict=True)):
+            p = ctx.Process(
+                target=_run_labeling_subprocess,
+                args=(chunk, judging_model, 1, max_model_len, out_path, str(rank)),
+            )
+            p.start()
+            processes.append(p)
 
-    # Convert string keys back to int
-    labels = {int(k): v for k, v in raw_labels.items()}
+        for p in processes:
+            p.join()
+            if p.exitcode != 0:
+                raise RuntimeError(
+                    f"Labeling subprocess (pid={p.pid}) failed with exit code {p.exitcode}"
+                )
 
-    # Clean up temp file
-    Path(labels_path).unlink(missing_ok=True)
+        # Merge results from all ranks
+        labels: dict[int, dict] = {}
+        for out_path in output_paths:
+            with open(out_path) as f:
+                raw_labels = json.load(f)
+            labels.update({int(k): v for k, v in raw_labels.items()})
+            Path(out_path).unlink(missing_ok=True)
+    else:
+        labels_path = str(output_dir / "_labels_temp.json")
+        p = ctx.Process(
+            target=_run_labeling_subprocess,
+            args=(label_prompts, judging_model, tp_size, max_model_len, labels_path),
+        )
+        p.start()
+        p.join()
+
+        if p.exitcode != 0:
+            raise RuntimeError(f"Labeling subprocess failed with exit code {p.exitcode}")
+
+        with open(labels_path) as f:
+            raw_labels = json.load(f)
+
+        labels = {int(k): v for k, v in raw_labels.items()}
+        Path(labels_path).unlink(missing_ok=True)
 
     return labels
 
