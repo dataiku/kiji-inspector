@@ -293,7 +293,8 @@ def run_dp_extraction_to_shards(
     Returns:
         Dict mapping layer_key to total number of vectors written.
     """
-    from multiprocessing import Process
+    import multiprocessing
+    ctx = multiprocessing.get_context("spawn")
 
     config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}
 
@@ -319,7 +320,7 @@ def run_dp_extraction_to_shards(
     # Spawn workers
     processes = []
     for rank, (chunk, shard_offset) in enumerate(zip(chunks, shard_offsets, strict=True)):
-        p = Process(
+        p = ctx.Process(
             target=_dp_shard_worker,
             args=(
                 rank,
