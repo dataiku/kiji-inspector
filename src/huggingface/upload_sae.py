@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import torch
@@ -171,7 +170,7 @@ def parse_args() -> argparse.Namespace:
         "--revision",
         type=str,
         default=None,
-        help="Branch/revision to push to (default: auto-generated timestamp branch).",
+        help="Branch/revision to push to (default: main).",
     )
     p.add_argument(
         "--commit-message",
@@ -215,34 +214,23 @@ def main() -> None:
         exist_ok=True,
     )
 
-    # Always upload under a new revision branch
-    revision = args.revision or f"v-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-    api.create_branch(repo_id=args.repo_id, repo_type="model", branch=revision)
-    print(f"Created revision branch: {revision}")
+    # Generate model card before uploading so it can be included in the folder upload
+    print("Generating model card...")
+    card = _build_model_card(args.repo_id, layer_names, layer_summaries)
+    card_path = output_dir / "README.md"
+    card_path.write_text(card)
 
-    # Upload the entire output directory in one commit using upload_folder.
-    # We include layer_* and pairs/ directories.
+    # Upload to main, replacing all existing files with the new set
     print(f"\nUploading {output_dir} to https://huggingface.co/{args.repo_id}...")
     api.upload_folder(
         folder_path=str(output_dir),
         repo_id=args.repo_id,
         repo_type="model",
-        revision=revision,
+        revision=args.revision,
         commit_message=args.commit_message,
-        allow_patterns=["layer_*/**"],
-        ignore_patterns=["*.npy", "step_*.pt"],
-    )
-
-    # Generate and upload model card
-    print("Generating and uploading model card...")
-    card = _build_model_card(args.repo_id, layer_names, layer_summaries)
-    api.upload_file(
-        path_or_fileobj=card.encode(),
-        path_in_repo="README.md",
-        repo_id=args.repo_id,
-        repo_type="model",
-        revision=revision,
-        commit_message="Update model card",
+        allow_patterns=["layer_*/**", "README.md"],
+        ignore_patterns=["**/*.npy", "**/step_*.pt"],
+        delete_patterns=["*"],
     )
 
     print(f"\nDone. Uploaded {len(layer_dirs)} layers to {args.repo_id}:")
