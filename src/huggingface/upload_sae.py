@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Upload a trained SAE checkpoint with feature descriptions to Hugging Face.
+"""Upload trained SAE checkpoints for all layers to a single Hugging Face repo.
 
-Uploads the SAE checkpoint, feature_descriptions.json, and
-contrastive_features.json to a private Hugging Face model repo.
+Discovers layer_* directories under the output root and uploads each layer's
+activations/ and sae_checkpoints/ subdirectories, preserving the directory
+structure in the repo.  Also uploads the pairs/ directory if present.
 
 Usage:
-    python -m huggingface.upload_sae <repo_id> [--output-dir output/activations]
+    python -m huggingface.upload_sae <repo_id> [--output-dir /ephemeral/output]
 
 Example:
-    python -m huggingface.upload_sae myorg/contrastive-sae
-    python -m huggingface.upload_sae myorg/contrastive-sae --output-dir output/activations
-    python -m huggingface.upload_sae myorg/contrastive-sae --checkpoint output/sae_checkpoints/sae_final.pt
+    python -m huggingface.upload_sae myorg/kiji-inspector-model
+    python -m huggingface.upload_sae myorg/kiji-inspector-model --output-dir /ephemeral/output
 """
 
 from __future__ import annotations
@@ -26,111 +26,30 @@ from huggingface_hub import HfApi
 
 def _build_model_card(
     repo_id: str,
-    checkpoint_path: str,
-    feature_descriptions: dict | None = None,
-    contrastive_features: dict | None = None,
+    layers: list[str],
+    layer_summaries: dict[str, dict],
 ) -> str:
-    """Generate a model card (README.md) from the SAE checkpoint and feature metadata."""
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    config = checkpoint.get("config", {})
+    """Generate a model card (README.md) summarising all uploaded layers."""
 
-    d_model = config.get("d_model", "unknown")
-    d_sae = config.get("d_sae", "unknown")
-    dtype = config.get("dtype", "unknown")
-    bandwidth = config.get("bandwidth", "unknown")
+    layers_table_rows = []
+    arch_section = ""
 
-    state = checkpoint.get("model_state_dict", {})
-    num_params = sum(v.numel() for v in state.values()) if state else "unknown"
-    if isinstance(num_params, int):
-        num_params_str = f"{num_params:,}"
-    else:
-        num_params_str = str(num_params)
+    for layer_name in sorted(layers, key=lambda name: int(name.split("_")[1])):
+        info = layer_summaries.get(layer_name, {})
+        n_features = info.get("n_features", "?")
+        n_contrasts = info.get("n_contrasts", "?")
+        layers_table_rows.append(f"| `{layer_name}` | {n_features} | {n_contrasts} |")
 
-    config_table = "\n".join(f"| `{k}` | `{v}` |" for k, v in sorted(config.items()))
-
-    # Feature summary
-    features_section = ""
-    if feature_descriptions:
-        n_features = len(feature_descriptions)
-        confidence_counts: dict[str, int] = {}
-        for desc in feature_descriptions.values():
-            conf = desc.get("confidence", "unknown")
-            confidence_counts[conf] = confidence_counts.get(conf, 0) + 1
-
-        confidence_table = "\n".join(
-            f"| {conf} | {count} |" for conf, count in sorted(confidence_counts.items())
-        )
-
-        # Show top features by confidence
-        high_conf = [
-            (idx, desc)
-            for idx, desc in feature_descriptions.items()
-            if desc.get("confidence") == "high"
-        ]
-        example_features = ""
-        if high_conf:
-            rows = []
-            for idx, desc in high_conf[:10]:
-                label = desc.get("label", "unlabeled")
-                description = desc.get("description", "")
-                if len(description) > 80:
-                    description = description[:77] + "..."
-                rows.append(f"| {idx} | {label} | {description} |")
-            example_features = f"""
-### High-confidence features (top 10)
-
-| Feature | Label | Description |
-|---------|-------|-------------|
-{chr(10).join(rows)}
-"""
-
-        features_section = f"""
-## Interpreted features
-
-- **Total features described**: {n_features}
-
-| Confidence | Count |
-|------------|-------|
-{confidence_table}
-{example_features}"""
-
-    # Contrastive features summary
-    contrastive_section = ""
-    if contrastive_features:
-        contrast_types = [k for k in contrastive_features if not k.startswith("_")]
-        meta = contrastive_features.get("_meta", {})
-        top_k = meta.get("top_k", "unknown")
-
-        ct_rows = []
-        for ct in sorted(contrast_types):
-            info = contrastive_features[ct]
-            n_pairs = info.get("num_pairs", "?")
-            n_feats = len(info.get("top_features", []))
-            ct_rows.append(f"| {ct} | {n_pairs:,} | {n_feats} |")
-
-        contrastive_section = f"""
-## Contrastive features
-
-Top-K features per contrast type: {top_k}
-
-| Contrast type | Pairs | Features |
-|---------------|-------|----------|
-{chr(10).join(ct_rows)}
-"""
-
-    return f"""---
-license: apache-2.0
-tags:
-  - sparse-autoencoder
-  - sae
-  - mechanistic-interpretability
-  - tool-selection
----
-
-# {repo_id.split("/")[-1]}
-
-JumpReLU Sparse Autoencoder (SAE) trained on contrastive activation data for mechanistic interpretability of tool-selection decisions.
-
+        # Use the first layer with a checkpoint for the architecture section
+        if not arch_section and info.get("config"):
+            config = info["config"]
+            d_model = config.get("d_model", "unknown")
+            d_sae = config.get("d_sae", "unknown")
+            dtype = config.get("dtype", "unknown")
+            bandwidth = config.get("bandwidth", "unknown")
+            num_params_str = info.get("num_params_str", "unknown")
+            config_table = "\n".join(f"| `{k}` | `{v}` |" for k, v in sorted(config.items()))
+            arch_section = f"""
 ## Architecture
 
 ```
@@ -153,49 +72,99 @@ input x (d_model={d_model})
 | Key | Value |
 |-----|-------|
 {config_table}
-{features_section}{contrastive_section}
+"""
+
+    layers_table = "\n".join(layers_table_rows)
+
+    return f"""---
+license: apache-2.0
+tags:
+  - sparse-autoencoder
+  - sae
+  - mechanistic-interpretability
+  - tool-selection
+---
+
+# {repo_id.split("/")[-1]}
+
+JumpReLU Sparse Autoencoders (SAEs) trained on contrastive activation data for mechanistic interpretability of tool-selection decisions.
+
+## Layers
+
+| Layer | Described features | Contrast types |
+|-------|--------------------|----------------|
+{layers_table}
+{arch_section}
+## Repo structure
+
+```
+├── layer_<N>/
+│   ├── activations/
+│   │   ├── contrastive_features.json
+│   │   ├── feature_descriptions.json
+│   │   ├── shard_*.npy
+│   │   └── ...
+│   └── sae_checkpoints/
+│       ├── sae_final.pt
+│       ├── config.json
+│       └── ...
+```
+
 ## Usage
 
 ```python
 from sae.model import JumpReLUSAE
 
-sae = JumpReLUSAE.from_pretrained("sae_final.pt", device="cuda")
+sae = JumpReLUSAE.from_pretrained("layer_17/sae_checkpoints/sae_final.pt", device="cuda")
 features = sae.encode(activations)
 reconstruction = sae.decode(features)
 ```
-
-## Files
-
-| File | Description |
-|------|-------------|
-| `sae_final.pt` | SAE checkpoint (weights + config) |
-| `feature_descriptions.json` | Per-feature labels, descriptions, confidence, and examples |
-| `contrastive_features.json` | Per-contrast-type ranked features with effect sizes |
 
 Generated by [kiji-inspector](https://github.com/dataiku/kiji-inspector).
 """
 
 
+def _summarise_layer(layer_dir: Path) -> dict:
+    """Extract summary info for a single layer directory."""
+    info: dict = {}
+
+    desc_path = layer_dir / "activations" / "feature_descriptions.json"
+    if desc_path.is_file():
+        with open(desc_path) as f:
+            info["n_features"] = len(json.load(f))
+
+    cf_path = layer_dir / "activations" / "contrastive_features.json"
+    if cf_path.is_file():
+        with open(cf_path) as f:
+            cf = json.load(f)
+        info["n_contrasts"] = len([k for k in cf if not k.startswith("_")])
+
+    ckpt_path = layer_dir / "sae_checkpoints" / "sae_final.pt"
+    if ckpt_path.is_file():
+        checkpoint = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+        config = checkpoint.get("config", {})
+        info["config"] = config
+        state = checkpoint.get("model_state_dict", {})
+        num_params = sum(v.numel() for v in state.values()) if state else 0
+        info["num_params_str"] = f"{num_params:,}" if num_params else "unknown"
+
+    return info
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Upload a trained SAE with feature descriptions to Hugging Face.",
+        description="Upload trained SAEs for all layers to a single Hugging Face repo.",
     )
     p.add_argument(
         "repo_id",
         type=str,
-        help="Hugging Face model repo ID (e.g. myorg/contrastive-sae).",
-    )
-    p.add_argument(
-        "--checkpoint",
-        type=str,
-        default=None,
-        help="Path to SAE checkpoint (default: auto-detect in output-dir).",
+        help="Hugging Face model repo ID (e.g. myorg/kiji-inspector-model).",
     )
     p.add_argument(
         "--output-dir",
         type=str,
-        default="output/activations",
-        help="Pipeline output directory containing feature JSONs (default: output/activations).",
+        default="/ephemeral/output",
+        help="Root output directory containing layer_* subdirectories (default: /ephemeral/output).",
     )
     p.add_argument(
         "--revision",
@@ -206,63 +175,34 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--commit-message",
         type=str,
-        default="Upload SAE checkpoint and feature descriptions",
+        default="Upload SAE checkpoints and feature descriptions",
         help="Commit message for the push.",
     )
     return p.parse_args()
-
-
-def _find_checkpoint(output_dir: str, explicit: str | None) -> Path:
-    """Resolve the SAE checkpoint path."""
-    if explicit:
-        p = Path(explicit)
-        if p.is_file():
-            return p
-        print(f"ERROR: checkpoint not found at {p}")
-        sys.exit(1)
-
-    candidates = [
-        Path(output_dir).parent / "sae_checkpoints" / "sae_final.pt",
-        Path(output_dir) / "sae_final.pt",
-        Path("output/sae_checkpoints/sae_final.pt"),
-    ]
-    for p in candidates:
-        if p.is_file():
-            return p
-
-    print("ERROR: SAE checkpoint not found. Searched:")
-    for p in candidates:
-        print(f"  {p}")
-    print("Use --checkpoint to specify the path explicitly.")
-    sys.exit(1)
 
 
 def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir)
 
-    checkpoint_path = _find_checkpoint(args.output_dir, args.checkpoint)
+    if not output_dir.is_dir():
+        print(f"ERROR: output directory not found: {output_dir}")
+        sys.exit(1)
 
-    # Load feature descriptions (optional)
-    feature_descriptions = None
-    desc_path = output_dir / "feature_descriptions.json"
-    if desc_path.is_file():
-        with open(desc_path) as f:
-            feature_descriptions = json.load(f)
-        print(f"  Loaded {len(feature_descriptions)} feature descriptions from {desc_path}")
-    else:
-        print(f"  Warning: {desc_path} not found, skipping feature descriptions")
+    # Discover layer directories
+    layer_dirs = sorted(output_dir.glob("layer_*"))
+    if not layer_dirs:
+        print(f"ERROR: no layer_* directories found under {output_dir}")
+        sys.exit(1)
 
-    # Load contrastive features (optional)
-    contrastive_features = None
-    cf_path = output_dir / "contrastive_features.json"
-    if cf_path.is_file():
-        with open(cf_path) as f:
-            contrastive_features = json.load(f)
-        contrast_types = [k for k in contrastive_features if not k.startswith("_")]
-        print(f"  Loaded {len(contrast_types)} contrast types from {cf_path}")
-    else:
-        print(f"  Warning: {cf_path} not found, skipping contrastive features")
+    layer_names = [d.name for d in layer_dirs]
+    print(f"Found {len(layer_dirs)} layers: {', '.join(layer_names)}")
+
+    # Summarise each layer for the model card
+    layer_summaries = {}
+    for layer_dir in layer_dirs:
+        print(f"  Summarising {layer_dir.name}...")
+        layer_summaries[layer_dir.name] = _summarise_layer(layer_dir)
 
     api = HfApi()
 
@@ -274,50 +214,31 @@ def main() -> None:
         exist_ok=True,
     )
 
+    # Generate model card before uploading so it can be included in the folder upload
     print("Generating model card...")
-    card = _build_model_card(
-        args.repo_id,
-        str(checkpoint_path),
-        feature_descriptions=feature_descriptions,
-        contrastive_features=contrastive_features,
-    )
+    card = _build_model_card(args.repo_id, layer_names, layer_summaries)
+    card_path = output_dir / "README.md"
+    card_path.write_text(card)
 
-    # Upload all files
-    files_to_upload = [
-        (str(checkpoint_path), checkpoint_path.name, "SAE checkpoint"),
-    ]
-    if desc_path.is_file():
-        files_to_upload.append(
-            (str(desc_path), "feature_descriptions.json", "feature descriptions")
-        )
-    if cf_path.is_file():
-        files_to_upload.append((str(cf_path), "contrastive_features.json", "contrastive features"))
-
-    print(f"\nUploading to https://huggingface.co/{args.repo_id}...")
-    for local_path, repo_path, label in files_to_upload:
-        print(f"  Uploading {label}: {local_path} -> {repo_path}")
-        api.upload_file(
-            path_or_fileobj=local_path,
-            path_in_repo=repo_path,
-            repo_id=args.repo_id,
-            repo_type="model",
-            revision=args.revision,
-            commit_message=f"{args.commit_message}: {label}",
-        )
-
-    print("  Uploading model card: README.md")
-    api.upload_file(
-        path_or_fileobj=card.encode(),
-        path_in_repo="README.md",
+    # Upload to main, replacing all existing files with the new set
+    print(f"\nUploading {output_dir} to https://huggingface.co/{args.repo_id}...")
+    api.upload_folder(
+        folder_path=str(output_dir),
         repo_id=args.repo_id,
         repo_type="model",
         revision=args.revision,
-        commit_message="Update model card",
+        commit_message=args.commit_message,
+        allow_patterns=["layer_*/**", "README.md"],
+        ignore_patterns=["**/*.npy", "**/step_*.pt"],
+        delete_patterns=["*"],
     )
 
-    print("\nDone. Uploaded:")
-    for _, repo_path, label in files_to_upload:
-        print(f"  {repo_path} ({label})")
+    print(f"\nDone. Uploaded {len(layer_dirs)} layers to {args.repo_id}:")
+    for name in layer_names:
+        info = layer_summaries.get(name, {})
+        print(
+            f"  {name}: {info.get('n_features', '?')} features, {info.get('n_contrasts', '?')} contrasts"
+        )
     print("  README.md (model card)")
 
 
