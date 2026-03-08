@@ -227,6 +227,7 @@ def main() -> None:
         revision=args.revision,
         commit_message=args.commit_message,
         allow_patterns=["layer_*/**", "pairs/**"],
+        ignore_patterns=["*.npy", "step_*.pt"],
     )
 
     # Generate and upload model card
