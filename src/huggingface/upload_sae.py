@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import torch
@@ -108,9 +109,6 @@ JumpReLU Sparse Autoencoders (SAEs) trained on contrastive activation data for m
 │       ├── sae_final.pt
 │       ├── config.json
 │       └── ...
-└── pairs/
-    ├── scenarios_meta.json
-    └── shard_*.parquet
 ```
 
 ## Usage
@@ -173,7 +171,7 @@ def parse_args() -> argparse.Namespace:
         "--revision",
         type=str,
         default=None,
-        help="Branch/revision to push to (default: main).",
+        help="Branch/revision to push to (default: auto-generated timestamp branch).",
     )
     p.add_argument(
         "--commit-message",
@@ -217,6 +215,11 @@ def main() -> None:
         exist_ok=True,
     )
 
+    # Always upload under a new revision branch
+    revision = args.revision or f"v-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    api.create_branch(repo_id=args.repo_id, repo_type="model", branch=revision)
+    print(f"Created revision branch: {revision}")
+
     # Upload the entire output directory in one commit using upload_folder.
     # We include layer_* and pairs/ directories.
     print(f"\nUploading {output_dir} to https://huggingface.co/{args.repo_id}...")
@@ -224,9 +227,9 @@ def main() -> None:
         folder_path=str(output_dir),
         repo_id=args.repo_id,
         repo_type="model",
-        revision=args.revision,
+        revision=revision,
         commit_message=args.commit_message,
-        allow_patterns=["layer_*/**", "pairs/**"],
+        allow_patterns=["layer_*/**"],
         ignore_patterns=["*.npy", "step_*.pt"],
     )
 
@@ -238,7 +241,7 @@ def main() -> None:
         path_in_repo="README.md",
         repo_id=args.repo_id,
         repo_type="model",
-        revision=args.revision,
+        revision=revision,
         commit_message="Update model card",
     )
 
@@ -248,8 +251,6 @@ def main() -> None:
         print(
             f"  {name}: {info.get('n_features', '?')} features, {info.get('n_contrasts', '?')} contrasts"
         )
-    if (output_dir / "pairs").is_dir():
-        print("  pairs/")
     print("  README.md (model card)")
 
 
