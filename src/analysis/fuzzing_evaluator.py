@@ -727,7 +727,7 @@ def _run_judge_subprocess(
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
-        gpu_memory_utilization=0.80,
+        gpu_memory_utilization=0.95,
         enforce_eager=True,
         enable_expert_parallel=True,
         disable_log_stats=True,
