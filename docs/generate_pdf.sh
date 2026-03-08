@@ -13,12 +13,12 @@ OUTPUT="${SCRIPT_DIR}/yakk_inspector_documentation.pdf"
 # Ordered list of input files (index first, then steps in order)
 INPUT_FILES=(
     "${SCRIPT_DIR}/index.md"
-    "${SCRIPT_DIR}/step1_contrastive_pair_generation.md"
-    "${SCRIPT_DIR}/step2_activation_extraction.md"
-    "${SCRIPT_DIR}/step3_sae_training.md"
-    "${SCRIPT_DIR}/step4_contrastive_activation_analysis.md"
-    "${SCRIPT_DIR}/step5_feature_interpretation.md"
-    "${SCRIPT_DIR}/step6_fuzzing_evaluation.md"
+    "${SCRIPT_DIR}/pair_generation.md"
+    "${SCRIPT_DIR}/step1_activation_extraction.md"
+    "${SCRIPT_DIR}/step2_sae_training.md"
+    "${SCRIPT_DIR}/step3_contrastive_activation_analysis.md"
+    "${SCRIPT_DIR}/step4_feature_interpretation.md"
+    "${SCRIPT_DIR}/step5_fuzzing_evaluation.md"
 )
 
 # Check prerequisites

@@ -1,14 +1,16 @@
-# Step 1: Contrastive Pair Generation
+# Pair Generation (Standalone Tool)
 
 ## Purpose
 
-Generate synthetic pairs of user requests that share the same underlying intent but require different tools. These pairs isolate the **decision signal** -- the minimal difference in a request that causes the agent to choose one tool over another. The contrastive structure is not used during SAE training (Step 3) but is critical for post-hoc feature identification (Step 4).
+Generate synthetic pairs of user requests that share the same underlying intent but require different tools. These pairs isolate the **decision signal** -- the minimal difference in a request that causes the agent to choose one tool over another. The contrastive structure is not used during SAE training (Step 2) but is critical for post-hoc feature identification (Step 3).
+
+Pair generation is a **standalone CLI tool** (`generate_pairs`), separate from the main analysis pipeline. It can be run once and reused across multiple pipeline runs.
 
 ## Source Files
 
 | File | Key Components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step1()`, `generate_pairs()`, `_run_generation_subprocess()` |
+| `src/generate_pairs.py` | `main()`, `generate_pairs()`, `_run_generation_subprocess()` |
 | `src/data/generator.py` | `ContrastivePairGenerator`, `_parse_json_array()`, `_fuzzy_get()` |
 | `src/data/contrastive_dataset.py` | `ContrastivePair`, `ContrastiveDataset`, Parquet I/O |
 | `src/data/scenario.py` | `ScenarioConfig`, `load_scenarios()`, `save_scenarios_meta()` |
@@ -173,7 +175,7 @@ SamplingParams(
 
 ### Subprocess Isolation
 
-The entire generation runs in a `multiprocessing.spawn` subprocess to ensure the vLLM model (Qwen3-VL-235B) releases all GPU memory before Step 2 loads Nemotron. The subprocess:
+The entire generation runs in a `multiprocessing.spawn` subprocess to ensure the vLLM model (Qwen3-VL-235B) releases all GPU memory before Step 1 loads Nemotron. The subprocess:
 
 1. Loads vLLM with `gpu_memory_utilization=0.95`, `enable_expert_parallel=True`
 2. Iterates over scenarios, generating pairs for each

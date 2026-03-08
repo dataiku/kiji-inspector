@@ -1,8 +1,8 @@
-# Step 2: Activation Extraction
+# Step 1: Activation Extraction
 
 ## Purpose
 
-Extract the hidden-state activations from the subject model (Nemotron-3-Nano-30B) at the **decision token** -- the precise position where the model is about to output a tool name. These raw activation vectors form the training data for the SAE in Step 3.
+Extract the hidden-state activations from the subject model (Nemotron-3-Nano-30B) at the **decision token** -- the precise position where the model is about to output a tool name. These raw activation vectors form the training data for the SAE in Step 2.
 
 Each contrastive pair contributes **two** activation vectors (one for the anchor prompt, one for the contrast prompt), yielding `2 * num_pairs` total vectors.
 
@@ -10,7 +10,7 @@ Each contrastive pair contributes **two** activation vectors (one for the anchor
 
 | File | Key Components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step2()`, `extract_activations()` |
+| `src/pipeline.py` | `_run_step1()`, `extract_activations()` |
 | `src/extraction/extractor.py` | `build_agent_prompt()`, `RawActivationExtractor`, `extract_to_shards()` |
 | `src/extraction/activation_extractor.py` | `ActivationConfig`, `ActivationExtractor`, forward hooks |
 
@@ -198,7 +198,7 @@ output/activations/
 
 ### prompts.json
 
-A JSON array of user request strings, one per activation vector, in the same order as the shard data. This enables Step 5 to map activations back to prompt text without re-running inference:
+A JSON array of user request strings, one per activation vector, in the same order as the shard data. This enables Step 4 to map activations back to prompt text without re-running inference:
 
 ```json
 ["Show me the users table schema", "Add a timestamp to the users table", ...]
@@ -206,7 +206,7 @@ A JSON array of user request strings, one per activation vector, in the same ord
 
 ## Per-Pair Scenario Lookup
 
-Each pair's `scenario_name` field maps to a `ScenarioConfig` via `scenarios_meta.json` (saved by Step 1). This ensures each pair's formatted prompt uses the correct system prompt and tool list:
+Each pair's `scenario_name` field maps to a `ScenarioConfig` via `scenarios_meta.json` (saved by pair generation). This ensures each pair's formatted prompt uses the correct system prompt and tool list:
 
 ```python
 for pair in pairs:
