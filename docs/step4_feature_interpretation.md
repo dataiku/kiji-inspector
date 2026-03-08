@@ -1,28 +1,28 @@
-# Step 5: Feature Interpretation
+# Step 4: Feature Interpretation
 
 ## Purpose
 
-Transform the abstract SAE feature indices from Step 4 into human-readable labels and explanations. For each decision-relevant feature, this step identifies which prompts maximally activate it, generates a natural-language label via an LLM, and produces a per-contrast-type decision report explaining how the model makes tool-selection decisions.
+Transform the abstract SAE feature indices from Step 3 into human-readable labels and explanations. For each decision-relevant feature, this step identifies which prompts maximally activate it, generates a natural-language label via an LLM, and produces a per-contrast-type decision report explaining how the model makes tool-selection decisions.
 
 ## Sub-Steps
 
 | Sub-step | Name | Input | Output |
 |----------|------|-------|--------|
-| 5a | Load activations from shards | Step 2 numpy shards + prompts.json | Deduplicated (prompts, activations) arrays |
-| 5b | SAE encode + collect examples | SAE checkpoint + activations | Top/bottom activating prompts per feature |
-| 5c | Label features via LLM | Max-activating examples | feature_descriptions.json |
-| 5d | Generate decision report | Labels + contrastive features | decision_report.json |
+| 4a | Load activations from shards | Step 1 numpy shards + prompts.json | Deduplicated (prompts, activations) arrays |
+| 4b | SAE encode + collect examples | SAE checkpoint + activations | Top/bottom activating prompts per feature |
+| 4c | Label features via LLM | Max-activating examples | feature_descriptions.json |
+| 4d | Generate decision report | Labels + contrastive features | decision_report.json |
 
 ## Source Files
 
 | File | Key Components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step5()` |
+| `src/pipeline.py` | `_run_step4()` |
 | `src/analysis/feature_interpreter.py` | `load_activations_from_shards()`, `collect_max_activating_examples()`, `label_features_via_llm()`, `generate_explanation_report()` |
 
-## Sub-Step 5a: Load Activations from Shards
+## Sub-Step 4a: Load Activations from Shards
 
-Rather than re-running Nemotron inference, this step loads the cached activation vectors and prompt texts saved by Step 2:
+Rather than re-running Nemotron inference, this step loads the cached activation vectors and prompt texts saved by Step 1:
 
 1. Read `metadata.json` and `prompts.json` from the activations directory
 2. Load and concatenate all `shard_*.npy` files
@@ -41,11 +41,11 @@ for prompt, act in zip(all_prompts, all_activations):
 
 The output is a pair: `(prompts: list[str], activations: ndarray of shape (N, d_model))` with activations cast to float32.
 
-## Sub-Step 5b: SAE Encode and Collect Examples
+## Sub-Step 4b: SAE Encode and Collect Examples
 
 ### Feature Selection
 
-The features to analyze come from Step 4's `contrastive_features.json`. All unique feature indices across all contrast types are collected into a deduplicated set.
+The features to analyze come from Step 3's `contrastive_features.json`. All unique feature indices across all contrast types are collected into a deduplicated set.
 
 ### Encoding
 
@@ -88,7 +88,7 @@ Default: `top_n=20`, `bottom_n=10`.
 }
 ```
 
-## Sub-Step 5c: Label Features via LLM
+## Sub-Step 4c: Label Features via LLM
 
 ### GPU Memory Isolation
 
@@ -146,7 +146,7 @@ If the LLM output cannot be parsed as JSON, the feature receives:
 {"label": "parse_error", "description": "<first 200 chars of raw output>", "confidence": "low"}
 ```
 
-## Sub-Step 5d: Generate Decision Report
+## Sub-Step 4d: Generate Decision Report
 
 ### feature_descriptions.json
 
@@ -169,7 +169,7 @@ Combines labels, activation statistics, and example prompts for each feature:
 
 ### decision_report.json
 
-For each contrast type, takes the top-10 features from Step 4 and generates a plain-language explanation:
+For each contrast type, takes the top-10 features from Step 3 and generates a plain-language explanation:
 
 ```json
 {
@@ -227,4 +227,4 @@ output/activations/
 
 ## Interpretation Caveats
 
-When the SAE is trained on one domain (e.g., tool selection) but applied to another (e.g., investment analysis), the feature **labels** reflect the training domain's vocabulary. However, the activation **patterns** (which features fire, their relative strengths, how they change across steps) still capture real differences in the model's internal processing. The labels are human-readable approximations, not ground truth -- the fuzzing evaluation in Step 6 quantifies their accuracy.
+When the SAE is trained on one domain (e.g., tool selection) but applied to another (e.g., investment analysis), the feature **labels** reflect the training domain's vocabulary. However, the activation **patterns** (which features fire, their relative strengths, how they change across steps) still capture real differences in the model's internal processing. The labels are human-readable approximations, not ground truth -- the fuzzing evaluation in Step 5 quantifies their accuracy.

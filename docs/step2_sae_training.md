@@ -1,14 +1,14 @@
-# Step 3: SAE Training
+# Step 2: SAE Training
 
 ## Purpose
 
-Train a **JumpReLU Sparse Autoencoder** on the raw activation vectors from Step 2 to discover a dictionary of monosemantic features in the model's hidden representation space. The SAE learns to reconstruct each activation vector using a sparse linear combination of learned feature directions, where each feature ideally corresponds to a single interpretable concept.
+Train a **JumpReLU Sparse Autoencoder** on the raw activation vectors from Step 1 to discover a dictionary of monosemantic features in the model's hidden representation space. The SAE learns to reconstruct each activation vector using a sparse linear combination of learned feature directions, where each feature ideally corresponds to a single interpretable concept.
 
 ## Source Files
 
 | File | Key Components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step3()`, `train_sae_step()` |
+| `src/pipeline.py` | `_run_step2()`, `train_sae_step()` |
 | `src/sae/model.py` | `JumpReLUSAE`, `JumpReLUFunction` |
 | `src/sae/trainer.py` | `SAETrainingConfig`, `CachedActivationBuffer`, `train_sae()`, `analyze_feature_health()` |
 
@@ -104,7 +104,7 @@ where $\lambda(t)$ is the sparsity coefficient with warmup (see below).
 
 ### Data Loading: CachedActivationBuffer
 
-The buffer loads pre-computed numpy shards from Step 2 and yields shuffled batches:
+The buffer loads pre-computed numpy shards from Step 1 and yields shuffled batches:
 
 ```
 For each epoch:

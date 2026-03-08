@@ -1,16 +1,16 @@
-# Step 4: Contrastive Activation Analysis
+# Step 3: Contrastive Activation Analysis
 
 ## Purpose
 
 Identify which SAE features are **decision-relevant** by measuring how they respond differently to anchor vs. contrast prompts within each contrastive pair. A feature that consistently activates more strongly for one side of a contrast type (e.g., higher for "read" requests than "write" requests) is a feature that encodes the corresponding decision factor.
 
-This step does **not** modify the SAE. It uses the trained SAE from Step 3 as a fixed feature extractor and applies statistical tests to rank features by their discriminative power.
+This step does **not** modify the SAE. It uses the trained SAE from Step 2 as a fixed feature extractor and applies statistical tests to rank features by their discriminative power.
 
 ## Source Files
 
 | File | Key Components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step4()` |
+| `src/pipeline.py` | `_run_step3()` |
 | `src/analysis/contrastive_features.py` | `identify_contrastive_features()` |
 | `src/extraction/extractor.py` | `build_agent_prompt()` (prompt formatting) |
 | `src/extraction/activation_extractor.py` | `ActivationExtractor` (live extraction) |
@@ -189,15 +189,15 @@ A dedup_ratio near 1.0 means each contrast type uses mostly unique features. A l
 
 ## Why Live Extraction Instead of Cached?
 
-Step 4 re-extracts activations through Nemotron rather than reusing the Step 2 numpy shards. This is because Step 2 saves only the raw `d_model`-dimensional activation vectors without pairing information (which vector came from which pair's anchor vs. contrast). Step 4 needs the paired structure to compute per-pair feature differences.
+Step 3 re-extracts activations through Nemotron rather than reusing the Step 1 numpy shards. This is because Step 1 saves only the raw `d_model`-dimensional activation vectors without pairing information (which vector came from which pair's anchor vs. contrast). Step 3 needs the paired structure to compute per-pair feature differences.
 
-An alternative would be to save pair indices in Step 2, but the current approach keeps Step 2 simple (just a flat stream of activation vectors suitable for SAE training) and Step 4 self-contained.
+An alternative would be to save pair indices in Step 1, but the current approach keeps Step 1 simple (just a flat stream of activation vectors suitable for SAE training) and Step 3 self-contained.
 
 ## CLI Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--sae-checkpoint` | Auto-detected from Step 3 | Path to trained SAE |
+| `--sae-checkpoint` | Auto-detected from Step 2 | Path to trained SAE |
 | `--top-k-features` | 200 | Features per contrast type |
 | `--min-effect-size` | 0.3 | Minimum Cohen's d threshold |
 | `--min-activation` | 0.01 | Minimum mean activation threshold |

@@ -39,12 +39,12 @@ Pair generation is a standalone CLI tool (`generate_pairs`), separate from the m
 
 | Step | Name | Input | Output | Key Algorithm |
 |------|------|-------|--------|---------------|
-| [Pair Generation](step1_contrastive_pair_generation.md) | Contrastive Pair Generation | Scenario configs | Parquet shards of contrastive pairs | LLM-based synthetic data generation via vLLM |
-| [1](step2_activation_extraction.md) | Activation Extraction | Contrastive pairs | NumPy shards of activation vectors | Forward hooks on transformer layers |
-| [2](step3_sae_training.md) | SAE Training | Activation shards | Trained JumpReLU SAE checkpoint | JumpReLU with tanh sparsity loss |
-| [3](step4_contrastive_activation_analysis.md) | Contrastive Activation Analysis | SAE + contrastive pairs | Ranked feature lists per contrast type | Cohen's d effect size |
-| [4](step5_feature_interpretation.md) | Feature Interpretation | SAE + activations + features | Feature labels and decision report | LLM auto-labeling of max-activating examples |
-| [5](step6_fuzzing_evaluation.md) | Fuzzing Evaluation | Feature labels + per-token activations | Accuracy metrics per feature | A/B LLM judge on token-highlighted texts |
+| [Pair Generation](pair_generation.md) | Contrastive Pair Generation | Scenario configs | Parquet shards of contrastive pairs | LLM-based synthetic data generation via vLLM |
+| [1](step1_activation_extraction.md) | Activation Extraction | Contrastive pairs | NumPy shards of activation vectors | Forward hooks on transformer layers |
+| [2](step2_sae_training.md) | SAE Training | Activation shards | Trained JumpReLU SAE checkpoint | JumpReLU with tanh sparsity loss |
+| [3](step3_contrastive_activation_analysis.md) | Contrastive Activation Analysis | SAE + contrastive pairs | Ranked feature lists per contrast type | Cohen's d effect size |
+| [4](step4_feature_interpretation.md) | Feature Interpretation | SAE + activations + features | Feature labels and decision report | LLM auto-labeling of max-activating examples |
+| [5](step5_fuzzing_evaluation.md) | Fuzzing Evaluation | Feature labels + per-token activations | Accuracy metrics per feature | A/B LLM judge on token-highlighted texts |
 
 ## Key Design Decisions
 
@@ -58,7 +58,7 @@ The SAE is trained on **all** activations from Step 1 without any contrastive si
 
 ### GPU Memory Isolation via Subprocesses
 
-The pipeline uses two large models that cannot coexist in GPU memory: the judging model (Qwen3-VL-235B, used in pair generation, Steps 4c, and 5c) and the subject model (Nemotron-3-Nano-30B, used in Steps 1, 3, and 5a). The orchestrator spawns subprocesses via `multiprocessing.spawn` to ensure each model fully releases GPU memory before the next model loads.
+The pipeline uses two large models that cannot coexist in GPU memory: the judging model (Qwen3-VL-235B, used in pair generation, Steps 4c, and 5c) and the subject model (Nemotron-3-Nano-30B, used in Steps 1, 3, and 5a).. The orchestrator spawns subprocesses via `multiprocessing.spawn` to ensure each model fully releases GPU memory before the next model loads.
 
 ### Multi-Domain Scenario System
 

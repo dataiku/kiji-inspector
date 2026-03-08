@@ -1,8 +1,8 @@
-# Step 6: Fuzzing Evaluation
+# Step 5: Fuzzing Evaluation
 
 ## Purpose
 
-Evaluate whether the feature labels from Step 5 correctly identify **which tokens** activate each feature, not just which texts. This catches explanations that are "right for the wrong reasons" -- a label might correctly predict which prompts activate a feature but for the wrong conceptual reason. By testing at the token level, we verify that the label identifies the actual signal the SAE feature detects.
+Evaluate whether the feature labels from Step 4 correctly identify **which tokens** activate each feature, not just which texts. This catches explanations that are "right for the wrong reasons" -- a label might correctly predict which prompts activate a feature but for the wrong conceptual reason. By testing at the token level, we verify that the label identifies the actual signal the SAE feature detects.
 
 This approach is based on [Eleuther AI's autointerp methodology](https://blog.eleuther.ai/autointerp/).
 
@@ -10,22 +10,22 @@ This approach is based on [Eleuther AI's autointerp methodology](https://blog.el
 
 | Sub-step | Name | Input | Output |
 |----------|------|-------|--------|
-| 6a | Per-token activation extraction | Nemotron + formatted prompts | Per-token activation matrices |
-| 6b | Build fuzzing examples | SAE + per-token activations | A/B comparison pairs |
-| 6c | LLM judge evaluation | Qwen3-VL judge prompts | Raw judgments |
-| 6d | Compute metrics | Judgments + ground truth | fuzzing_results.json, fuzzing_summary.json |
+| 5a | Per-token activation extraction | Nemotron + formatted prompts | Per-token activation matrices |
+| 5b | Build fuzzing examples | SAE + per-token activations | A/B comparison pairs |
+| 5c | LLM judge evaluation | Qwen3-VL judge prompts | Raw judgments |
+| 5d | Compute metrics | Judgments + ground truth | fuzzing_results.json, fuzzing_summary.json |
 
 ## Source Files
 
 | File | Key Components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step6()` |
+| `src/pipeline.py` | `_run_step5()` |
 | `src/analysis/fuzzing_evaluator.py` | `FuzzingExample`, `extract_per_token_activations()`, `build_fuzzing_examples()`, `evaluate_fuzzing()`, `compute_fuzzing_metrics()` |
 
 ## Architecture
 
 ```
-feature_descriptions.json (Step 5)
+feature_descriptions.json (Step 4)
     |
     v
 Select top/bottom example prompts per feature
@@ -58,9 +58,9 @@ Qwen3-VL LLM judge (subprocess)
 Parse A/B answers, compute accuracy
 ```
 
-## Sub-Step 6a: Per-Token Activation Extraction
+## Sub-Step 5a: Per-Token Activation Extraction
 
-Unlike Step 2 (which extracts only the decision token), Step 6a extracts activations for **every token** in each prompt by setting `token_positions="all"`:
+Unlike Step 1 (which extracts only the decision token), Step 5a extracts activations for **every token** in each prompt by setting `token_positions="all"`:
 
 ```python
 config = ActivationConfig(
@@ -75,9 +75,9 @@ For each prompt, the output is:
 - `token_strings`: List of token strings (from `convert_ids_to_tokens`)
 - `token_activations`: NumPy array of shape `(seq_len, d_model)`
 
-These are extracted in batches and stored in memory for Sub-step 6b.
+These are extracted in batches and stored in memory for Sub-step 5b.
 
-## Sub-Step 6b: Build Fuzzing Examples
+## Sub-Step 5b: Build Fuzzing Examples
 
 ### User Request Span Detection
 
@@ -172,7 +172,7 @@ else:
     correct_is_a = False
 ```
 
-## Sub-Step 6c: LLM Judge Evaluation
+## Sub-Step 5c: LLM Judge Evaluation
 
 ### Judge Prompt Templates
 
@@ -236,7 +236,7 @@ picked_a = bool(re.search(r"\bA\b", raw_judgment))
 predicted_correct = (picked_a == example.is_correctly_fuzzed)
 ```
 
-## Sub-Step 6d: Compute Metrics
+## Sub-Step 5d: Compute Metrics
 
 ### Per-Feature Metrics
 
