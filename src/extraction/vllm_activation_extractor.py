@@ -294,6 +294,7 @@ def run_dp_extraction_to_shards(
         Dict mapping layer_key to total number of vectors written.
     """
     import multiprocessing
+
     ctx = multiprocessing.get_context("spawn")
 
     config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}

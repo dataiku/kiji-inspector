@@ -784,7 +784,6 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
     elapsed = time.time() - t0
     print(f"  5a complete ({elapsed:.1f}s): {len(token_strings_list)} prompts")
 
-
     prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
 
     t0_total = time.time()
