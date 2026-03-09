@@ -772,7 +772,7 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
     # 5a: Extract per-token activations ONCE for all layers
     print("\n[Step 5a] Extracting per-token activations (shared across layers)...")
     t0 = time.time()
-    token_strings_list, token_activations_list = extract_per_token_activations(
+    token_strings_list, token_activations_store = extract_per_token_activations(
         prompts=all_prompts,
         formatted_prompts=formatted_prompts,
         subject_model=args.subject_model,
@@ -807,7 +807,7 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
             feature_descriptions=feature_descriptions,
             prompt_to_idx=prompt_to_idx,
             token_strings_list=token_strings_list,
-            token_activations_list=token_activations_list,
+            token_activations_list=token_activations_store,
             layer_key=layer_key,
             sae_checkpoint=checkpoint,
             tokenizer=tokenizer,
@@ -840,15 +840,9 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
         elapsed = time.time() - t0
         print(f"    5d complete ({elapsed:.1f}s)")
 
-    # Free per-token data
-    del token_strings_list, token_activations_list
-    import gc
-
-    import torch
-
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    # Free per-token data and clean up temp files
+    token_activations_store.cleanup()
+    del token_strings_list, token_activations_store
 
     elapsed_total = time.time() - t0_total
     print(f"\n  Step 5 complete for all layers ({elapsed_total:.1f}s)")

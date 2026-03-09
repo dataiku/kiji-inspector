@@ -67,13 +67,20 @@ def _extraction_subprocess(
 
     Running in a subprocess ensures all GPU memory is freed when the process
     exits, leaving the GPUs clean for the judge model in step 5c.
+
+    Saves results incrementally to avoid accumulating all activations in RAM:
+    - Token strings: single pickle file (small).
+    - Activations: one ``.npz`` file per prompt, written as each batch completes.
     """
     import pickle
-    import tempfile
 
     from tqdm import tqdm
 
     from extraction import create_extractor
+
+    out = Path(output_dir)
+    acts_dir = out / "acts"
+    acts_dir.mkdir(parents=True, exist_ok=True)
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
@@ -86,7 +93,7 @@ def _extraction_subprocess(
     tokenizer = extractor.tokenizer
 
     all_token_strings: list[list[str]] = []
-    all_token_activations: list[dict[str, np.ndarray]] = []
+    prompt_idx = 0
 
     pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
 
@@ -104,19 +111,49 @@ def _extraction_subprocess(
             min_len = min(len(tokens), first_act.shape[0])
 
             all_token_strings.append(tokens[:min_len])
-            act_dict = {lk: acts[j][lk][:min_len] for lk in layer_keys}
-            all_token_activations.append(act_dict)
+
+            # Write activations for this prompt to a single .npz file
+            arrays = {lk: acts[j][lk][:min_len].astype(np.float16) for lk in layer_keys}
+            np.savez(acts_dir / f"{prompt_idx}.npz", **arrays)
+            prompt_idx += 1
+
+        # Free batch activations immediately
+        del acts
 
         pbar.update(len(batch_formatted))
 
     pbar.close()
     extractor.cleanup()
 
-    # Save results to disk so the parent can read them without shared GPU memory
-    results_path = Path(output_dir) / "_extraction_results.pkl"
-    with open(results_path, "wb") as f:
-        pickle.dump((all_token_strings, all_token_activations), f)
-    print(f"  [subprocess] Saved extraction results to {results_path}")
+    # Save token strings (small — list of list of short strings)
+    with open(out / "token_strings.pkl", "wb") as f:
+        pickle.dump(all_token_strings, f)
+    print(f"  [subprocess] Saved {prompt_idx} prompts to {output_dir}")
+
+
+class DiskBackedActivations:
+    """Lazy-loading activation store backed by per-prompt ``.npz`` files on disk.
+
+    Only loads activations from disk when accessed, so all 6 layers' data
+    never needs to reside in RAM simultaneously.
+    """
+
+    def __init__(self, acts_dir: Path, n_prompts: int):
+        self._acts_dir = acts_dir
+        self._n = n_prompts
+
+    def __len__(self) -> int:
+        return self._n
+
+    def __getitem__(self, idx: int) -> dict[str, np.ndarray]:
+        data = np.load(self._acts_dir / f"{idx}.npz")
+        return dict(data)
+
+    def cleanup(self) -> None:
+        """Remove temp directory."""
+        import shutil
+
+        shutil.rmtree(self._acts_dir.parent, ignore_errors=True)
 
 
 def extract_per_token_activations(
@@ -127,19 +164,19 @@ def extract_per_token_activations(
     batch_size: int,
     backend: str = "vllm",
     dp_size: int = 1,
-) -> tuple[list[list[str]], list[dict[str, np.ndarray]]]:
+) -> tuple[list[list[str]], DiskBackedActivations]:
     """Extract per-token activations for a list of formatted prompts.
 
     Runs extraction in a subprocess so that all GPU memory is freed when
     the subprocess exits, leaving GPUs clean for the judge model.
 
-    Returns activations for ALL requested layers so the caller can loop
-    over layers for per-SAE encoding without reloading the subject model.
+    Returns:
+        token_strings: List of per-prompt token string lists.
+        activations: A ``DiskBackedActivations`` that lazily loads
+            per-prompt activation dicts from disk.
     """
     import pickle
     import tempfile
-
-    layer_keys = [f"residual_{layer}" for layer in layers]
 
     # Per-token extraction requires full sequence activations, which
     # the vLLM backend cannot provide (it only returns the decode step).
@@ -163,13 +200,16 @@ def extract_per_token_activations(
     if p.exitcode != 0:
         raise RuntimeError(f"Extraction subprocess failed with exit code {p.exitcode}")
 
-    results_path = Path(tmp_dir) / "_extraction_results.pkl"
-    with open(results_path, "rb") as f:
-        all_token_strings, all_token_activations = pickle.load(f)
-    results_path.unlink(missing_ok=True)
-    Path(tmp_dir).rmdir()
+    tmp_path = Path(tmp_dir)
 
-    return all_token_strings, all_token_activations
+    # Load token strings (small)
+    with open(tmp_path / "token_strings.pkl", "rb") as f:
+        all_token_strings = pickle.load(f)
+
+    # Return lazy-loading activation store instead of loading everything into RAM
+    activations = DiskBackedActivations(tmp_path / "acts", len(all_token_strings))
+
+    return all_token_strings, activations
 
 
 # ---------------------------------------------------------------------------
