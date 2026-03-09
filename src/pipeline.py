@@ -784,14 +784,6 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
     elapsed = time.time() - t0
     print(f"  5a complete ({elapsed:.1f}s): {len(token_strings_list)} prompts")
 
-    # Free GPU memory from HF subject model before 5c loads the judge model
-    import gc
-
-    import torch
-
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
 
     prompt_to_idx = {p: i for i, p in enumerate(all_prompts)}
 
