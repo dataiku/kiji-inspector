@@ -84,6 +84,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 
+[tool.uv]
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'", "sys_platform == 'darwin'"]
+
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
