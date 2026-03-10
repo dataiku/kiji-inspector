@@ -18,12 +18,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "kiji-sae",
     "huggingface-hub>=0.20",
+    "kiji-sae"
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.uv.sources]
-kiji-sae = { workspace = true }
+kiji-sae = { path = "../kiji-sae" }

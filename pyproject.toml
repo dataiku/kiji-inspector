@@ -51,10 +51,6 @@ dev = [
     "black>=23.0",
     "ruff>=0.1.0",
 ]
-packages = [
-    "kiji-sae",
-    "kiji-inspector-client",
-]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -88,7 +84,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [tool.uv.workspace]
-members = ["packages/*"]
+exclude = ["packages/*"]
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
@@ -113,5 +109,3 @@ torchaudio = [
 ]
 vllm = { path = "../vllm", editable = true }
 flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }
-kiji-sae = { workspace = true }
-kiji-inspector-client = { workspace = true }
