@@ -85,7 +85,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [tool.uv]
-environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'", "sys_platform == 'darwin'"]
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'", "sys_platform == 'linux' and platform_machine == 'aarch64'", "sys_platform == 'darwin'"]
 
 # Override vllm's torch==2.10.0+cpu requirement — we use the CUDA build from pytorch-cu128
 override-dependencies = [
