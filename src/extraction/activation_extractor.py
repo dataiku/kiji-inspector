@@ -82,6 +82,18 @@ class ActivationExtractor:
         if n_cast:
             print(f"  Cast {n_cast} FP8 parameters to {self.config.dtype}")
 
+        # Warn if running on Blackwell without P2P mitigations
+        if num_gpus > 1:
+            import os
+
+            major, _ = torch.cuda.get_device_capability(0)
+            if major >= 10 and os.environ.get("NCCL_P2P_DISABLE") != "1":
+                print(
+                    "  WARNING: Blackwell GPU detected with P2P enabled. "
+                    "This may cause host OOM from NVLink memory mapping. "
+                    "Use --disable-p2p auto (or set NCCL_P2P_DISABLE=1) to prevent this."
+                )
+
         # Enable CUDA optimizations for inference
         if hasattr(torch, "set_float32_matmul_precision"):
             torch.set_float32_matmul_precision("high")

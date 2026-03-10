@@ -208,6 +208,9 @@ def _dp_shard_worker(
     from tqdm import tqdm
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
+    # Disable P2P in worker — single-GPU workers don't need peer access
+    # and the NVLink memory mapping can cause host OOM on Blackwell.
+    os.environ.setdefault("NCCL_P2P_DISABLE", "1")
 
     config = VLLMActivationConfig(**config_kwargs)
     extractor = VLLMActivationExtractor(config)
