@@ -70,6 +70,18 @@ class ActivationExtractor:
         self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
         self.model.eval()
 
+        # FP8 quantized models (e.g. ModelOpt FP8) store weights in float8_e4m3fn.
+        # HuggingFace doesn't auto-dequantize these, so F.linear fails with a
+        # dtype mismatch.  Cast any FP8 parameters to the target dtype.
+        _fp8_dtypes = {torch.float8_e4m3fn, torch.float8_e5m2}
+        n_cast = 0
+        for param in self.model.parameters():
+            if param.dtype in _fp8_dtypes:
+                param.data = param.data.to(self.config.dtype)
+                n_cast += 1
+        if n_cast:
+            print(f"  Cast {n_cast} FP8 parameters to {self.config.dtype}")
+
         # Enable CUDA optimizations for inference
         if hasattr(torch, "set_float32_matmul_precision"):
             torch.set_float32_matmul_precision("high")
