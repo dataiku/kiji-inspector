@@ -105,6 +105,11 @@ override-dependencies = [
 # not the CPU torch that build isolation would pull from PyPI
 no-build-isolation-package = ["vllm", "causal-conv1d", "mamba-ssm", "flash-linear-attention"]
 
+# vllm's build-system.requires includes setuptools-scm but no-build-isolation
+# means uv won't install it automatically — declare it here
+[tool.uv.extra-build-dependencies]
+vllm = ["setuptools-scm"]
+
 [[tool.uv.index]]
 name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
