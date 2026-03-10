@@ -399,7 +399,10 @@ def extract_activations(
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
         hf_config = AutoConfig.from_pretrained(subject_model, trust_remote_code=True)
-        hidden_size = hf_config.hidden_size
+        hidden_size = (
+            getattr(hf_config, "hidden_size", None)
+            or getattr(hf_config, "text_config", hf_config).hidden_size
+        )
 
         # Build a lightweight stub so RawActivationExtractor can format
         # prompts and read hidden_size without a full model.
