@@ -235,7 +235,7 @@ def _dp_shard_worker(
         for act_dict in acts_list:
             for lk in layer_keys:
                 vec = act_dict[lk]
-                shard_buffers[lk].append(vec.astype(np.float16))
+                shard_buffers[lk].append(vec.astype(np.float32))
                 shard_counts[lk] += 1
 
                 if shard_counts[lk] >= shard_size:

@@ -80,7 +80,7 @@ class SAETrainingConfig:
 class CachedActivationBuffer:
     """Load pre-computed activation shards and yield shuffled batches.
 
-    Expects a directory with ``shard_*.npy`` (float16) and ``metadata.json``.
+    Expects a directory with ``shard_*.npy`` (float32) and ``metadata.json``.
     Compatible with the output of Step 2 (``RawActivationExtractor``).
     """
 
