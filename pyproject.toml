@@ -87,6 +87,11 @@ python_functions = ["test_*"]
 [tool.uv]
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'", "sys_platform == 'darwin'"]
 
+# Override vllm's torch==2.10.0+cpu requirement — we use the CUDA build from pytorch-cu128
+override-dependencies = [
+    "torch>=2.10.0",
+]
+
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
