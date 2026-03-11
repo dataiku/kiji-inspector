@@ -265,6 +265,7 @@ def _dp_shard_worker(
 
 def _flush_shard(output_dir, shard_idx: int, buffer: list[np.ndarray]):
     """Stack buffered vectors and save as a numpy shard."""
+    output_dir.mkdir(parents=True, exist_ok=True)
     shard_data = np.stack(buffer, axis=0)
     shard_path = output_dir / f"shard_{shard_idx:06d}.npy"
     np.save(shard_path, shard_data)
