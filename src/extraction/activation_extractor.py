@@ -145,6 +145,7 @@ class ActivationExtractor:
         # Try common embedding attribute names
         for attr_path in (
             "language_model.model.embed_tokens",
+            "language_model.embed_tokens",
             "model.embed_tokens",
             "backbone.embed_tokens",
             "backbone.embedding",
@@ -170,6 +171,9 @@ class ActivationExtractor:
             lm = self.model.language_model
             if hasattr(lm, "model") and hasattr(lm.model, "layers"):
                 return lm.model.layers
+            # Some versions expose layers directly on language_model
+            if hasattr(lm, "layers"):
+                return lm.layers
         # Standard Llama/Nemotron/Gemma architecture
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers
