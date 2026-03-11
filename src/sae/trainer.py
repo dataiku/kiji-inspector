@@ -112,15 +112,24 @@ class CachedActivationBuffer:
         if not self.shard_files:
             raise FileNotFoundError(f"No shard_*.npy files in {activations_dir}")
 
-        # Count total tokens across all shards
+        # Count total tokens and compute global RMS across all shards
         self._total_tokens = 0
+        sum_sq = 0.0
+        total_elements = 0
         for path in self.shard_files:
             arr = np.load(path, mmap_mode="r")
             self._total_tokens += arr.shape[0]
+            # Accumulate sum of squares for RMS (cast to float64 to avoid overflow)
+            arr_f64 = arr.astype(np.float64)
+            sum_sq += (arr_f64 ** 2).sum()
+            total_elements += arr_f64.size
+
+        self.rms_scale = float(np.sqrt(sum_sq / total_elements))
 
         print(
             f"Activation buffer: {len(self.shard_files)} shards, "
-            f"{self._total_tokens:,} vectors, d_model={self.d_model}"
+            f"{self._total_tokens:,} vectors, d_model={self.d_model}, "
+            f"rms_scale={self.rms_scale:.4f}"
         )
 
     def estimate_total_tokens(self) -> int:
@@ -142,6 +151,10 @@ class CachedActivationBuffer:
 
                 shard_cpu = torch.from_numpy(shard_data).to(dtype=self.dtype)
                 del shard_data
+
+                # Normalize by global RMS so hyperparameters are layer-agnostic
+                if self.rms_scale > 0:
+                    shard_cpu /= self.rms_scale
 
                 n = shard_cpu.shape[0]
                 for i in range(0, n - self.batch_size + 1, self.batch_size):
@@ -655,7 +668,7 @@ def train_sae(
     raw_sae = _unwrap(sae)
     _save_checkpoint(raw_sae, optimizer, scheduler, step, config, {})
     final_path = str(Path(config.output_dir) / "sae_final.pt")
-    raw_sae.save_pretrained(final_path)
+    raw_sae.save_pretrained(final_path, config={"rms_scale": buffer.rms_scale})
     print(f"Saved final model: {final_path}")
 
     # Post-training feature health analysis

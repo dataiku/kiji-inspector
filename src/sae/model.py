@@ -63,6 +63,7 @@ class JumpReLUSAE(nn.Module):
         self.d_sae = d_sae
         self.dtype = dtype
         self.bandwidth = bandwidth
+        self.rms_scale: float | None = None  # Set from training; used to normalize inputs
 
         self.W_enc = nn.Parameter(torch.empty(d_model, d_sae, dtype=dtype))
         self.b_enc = nn.Parameter(torch.zeros(d_sae, dtype=dtype))
@@ -163,6 +164,8 @@ class JumpReLUSAE(nn.Module):
             model.threshold.data = checkpoint["threshold"]
             model.W_dec.data = checkpoint["W_dec"]
             model.b_dec.data = checkpoint["b_dec"]
+
+        model.rms_scale = config.get("rms_scale", None)
 
         return model.to(device)
 

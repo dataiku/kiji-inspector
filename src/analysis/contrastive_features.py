@@ -73,6 +73,11 @@ def _analyze_layer(
         anchor_vecs = torch.from_numpy(np.stack(anchor_acts)).to(device=device, dtype=sae_dtype)
         contrast_vecs = torch.from_numpy(np.stack(contrast_acts)).to(device=device, dtype=sae_dtype)
 
+        # Normalize by the same RMS scale used during SAE training
+        if sae.rms_scale is not None and sae.rms_scale > 0:
+            anchor_vecs = anchor_vecs / sae.rms_scale
+            contrast_vecs = contrast_vecs / sae.rms_scale
+
         with torch.no_grad():
             anchor_features = sae.encode(anchor_vecs)
             contrast_features = sae.encode(contrast_vecs)
