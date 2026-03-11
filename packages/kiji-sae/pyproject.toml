@@ -6,20 +6,34 @@ build-backend = "setuptools.build_meta"
 name = "kiji-sae"
 version = "0.1.0"
 description = "JumpReLU Sparse Autoencoder for mechanistic interpretability"
+readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache 2.0"}
 authors = [
     {name = "575 Lab - Dataiku's Open Source Office", email = "opensource@dataiku.com"},
 ]
+keywords = ["sparse autoencoder", "sae", "mechanistic interpretability", "pytorch"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "torch>=2.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/dataiku/kiji-inspector/tree/main/packages/kiji-sae"
+Repository = "https://github.com/dataiku/kiji-inspector"
+Issues = "https://github.com/dataiku/kiji-inspector/issues"
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+kiji_sae = ["py.typed"]
