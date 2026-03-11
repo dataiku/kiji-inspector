@@ -112,8 +112,11 @@ class ActivationExtractor:
         # Register hooks on target layers
         self._register_hooks()
 
-        # Cache hidden size for downstream consumers
-        self.hidden_size = self.model.config.hidden_size
+        # Cache hidden size for downstream consumers (Gemma3 nests under text_config)
+        self.hidden_size = (
+            getattr(self.model.config, "hidden_size", None)
+            or getattr(self.model.config, "text_config", self.model.config).hidden_size
+        )
         print(f"  hidden_size: {self.hidden_size}")
         print(f"  hooked layers: {self.config.layers}")
         print(f"  model type: {type(self.model).__name__}")
