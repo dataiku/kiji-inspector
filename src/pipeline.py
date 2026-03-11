@@ -252,6 +252,13 @@ def parse_args() -> argparse.Namespace:
         help="SAE sparsity penalty (default: 5e-3).",
     )
     p.add_argument(
+        "--target-l0",
+        type=float,
+        default=None,
+        help="Target L0 sparsity. If set, auto-tunes l1-coefficient during "
+        "training to hit this target (recommended: 50-100).",
+    )
+    p.add_argument(
         "--sae-checkpoint-dir",
         type=str,
         default=None,
@@ -465,6 +472,7 @@ def train_sae_step(
     num_epochs: int,
     resume_from: str | None,
     auto_scale_steps: bool = True,
+    target_l0: float | None = None,
 ) -> str:
     """Train a JumpReLU SAE on the numpy activation shards from Step 1."""
     from sae.trainer import SAETrainingConfig, train_sae
@@ -474,6 +482,7 @@ def train_sae_step(
         batch_size=batch_size,
         learning_rate=learning_rate,
         l1_coefficient=l1_coefficient,
+        target_l0=target_l0,
         total_steps=total_steps,
         num_epochs=num_epochs,
         output_dir=checkpoint_dir,
@@ -569,6 +578,7 @@ def _run_step2(args) -> dict[str, str]:
             num_epochs=args.sae_epochs,
             resume_from=args.sae_resume,
             auto_scale_steps=not args.no_auto_scale_steps,
+            target_l0=args.target_l0,
         )
         elapsed = time.time() - t0
         print(f"    SAE training complete ({elapsed:.1f}s): {final_path}")
@@ -954,6 +964,8 @@ def main() -> None:
         print(f"  SAE batch size    : {args.sae_batch_size:,}")
         print(f"  SAE lr            : {args.sae_lr}")
         print(f"  SAE L1 coeff      : {args.l1_coefficient}")
+        if args.target_l0 is not None:
+            print(f"  SAE target L0     : {args.target_l0}")
     if "3" in steps:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Top-K features    : {args.top_k_features}")

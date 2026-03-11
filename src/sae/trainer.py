@@ -51,6 +51,7 @@ class SAETrainingConfig:
 
     # Sparsity
     l1_coefficient: float = 5e-3
+    target_l0: float | None = None  # If set, auto-tune l1_coefficient to hit this L0
     sparsity_warmup_steps: int = 10000
 
     # Dead feature resampling
@@ -194,6 +195,43 @@ def _sparsity_warmup(step: int, target: float, warmup_steps: int) -> float:
     if step >= warmup_steps:
         return target
     return target * (step / warmup_steps)
+
+
+class _AdaptiveL1Controller:
+    """PI controller that adjusts l1_coefficient to hit a target L0.
+
+    After the sparsity warmup period, measures the running average L0
+    and nudges l1_coefficient up/down to converge on the target.
+    """
+
+    def __init__(
+        self,
+        target_l0: float,
+        initial_l1: float,
+        kp: float = 0.01,
+        ki: float = 0.001,
+        l1_min: float = 1e-5,
+        l1_max: float = 1.0,
+    ):
+        self.target_l0 = target_l0
+        self.l1 = initial_l1
+        self.kp = kp
+        self.ki = ki
+        self.l1_min = l1_min
+        self.l1_max = l1_max
+        self._integral = 0.0
+
+    def update(self, current_l0: float) -> float:
+        """Update l1_coefficient based on current L0. Returns new l1."""
+        # Positive error → L0 too high → need more sparsity → increase l1
+        error = (current_l0 - self.target_l0) / self.target_l0  # normalized
+        self._integral += error
+
+        # Multiplicative adjustment (works better than additive for log-scale)
+        adjustment = 1.0 + self.kp * error + self.ki * self._integral
+        adjustment = max(0.5, min(2.0, adjustment))  # clamp per-step change
+        self.l1 = max(self.l1_min, min(self.l1_max, self.l1 * adjustment))
+        return self.l1
 
 
 # ---------------------------------------------------------------------------
@@ -542,6 +580,8 @@ def train_sae(
     print(f"  Total steps       : {total_steps:,}")
     print(f"  Learning rate     : {config.learning_rate}")
     print(f"  L1 coefficient    : {config.l1_coefficient}")
+    if config.target_l0 is not None:
+        print(f"  Target L0         : {config.target_l0} (adaptive l1)")
     print(
         f"  Warmup steps      : {config.warmup_steps} ({100 * config.warmup_steps / total_steps:.1f}%)"
     )
@@ -596,6 +636,13 @@ def train_sae(
     if config.resume_from:
         start_step = _load_checkpoint(config.resume_from, sae, optimizer, scheduler, device)
 
+    # Adaptive L0 controller (if target_l0 is set)
+    l1_controller = (
+        _AdaptiveL1Controller(target_l0=config.target_l0, initial_l1=config.l1_coefficient)
+        if config.target_l0 is not None
+        else None
+    )
+
     # Training loop
     step = start_step
     running: dict[str, list[float]] = {}
@@ -607,7 +654,8 @@ def train_sae(
 
         activations = activations.to(device=device, dtype=dtype)
 
-        current_l1 = _sparsity_warmup(step, config.l1_coefficient, config.sparsity_warmup_steps)
+        base_l1 = l1_controller.l1 if l1_controller is not None else config.l1_coefficient
+        current_l1 = _sparsity_warmup(step, base_l1, config.sparsity_warmup_steps)
         loss, metrics = sae.compute_loss(activations, l1_coefficient=current_l1)
 
         loss.backward()
@@ -631,6 +679,12 @@ def train_sae(
             avg["sparsity/current_l1_coef"] = current_l1
             logger.log(step, avg)
             logger.print_metrics(step, avg, scheduler.get_last_lr()[0])
+
+            # Adaptive L0: adjust l1_coefficient after sparsity warmup
+            if l1_controller is not None and step >= config.sparsity_warmup_steps:
+                avg_l0 = avg.get("sparsity/l0", 0)
+                l1_controller.update(avg_l0)
+
             running = {}
 
         # Dead feature resampling
