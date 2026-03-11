@@ -121,7 +121,7 @@ class CachedActivationBuffer:
             self._total_tokens += arr.shape[0]
             # Accumulate sum of squares for RMS (cast to float64 to avoid overflow)
             arr_f64 = arr.astype(np.float64)
-            sum_sq += (arr_f64 ** 2).sum()
+            sum_sq += (arr_f64**2).sum()
             total_elements += arr_f64.size
 
         self.rms_scale = float(np.sqrt(sum_sq / total_elements))
