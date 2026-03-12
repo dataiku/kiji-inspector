@@ -1,9 +1,9 @@
-name: Publish kiji-sae
+name: Publish kiji-inspector
 
 on:
   push:
     tags:
-      - "kiji-sae-v*"
+      - "kiji-inspector-v*"
   workflow_dispatch:
     inputs:
       target:
@@ -26,20 +26,22 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.10"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Build package
-        working-directory: packages/kiji-sae
+      - name: Build distributions
         run: uv build
+
+      - name: Check distributions
+        run: uvx twine check dist/*
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: kiji-sae-dist
-          path: packages/kiji-sae/dist/*
+          name: kiji-inspector-dist
+          path: dist/*
 
   publish-testpypi:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'testpypi'
@@ -47,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/kiji-sae
+      url: https://test.pypi.org/p/kiji-inspector
     permissions:
       id-token: write
 
@@ -55,7 +57,7 @@ jobs:
       - name: Download distributions
         uses: actions/download-artifact@v4
         with:
-          name: kiji-sae-dist
+          name: kiji-inspector-dist
           path: dist
 
       - name: Publish to TestPyPI
@@ -69,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/kiji-sae
+      url: https://pypi.org/p/kiji-inspector
     permissions:
       id-token: write
 
@@ -77,7 +79,7 @@ jobs:
       - name: Download distributions
         uses: actions/download-artifact@v4
         with:
-          name: kiji-sae-dist
+          name: kiji-inspector-dist
           path: dist
 
       - name: Publish to PyPI
