@@ -175,7 +175,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Data parallel size for subject model extraction: runs N model copies "
-        "on N GPUs for N× throughput (default: 1).",
+        "for N× throughput (default: 1).",
+    )
+    p.add_argument(
+        "--extraction-tp-size",
+        type=int,
+        default=1,
+        help="Tensor parallel size per extraction worker. Total GPUs used = "
+        "extraction-dp-size × extraction-tp-size (default: 1).",
     )
     p.add_argument(
         "--max-model-len",
@@ -385,6 +392,7 @@ def extract_activations(
     scenarios_meta: dict | None = None,
     backend: str = "vllm",
     dp_size: int = 1,
+    tp_size: int = 1,
 ) -> dict[str, Path]:
     """Load subject model, extract raw activations for all layers, save as numpy shards.
 
@@ -419,6 +427,7 @@ def extract_activations(
                 self.layers = layers
                 self.token_positions = "decision"
                 self.gpu_memory_utilization = 0.90
+                self.tensor_parallel_size = tp_size
                 self.max_model_len = 8192
                 self.trust_remote_code = True
 
@@ -543,6 +552,7 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
         scenarios_meta=scenarios_meta,
         backend=args.backend,
         dp_size=args.extraction_dp_size,
+        tp_size=args.extraction_tp_size,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
@@ -614,6 +624,7 @@ def _run_step3(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
         scenarios_meta=scenarios_meta,
         backend=args.backend,
         dp_size=args.extraction_dp_size,
+        tp_size=args.extraction_tp_size,
     )
     elapsed = time.time() - t0
     print(f"  Feature identification complete ({elapsed:.1f}s)")

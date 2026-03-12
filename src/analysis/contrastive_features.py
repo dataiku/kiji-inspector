@@ -245,6 +245,7 @@ def identify_contrastive_features(
     scenarios_meta: dict | None = None,
     backend: str = "vllm",
     dp_size: int = 1,
+    tp_size: int = 1,
 ) -> dict[str, Path]:
     """Identify contrastive features for multiple layers.
 
@@ -357,6 +358,7 @@ def identify_contrastive_features(
                 "layers": layers,
                 "token_positions": "decision",
                 "gpu_memory_utilization": 0.90,
+                "tensor_parallel_size": tp_size,
                 "max_model_len": 8192,
                 "trust_remote_code": True,
             }

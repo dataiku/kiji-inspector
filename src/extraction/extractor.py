@@ -311,6 +311,7 @@ class RawActivationExtractor:
                 "layers": self.extractor.config.layers,
                 "token_positions": self.extractor.config.token_positions,
                 "gpu_memory_utilization": self.extractor.config.gpu_memory_utilization,
+                "tensor_parallel_size": getattr(self.extractor.config, "tensor_parallel_size", 1),
                 "max_model_len": self.extractor.config.max_model_len,
                 "trust_remote_code": self.extractor.config.trust_remote_code,
             }

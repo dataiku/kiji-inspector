@@ -207,9 +207,11 @@ def _dp_shard_worker(
 
     from tqdm import tqdm
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
-    # Disable P2P in worker — single-GPU workers don't need peer access
-    # and the NVLink memory mapping can cause host OOM on Blackwell.
+    tp_size = config_kwargs.get("tensor_parallel_size", 1)
+    # Assign tp_size consecutive GPUs to this worker
+    gpu_ids = [str(rank * tp_size + i) for i in range(tp_size)]
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(gpu_ids)
+    # Disable P2P in worker to avoid host OOM on Blackwell NVLink-C2C.
     os.environ.setdefault("NCCL_P2P_DISABLE", "1")
 
     config = VLLMActivationConfig(**config_kwargs)
@@ -301,7 +303,8 @@ def run_dp_extraction_to_shards(
 
     ctx = multiprocessing.get_context("spawn")
 
-    config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}
+    tp_size = config_kwargs.get("tensor_parallel_size", 1)
+    config_kwargs = {**config_kwargs, "tensor_parallel_size": tp_size}
 
     # Split prompts into exactly dp_size contiguous chunks
     base, remainder = divmod(len(prompts), dp_size)

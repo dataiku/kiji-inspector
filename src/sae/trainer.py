@@ -122,8 +122,10 @@ class CachedActivationBuffer:
             self._total_tokens += arr.shape[0]
             # Accumulate sum of squares for RMS (cast to float64 to avoid overflow)
             arr_f64 = arr.astype(np.float64)
-            sum_sq += (arr_f64**2).sum()
-            total_elements += arr_f64.size
+            finite_mask = np.isfinite(arr_f64)
+            arr_clean = np.where(finite_mask, arr_f64, 0.0)
+            sum_sq += (arr_clean**2).sum()
+            total_elements += finite_mask.sum()
 
         self.rms_scale = float(np.sqrt(sum_sq / total_elements))
 
@@ -152,6 +154,15 @@ class CachedActivationBuffer:
 
                 shard_cpu = torch.from_numpy(shard_data).to(dtype=self.dtype)
                 del shard_data
+
+                # Drop rows containing NaN or Inf (can happen with FP8/hybrid models)
+                finite_mask = torch.isfinite(shard_cpu).all(dim=-1)
+                if not finite_mask.all():
+                    n_bad = (~finite_mask).sum().item()
+                    print(f"  Warning: dropping {n_bad} non-finite vectors from {shard_path.name}")
+                    shard_cpu = shard_cpu[finite_mask]
+                    if shard_cpu.shape[0] == 0:
+                        continue
 
                 # Normalize by global RMS so hyperparameters are layer-agnostic
                 if self.rms_scale > 0:
@@ -657,6 +668,14 @@ def train_sae(
         base_l1 = l1_controller.l1 if l1_controller is not None else config.l1_coefficient
         current_l1 = _sparsity_warmup(step, base_l1, config.sparsity_warmup_steps)
         loss, metrics = sae.compute_loss(activations, l1_coefficient=current_l1)
+
+        if torch.isnan(loss) or torch.isinf(loss):
+            print(f"[Step {step}] NaN/Inf loss detected — skipping update")
+            optimizer.zero_grad()
+            scheduler.step()
+            step += 1
+            pbar.update(1)
+            continue
 
         loss.backward()
 
