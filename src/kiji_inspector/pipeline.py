@@ -9,24 +9,24 @@ Step 4: Interpret features -- label with LLM, generate decision report
 Step 5: Evaluate feature explanations via fuzzing
 
 Pair generation is a separate CLI tool:
-    uv run python -m generate_pairs 1300
+    uv run python -m kiji_inspector.generate_pairs 1300
 
 Usage:
     # Run all steps (1-5)
-    uv run python -m pipeline
+    uv run python -m kiji_inspector.pipeline
 
     # Individual steps
-    uv run python -m pipeline --step 1
-    uv run python -m pipeline --step 2
-    uv run python -m pipeline --step 3
-    uv run python -m pipeline --step 4
-    uv run python -m pipeline --step 5
+    uv run python -m kiji_inspector.pipeline --step 1
+    uv run python -m kiji_inspector.pipeline --step 2
+    uv run python -m kiji_inspector.pipeline --step 3
+    uv run python -m kiji_inspector.pipeline --step 4
+    uv run python -m kiji_inspector.pipeline --step 5
 
     # Multi-layer: extract 3 layers in one pass, train 3 SAEs
-    uv run python -m pipeline --layers 10 20 30
+    uv run python -m kiji_inspector.pipeline --layers 10 20 30
 
     # Use a different subject model
-    uv run python -m pipeline --subject-model Qwen/Qwen2.5-3B-Instruct
+    uv run python -m kiji_inspector.pipeline --subject-model Qwen/Qwen2.5-3B-Instruct
 """
 
 from __future__ import annotations
@@ -325,8 +325,8 @@ def extract_activations(
     Returns:
         Dict mapping layer_key (e.g. "residual_20") to its activations directory.
     """
-    from extraction import create_extractor
-    from extraction.extractor import RawActivationExtractor
+    from kiji_inspector.extraction import create_extractor
+    from kiji_inspector.extraction.extractor import RawActivationExtractor
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
@@ -405,7 +405,7 @@ def train_sae_step(
     auto_scale_steps: bool = True,
 ) -> str:
     """Train a JumpReLU SAE on the numpy activation shards from Step 1."""
-    from sae.trainer import SAETrainingConfig, train_sae
+    from kiji_inspector.training import SAETrainingConfig, train_sae
 
     config = SAETrainingConfig(
         d_sae=d_sae,
@@ -426,7 +426,7 @@ def train_sae_step(
 # Step 3: Contrastive feature identification (see analysis/contrastive_features.py)
 # ---------------------------------------------------------------------------
 
-from analysis.contrastive_features import identify_contrastive_features  # noqa: E402
+from kiji_inspector.analysis.contrastive_features import identify_contrastive_features  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Main
@@ -434,12 +434,14 @@ from analysis.contrastive_features import identify_contrastive_features  # noqa:
 
 
 def _load_pairs(pairs_dir: str) -> list:
-    from data.contrastive_dataset import ContrastiveDataset
+    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
 
     src_path = Path(pairs_dir)
     if not src_path.exists() or not list(src_path.glob("shard_*.parquet")):
         print(f"  ERROR: no pair parquet shards found in {pairs_dir}")
-        print("  Run generate_pairs first: uv run python -m generate_pairs <num_samples>")
+        print(
+            "  Run generate_pairs first: uv run python -m kiji_inspector.generate_pairs <num_samples>"
+        )
         sys.exit(1)
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
     pairs = dataset.pairs
@@ -450,7 +452,7 @@ def _load_pairs(pairs_dir: str) -> list:
 def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
     pairs = _load_pairs(pairs_dir)
 
-    from data.scenario import load_scenarios_meta
+    from kiji_inspector.data.scenario import load_scenarios_meta
 
     scenarios_meta = load_scenarios_meta(Path(pairs_dir))
     scenario_names = list(scenarios_meta.keys())
@@ -522,7 +524,7 @@ def _run_step3(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
 
     pairs = _load_pairs(pairs_dir)
 
-    from data.scenario import load_scenarios_meta
+    from kiji_inspector.data.scenario import load_scenarios_meta
 
     scenarios_meta = load_scenarios_meta(Path(pairs_dir))
 
@@ -592,7 +594,7 @@ def _run_step4(args, sae_checkpoints: dict[str, str] | None = None) -> None:
     For each layer: load activation shards, encode through that layer's SAE,
     label features via LLM subprocess, generate report.
     """
-    from analysis.feature_interpreter import (
+    from kiji_inspector.analysis.feature_interpreter import (
         collect_max_activating_examples,
         generate_explanation_report,
         label_features_via_llm,
@@ -703,15 +705,15 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
     Loads subject model once for per-token extraction, then loops per-layer
     for SAE encoding, fuzzing example building, and LLM judging.
     """
-    from analysis.fuzzing_evaluator import (
+    from kiji_inspector.analysis.fuzzing_evaluator import (
         build_fuzzing_examples,
         compute_fuzzing_metrics,
         evaluate_fuzzing,
         extract_per_token_activations,
         save_fuzzing_report,
     )
-    from data.scenario import default_scenario, load_scenarios_meta
-    from extraction.extractor import build_agent_prompt
+    from kiji_inspector.data.scenario import default_scenario, load_scenarios_meta
+    from kiji_inspector.extraction.extractor import build_agent_prompt
 
     checkpoints = sae_checkpoints or _resolve_sae_checkpoints(args)
 
@@ -877,7 +879,7 @@ def main() -> None:
     pairs_dir = args.pairs_dir
 
     # Load scenarios metadata from pairs directory for display
-    from data.scenario import load_scenarios_meta
+    from kiji_inspector.data.scenario import load_scenarios_meta
 
     scenarios_meta = load_scenarios_meta(Path(pairs_dir))
     scenario_names = list(scenarios_meta.keys())

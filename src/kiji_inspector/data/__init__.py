@@ -1,6 +1,6 @@
-from data.contrastive_dataset import ContrastiveDataset, ContrastivePair
-from data.generator import ContrastivePairGenerator
-from data.scenario import (
+from kiji_inspector.data.contrastive_dataset import ContrastiveDataset, ContrastivePair
+from kiji_inspector.data.generator import ContrastivePairGenerator
+from kiji_inspector.data.scenario import (
     ScenarioConfig,
     default_scenario,
     load_scenarios,

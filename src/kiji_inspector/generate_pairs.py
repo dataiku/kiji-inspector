@@ -7,13 +7,13 @@ Pairs are saved as parquet shards and can be reused across multiple pipeline run
 
 Usage:
     # Generate 1300 pairs using all scenarios
-    uv run python -m generate_pairs 1300
+    uv run python -m kiji_inspector.generate_pairs 1300
 
     # Generate to a custom output directory
-    uv run python -m generate_pairs 500000 --output-dir output/pairs
+    uv run python -m kiji_inspector.generate_pairs 500000 --output-dir output/pairs
 
     # Use specific scenarios
-    uv run python -m generate_pairs 1300 --scenario scenarios/tool_selection.json
+    uv run python -m kiji_inspector.generate_pairs 1300 --scenario scenarios/tool_selection.json
 """
 
 from __future__ import annotations
@@ -104,9 +104,9 @@ def _run_generation_subprocess(
     """Child-process entry point: load vLLM, generate pairs for all scenarios, save, exit."""
     from vllm import LLM, SamplingParams
 
-    from data.contrastive_dataset import ContrastiveDataset
-    from data.generator import ContrastivePairGenerator
-    from data.scenario import ScenarioConfig
+    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
+    from kiji_inspector.data.generator import ContrastivePairGenerator
+    from kiji_inspector.data.scenario import ScenarioConfig
 
     # Check for existing pairs to append to
     existing_pairs: list = []
@@ -246,7 +246,7 @@ def generate_pairs(
     if p.exitcode != 0:
         raise RuntimeError(f"Generation subprocess failed with exit code {p.exitcode}")
 
-    from data.contrastive_dataset import ContrastiveDataset
+    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
 
     dataset = ContrastiveDataset.from_parquet(output_dir)
     return dataset.pairs
@@ -255,7 +255,7 @@ def generate_pairs(
 def main() -> None:
     args = parse_args()
 
-    from data.scenario import discover_scenarios, save_scenarios_meta
+    from kiji_inspector.data.scenario import discover_scenarios, save_scenarios_meta
 
     scenarios = discover_scenarios(args.scenarios)
     scenario_names = [s.name for s in scenarios]

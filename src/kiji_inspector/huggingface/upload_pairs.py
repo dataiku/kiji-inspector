@@ -18,7 +18,7 @@ from pathlib import Path
 
 from datasets import Dataset
 
-from data.contrastive_dataset import ContrastiveDataset
+from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
 
 
 def _build_dataset_card(repo_id: str, cd: ContrastiveDataset) -> str:

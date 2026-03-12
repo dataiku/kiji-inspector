@@ -113,7 +113,7 @@ JumpReLU Sparse Autoencoders (SAEs) trained on contrastive activation data for m
 ## Usage
 
 ```python
-from sae.model import JumpReLUSAE
+from kiji_inspector.sae_core import JumpReLUSAE
 
 sae = JumpReLUSAE.from_pretrained("layer_17/sae_checkpoints/sae_final.pt", device="cuda")
 features = sae.encode(activations)

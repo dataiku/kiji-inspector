@@ -16,7 +16,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from data.contrastive_dataset import ContrastiveDataset
+from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
 
 
 def compute_stats(dataset: ContrastiveDataset) -> dict:

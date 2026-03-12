@@ -28,10 +28,10 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from utils.stats import binomial_p_value as _binomial_p_value
-from utils.stats import bootstrap_ci_mean as _bootstrap_ci_mean
-from utils.stats import clopper_pearson_ci as _clopper_pearson_ci
-from utils.stats import wilson_score_ci as _wilson_score_ci
+from kiji_inspector.utils.stats import binomial_p_value as _binomial_p_value
+from kiji_inspector.utils.stats import bootstrap_ci_mean as _bootstrap_ci_mean
+from kiji_inspector.utils.stats import clopper_pearson_ci as _clopper_pearson_ci
+from kiji_inspector.utils.stats import wilson_score_ci as _wilson_score_ci
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -83,7 +83,7 @@ def extract_per_token_activations(
         token_activations: List of dicts mapping layer_key to (seq_len, d_model)
             numpy arrays, one dict per prompt.
     """
-    from extraction import create_extractor
+    from kiji_inspector.extraction import create_extractor
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
@@ -491,7 +491,7 @@ def build_fuzzing_examples(
     Returns:
         List of FuzzingExample objects.
     """
-    from sae.model import JumpReLUSAE
+    from kiji_inspector.sae_core import JumpReLUSAE
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sae = JumpReLUSAE.from_pretrained(sae_checkpoint, device=device)

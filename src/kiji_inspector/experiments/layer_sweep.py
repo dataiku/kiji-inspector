@@ -161,8 +161,8 @@ def run_layer(
     Returns a summary dict with feature health and fuzzing metrics (if available).
     """
     # Import generate_training_set functions
-    from data.contrastive_dataset import ContrastiveDataset
-    from data.scenario import load_scenarios_meta
+    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
+    from kiji_inspector.data.scenario import load_scenarios_meta
     from pipeline import (
         extract_activations,
         identify_contrastive_features,
@@ -274,7 +274,7 @@ def run_layer(
         print(f"\n  [Layer {layer}] Step 5: Interpreting features...")
         t0 = time.time()
 
-        from analysis.feature_interpreter import (
+        from kiji_inspector.analysis.feature_interpreter import (
             collect_max_activating_examples,
             generate_explanation_report,
             label_features_via_llm,
@@ -327,15 +327,15 @@ def run_layer(
 
         from transformers import AutoTokenizer
 
-        from analysis.fuzzing_evaluator import (
+        from kiji_inspector.analysis.fuzzing_evaluator import (
             build_fuzzing_examples,
             compute_fuzzing_metrics,
             evaluate_fuzzing,
             extract_per_token_activations,
             save_fuzzing_report,
         )
-        from data.scenario import default_scenario
-        from extraction.extractor import build_agent_prompt
+        from kiji_inspector.data.scenario import default_scenario
+        from kiji_inspector.extraction.extractor import build_agent_prompt
 
         desc_path = Path(activations_dir) / "feature_descriptions.json"
         with open(desc_path) as f:

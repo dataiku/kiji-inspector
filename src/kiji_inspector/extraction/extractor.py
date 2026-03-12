@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 from tqdm import tqdm
 
-from data.contrastive_dataset import ContrastivePair
+from kiji_inspector.data.contrastive_dataset import ContrastivePair
 
 
 def build_agent_prompt_from_tokenizer(
@@ -222,7 +222,7 @@ class RawActivationExtractor:
         Returns:
             Dict mapping each layer_key to its output directory path.
         """
-        from data.scenario import default_scenario
+        from kiji_inspector.data.scenario import default_scenario
 
         output_dir = Path(output_dir)
 
@@ -233,7 +233,7 @@ class RawActivationExtractor:
         if scenarios_meta is not None:
             _scenarios = scenarios_meta
         elif system_prompt is not None and tools is not None:
-            from data.scenario import ScenarioConfig
+            from kiji_inspector.data.scenario import ScenarioConfig
 
             legacy = ScenarioConfig(
                 name="tool_selection",
@@ -304,7 +304,7 @@ class RawActivationExtractor:
 
         if dp_size > 1 and hasattr(self.extractor, "config"):
             # Data-parallel: workers write shards directly — no temp files
-            from extraction.vllm_activation_extractor import run_dp_extraction_to_shards
+            from kiji_inspector.extraction.vllm_activation_extractor import run_dp_extraction_to_shards
 
             config_kwargs = {
                 "model_name": self.extractor.config.model_name,

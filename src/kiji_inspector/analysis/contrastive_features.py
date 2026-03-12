@@ -48,7 +48,7 @@ def _analyze_layer(
     """
     import torch
 
-    from sae.model import JumpReLUSAE
+    from kiji_inspector.sae_core import JumpReLUSAE
 
     sae_path = Path(sae_checkpoint)
     if not sae_path.exists():
@@ -269,8 +269,8 @@ def identify_contrastive_features(
 
     from tqdm import tqdm
 
-    from data.scenario import default_scenario
-    from extraction.extractor import build_agent_prompt
+    from kiji_inspector.data.scenario import default_scenario
+    from kiji_inspector.extraction.extractor import build_agent_prompt
 
     _scenarios_meta = scenarios_meta or {}
     _default_scenario = default_scenario()
@@ -283,7 +283,7 @@ def identify_contrastive_features(
 
         tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
     else:
-        from extraction import create_extractor
+        from kiji_inspector.extraction import create_extractor
 
         extractor = create_extractor(
             backend=backend,
@@ -333,7 +333,7 @@ def identify_contrastive_features(
 
     # Extract activations
     if dp_size > 1 and backend == "vllm":
-        from extraction.vllm_activation_extractor import (
+        from kiji_inspector.extraction.vllm_activation_extractor import (
             run_dp_extraction_to_shards,
         )
 

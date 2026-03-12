@@ -15,7 +15,7 @@ import re
 
 from vllm import LLM, SamplingParams
 
-from data.contrastive_dataset import ContrastiveDataset, ContrastivePair
+from kiji_inspector.data.contrastive_dataset import ContrastiveDataset, ContrastivePair
 
 CONTRASTIVE_PAIR_PROMPT = """
 Generate {n_pairs} pairs of user requests where:

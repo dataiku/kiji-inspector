@@ -16,8 +16,8 @@ from pathlib import Path
 
 from datasets import load_dataset
 
-from data.contrastive_dataset import ContrastiveDataset, ContrastivePair
-from data.scenario import discover_scenarios, save_scenarios_meta
+from kiji_inspector.data.contrastive_dataset import ContrastiveDataset, ContrastivePair
+from kiji_inspector.data.scenario import discover_scenarios, save_scenarios_meta
 
 
 def parse_args() -> argparse.Namespace:

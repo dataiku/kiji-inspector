@@ -1,6 +1,6 @@
-from extraction.activation_extractor import ActivationConfig, ActivationExtractor
-from extraction.extractor import RawActivationExtractor, build_agent_prompt
-from extraction.vllm_activation_extractor import (
+from kiji_inspector.extraction.activation_extractor import ActivationConfig, ActivationExtractor
+from kiji_inspector.extraction.extractor import RawActivationExtractor, build_agent_prompt
+from kiji_inspector.extraction.vllm_activation_extractor import (
     VLLMActivationConfig,
     VLLMActivationExtractor,
     run_dp_extraction_to_shards,

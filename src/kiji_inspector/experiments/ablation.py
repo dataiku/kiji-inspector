@@ -31,7 +31,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from utils.stats import clopper_pearson_ci as _clopper_pearson_ci
+from kiji_inspector.utils.stats import clopper_pearson_ci as _clopper_pearson_ci
 
 # ---------------------------------------------------------------------------
 # Tool prediction
@@ -279,11 +279,11 @@ def run_ablation_experiment(
         n_prompts_per_type: Max prompts to test per contrast type.
         seed: Random seed.
     """
-    from data.contrastive_dataset import ContrastiveDataset
-    from data.scenario import load_scenarios_meta
-    from extraction.activation_extractor import ActivationConfig, ActivationExtractor
-    from extraction.extractor import build_agent_prompt
-    from sae.model import JumpReLUSAE
+    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
+    from kiji_inspector.data.scenario import load_scenarios_meta
+    from kiji_inspector.extraction.activation_extractor import ActivationConfig, ActivationExtractor
+    from kiji_inspector.extraction.extractor import build_agent_prompt
+    from kiji_inspector.sae_core import JumpReLUSAE
 
     random.seed(seed)
     np.random.seed(seed)
@@ -359,7 +359,7 @@ def run_ablation_experiment(
 
     per_contrast: dict[str, dict] = {}
 
-    from data.scenario import default_scenario
+    from kiji_inspector.data.scenario import default_scenario
 
     default_sc = default_scenario()
 
