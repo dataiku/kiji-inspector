@@ -211,8 +211,11 @@ def _dp_shard_worker(
     # Assign tp_size consecutive GPUs to this worker
     gpu_ids = [str(rank * tp_size + i) for i in range(tp_size)]
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(gpu_ids)
-    # Disable P2P in worker to avoid host OOM on Blackwell NVLink-C2C.
-    os.environ.setdefault("NCCL_P2P_DISABLE", "1")
+    # Disable P2P only for single-GPU workers to avoid host OOM on
+    # Blackwell NVLink-C2C.  Multi-GPU (TP>1) workers need P2P for
+    # all-reduce/all-gather across GPUs.
+    if tp_size == 1:
+        os.environ.setdefault("NCCL_P2P_DISABLE", "1")
 
     config = VLLMActivationConfig(**config_kwargs)
     extractor = VLLMActivationExtractor(config)
