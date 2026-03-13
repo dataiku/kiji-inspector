@@ -23,7 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "torch>=2.9.1",
+    "torch>=2.10",
+    "torchvision>=0.25",
     "huggingface-hub>=0.20",
 ]
 
@@ -108,6 +109,9 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
+]
+torchvision = [
   { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
 ]
 flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }
