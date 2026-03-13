@@ -444,6 +444,7 @@ def extract_activations(
             model_name=subject_model,
             layers=layers,
             token_positions="decision",
+            tensor_parallel_size=tp_size,
         )
 
     raw_extractor = RawActivationExtractor(
