@@ -90,6 +90,30 @@ class JumpReLUSAE(nn.Module):
     def get_num_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
+    def describe(
+        self, x: torch.Tensor, features: dict[int, str], top_k: int = 5
+    ) -> list[tuple[int, str, float]]:
+        """For the top_k features with the highest activation, return the descriptions.
+
+        Args:
+            x: Input activations, shape ``(d_model,)`` or ``(1, d_model)``.
+            features: Mapping from feature dimension index to its description string.
+            top_k: Number of top-activated features to return.
+
+        Returns:
+            List of ``(feature_id, description, activation_value)`` tuples,
+            sorted by activation value descending.
+        """
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        encoded = self.encode(x).squeeze(0)  # (d_sae,)
+        k = min(top_k, encoded.shape[0])
+        top_values, top_indices = torch.topk(encoded, k)
+        return [
+            (idx.item(), features.get(idx.item(), "unknown"), val.item())
+            for idx, val in zip(top_indices, top_values, strict=True)
+        ]
+
     @classmethod
     def from_pretrained(cls, path: str, device: str = "cpu") -> JumpReLUSAE:
         """Load from a .pt checkpoint saved by the training code."""
