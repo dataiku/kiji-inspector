@@ -87,6 +87,14 @@ def parse_args() -> argparse.Namespace:
         help="Path to scenario JSON config. Can be specified multiple times "
         "to select a subset. Default: all *.json files in scenarios/.",
     )
+    p.add_argument(
+        "--disable-p2p",
+        type=str,
+        default="auto",
+        choices=["auto", "yes", "no"],
+        help="Disable CUDA peer-to-peer access to avoid host OOM on GB200/Blackwell. "
+        "'auto' detects Blackwell GPUs and disables P2P if found (default: auto).",
+    )
 
     return p.parse_args()
 
@@ -254,6 +262,11 @@ def generate_pairs(
 
 def main() -> None:
     args = parse_args()
+
+    # Apply Blackwell P2P mitigations before any CUDA context is created
+    from pipeline import _apply_p2p_mitigations
+
+    _apply_p2p_mitigations(args.disable_p2p)
 
     from data.scenario import discover_scenarios, save_scenarios_meta
 

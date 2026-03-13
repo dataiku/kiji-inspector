@@ -51,6 +51,7 @@ class SAETrainingConfig:
 
     # Sparsity
     l1_coefficient: float = 5e-3
+    target_l0: float | None = None  # If set, auto-tune l1_coefficient to hit this L0
     sparsity_warmup_steps: int = 10000
 
     # Dead feature resampling
@@ -80,7 +81,7 @@ class SAETrainingConfig:
 class CachedActivationBuffer:
     """Load pre-computed activation shards and yield shuffled batches.
 
-    Expects a directory with ``shard_*.npy`` (float16) and ``metadata.json``.
+    Expects a directory with ``shard_*.npy`` (float32) and ``metadata.json``.
     Compatible with the output of Step 2 (``RawActivationExtractor``).
     """
 
@@ -112,15 +113,26 @@ class CachedActivationBuffer:
         if not self.shard_files:
             raise FileNotFoundError(f"No shard_*.npy files in {activations_dir}")
 
-        # Count total tokens across all shards
+        # Count total tokens and compute global RMS across all shards
         self._total_tokens = 0
+        sum_sq = 0.0
+        total_elements = 0
         for path in self.shard_files:
             arr = np.load(path, mmap_mode="r")
             self._total_tokens += arr.shape[0]
+            # Accumulate sum of squares for RMS (cast to float64 to avoid overflow)
+            arr_f64 = arr.astype(np.float64)
+            finite_mask = np.isfinite(arr_f64)
+            arr_clean = np.where(finite_mask, arr_f64, 0.0)
+            sum_sq += (arr_clean**2).sum()
+            total_elements += finite_mask.sum()
+
+        self.rms_scale = float(np.sqrt(sum_sq / total_elements))
 
         print(
             f"Activation buffer: {len(self.shard_files)} shards, "
-            f"{self._total_tokens:,} vectors, d_model={self.d_model}"
+            f"{self._total_tokens:,} vectors, d_model={self.d_model}, "
+            f"rms_scale={self.rms_scale:.4f}"
         )
 
     def estimate_total_tokens(self) -> int:
@@ -142,6 +154,19 @@ class CachedActivationBuffer:
 
                 shard_cpu = torch.from_numpy(shard_data).to(dtype=self.dtype)
                 del shard_data
+
+                # Drop rows containing NaN or Inf (can happen with FP8/hybrid models)
+                finite_mask = torch.isfinite(shard_cpu).all(dim=-1)
+                if not finite_mask.all():
+                    n_bad = (~finite_mask).sum().item()
+                    print(f"  Warning: dropping {n_bad} non-finite vectors from {shard_path.name}")
+                    shard_cpu = shard_cpu[finite_mask]
+                    if shard_cpu.shape[0] == 0:
+                        continue
+
+                # Normalize by global RMS so hyperparameters are layer-agnostic
+                if self.rms_scale > 0:
+                    shard_cpu /= self.rms_scale
 
                 n = shard_cpu.shape[0]
                 for i in range(0, n - self.batch_size + 1, self.batch_size):
@@ -181,6 +206,43 @@ def _sparsity_warmup(step: int, target: float, warmup_steps: int) -> float:
     if step >= warmup_steps:
         return target
     return target * (step / warmup_steps)
+
+
+class _AdaptiveL1Controller:
+    """PI controller that adjusts l1_coefficient to hit a target L0.
+
+    After the sparsity warmup period, measures the running average L0
+    and nudges l1_coefficient up/down to converge on the target.
+    """
+
+    def __init__(
+        self,
+        target_l0: float,
+        initial_l1: float,
+        kp: float = 0.01,
+        ki: float = 0.001,
+        l1_min: float = 1e-5,
+        l1_max: float = 1.0,
+    ):
+        self.target_l0 = target_l0
+        self.l1 = initial_l1
+        self.kp = kp
+        self.ki = ki
+        self.l1_min = l1_min
+        self.l1_max = l1_max
+        self._integral = 0.0
+
+    def update(self, current_l0: float) -> float:
+        """Update l1_coefficient based on current L0. Returns new l1."""
+        # Positive error → L0 too high → need more sparsity → increase l1
+        error = (current_l0 - self.target_l0) / self.target_l0  # normalized
+        self._integral += error
+
+        # Multiplicative adjustment (works better than additive for log-scale)
+        adjustment = 1.0 + self.kp * error + self.ki * self._integral
+        adjustment = max(0.5, min(2.0, adjustment))  # clamp per-step change
+        self.l1 = max(self.l1_min, min(self.l1_max, self.l1 * adjustment))
+        return self.l1
 
 
 # ---------------------------------------------------------------------------
@@ -529,6 +591,8 @@ def train_sae(
     print(f"  Total steps       : {total_steps:,}")
     print(f"  Learning rate     : {config.learning_rate}")
     print(f"  L1 coefficient    : {config.l1_coefficient}")
+    if config.target_l0 is not None:
+        print(f"  Target L0         : {config.target_l0} (adaptive l1)")
     print(
         f"  Warmup steps      : {config.warmup_steps} ({100 * config.warmup_steps / total_steps:.1f}%)"
     )
@@ -583,6 +647,13 @@ def train_sae(
     if config.resume_from:
         start_step = _load_checkpoint(config.resume_from, sae, optimizer, scheduler, device)
 
+    # Adaptive L0 controller (if target_l0 is set)
+    l1_controller = (
+        _AdaptiveL1Controller(target_l0=config.target_l0, initial_l1=config.l1_coefficient)
+        if config.target_l0 is not None
+        else None
+    )
+
     # Training loop
     step = start_step
     running: dict[str, list[float]] = {}
@@ -594,8 +665,17 @@ def train_sae(
 
         activations = activations.to(device=device, dtype=dtype)
 
-        current_l1 = _sparsity_warmup(step, config.l1_coefficient, config.sparsity_warmup_steps)
+        base_l1 = l1_controller.l1 if l1_controller is not None else config.l1_coefficient
+        current_l1 = _sparsity_warmup(step, base_l1, config.sparsity_warmup_steps)
         loss, metrics = sae.compute_loss(activations, l1_coefficient=current_l1)
+
+        if torch.isnan(loss) or torch.isinf(loss):
+            print(f"[Step {step}] NaN/Inf loss detected — skipping update")
+            optimizer.zero_grad()
+            scheduler.step()
+            step += 1
+            pbar.update(1)
+            continue
 
         loss.backward()
 
@@ -618,6 +698,12 @@ def train_sae(
             avg["sparsity/current_l1_coef"] = current_l1
             logger.log(step, avg)
             logger.print_metrics(step, avg, scheduler.get_last_lr()[0])
+
+            # Adaptive L0: adjust l1_coefficient after sparsity warmup
+            if l1_controller is not None and step >= config.sparsity_warmup_steps:
+                avg_l0 = avg.get("sparsity/l0", 0)
+                l1_controller.update(avg_l0)
+
             running = {}
 
         # Dead feature resampling
@@ -655,7 +741,7 @@ def train_sae(
     raw_sae = _unwrap(sae)
     _save_checkpoint(raw_sae, optimizer, scheduler, step, config, {})
     final_path = str(Path(config.output_dir) / "sae_final.pt")
-    raw_sae.save_pretrained(final_path)
+    raw_sae.save_pretrained(final_path, config={"rms_scale": buffer.rms_scale})
     print(f"Saved final model: {final_path}")
 
     # Post-training feature health analysis

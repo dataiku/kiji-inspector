@@ -148,6 +148,14 @@ def parse_args() -> argparse.Namespace:
         help="Backend for activation extraction: 'vllm' (fast, default) "
         "or 'hf' (HuggingFace Transformers).",
     )
+    p.add_argument(
+        "--disable-p2p",
+        type=str,
+        default="auto",
+        choices=["auto", "yes", "no"],
+        help="Disable CUDA peer-to-peer access to avoid host OOM on GB200/Blackwell. "
+        "'auto' detects Blackwell GPUs and disables P2P if found (default: auto).",
+    )
     return p.parse_args()
 
 
@@ -503,6 +511,11 @@ def build_comparison_report(summaries: list[dict], output_path: Path) -> None:
 
 def main() -> None:
     args = parse_args()
+
+    # Apply Blackwell P2P mitigations before any CUDA context is created
+    from pipeline import _apply_p2p_mitigations
+
+    _apply_p2p_mitigations(args.disable_p2p)
 
     base_dir = Path(args.base_output_dir)
     base_dir.mkdir(parents=True, exist_ok=True)
