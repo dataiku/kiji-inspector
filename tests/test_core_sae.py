@@ -192,3 +192,82 @@ class TestFromPretrainedEncodeDecode:
         x = torch.randn(10, 4)
         features = sae.encode(x)
         assert (features >= 0).all()
+
+
+class TestDescribe:
+    """Test JumpReLUSAE.describe with a small feature dictionary."""
+
+    def test_returns_top_k_features(self):
+        d_model, d_sae = 4, 6
+        model = JumpReLUSAE(d_model=d_model, d_sae=d_sae, dtype=torch.float32)
+        torch.nn.init.xavier_uniform_(model.W_enc)
+        torch.nn.init.xavier_uniform_(model.W_dec)
+        model.threshold.data.fill_(0.0)  # allow all features to activate
+        model.eval()
+
+        feature_dict = {
+            0: "syntax",
+            1: "sentiment",
+            2: "entity",
+            3: "negation",
+            4: "tense",
+            5: "plurality",
+        }
+
+        x = torch.randn(d_model)
+        results = model.describe(x, feature_dict, top_k=3)
+
+        assert len(results) <= 3
+        assert all(len(t) == 3 for t in results)
+        # sorted descending by activation
+        activations = [val for _, _, val in results]
+        assert activations == sorted(activations, reverse=True)
+        # descriptions come from the dict
+        for feat_id, desc, val in results:
+            assert desc == feature_dict[feat_id]
+
+    def test_top_k_larger_than_dict(self):
+        d_model, d_sae = 4, 3
+        model = JumpReLUSAE(d_model=d_model, d_sae=d_sae, dtype=torch.float32)
+        torch.nn.init.xavier_uniform_(model.W_enc)
+        torch.nn.init.xavier_uniform_(model.W_dec)
+        model.threshold.data.fill_(0.0)
+        model.eval()
+
+        feature_dict = {0: "alpha", 1: "beta", 2: "gamma"}
+        x = torch.randn(d_model)
+        results = model.describe(x, feature_dict, top_k=10)
+
+        # capped at d_sae
+        assert len(results) <= d_sae
+
+    def test_missing_feature_returns_unknown(self):
+        d_model, d_sae = 4, 3
+        model = JumpReLUSAE(d_model=d_model, d_sae=d_sae, dtype=torch.float32)
+        torch.nn.init.xavier_uniform_(model.W_enc)
+        torch.nn.init.xavier_uniform_(model.W_dec)
+        model.threshold.data.fill_(0.0)
+        model.eval()
+
+        # intentionally incomplete dict
+        feature_dict = {0: "alpha"}
+        x = torch.randn(d_model)
+        results = model.describe(x, feature_dict, top_k=3)
+
+        for feat_id, desc, _ in results:
+            if feat_id not in feature_dict:
+                assert desc == "unknown"
+
+    def test_batched_input(self):
+        d_model, d_sae = 4, 6
+        model = JumpReLUSAE(d_model=d_model, d_sae=d_sae, dtype=torch.float32)
+        torch.nn.init.xavier_uniform_(model.W_enc)
+        torch.nn.init.xavier_uniform_(model.W_dec)
+        model.threshold.data.fill_(0.0)
+        model.eval()
+
+        feature_dict = {i: f"feat_{i}" for i in range(d_sae)}
+        x = torch.randn(1, d_model)  # already batched
+        results = model.describe(x, feature_dict, top_k=2)
+
+        assert len(results) <= 2
