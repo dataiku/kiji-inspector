@@ -26,10 +26,14 @@ jobs:
           allow-prereleases: true
 
       - name: Install uv
-        uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
+        uses: astral-sh/setup-uv@803947b9bd8e9f986429fa0c5a41c367cd732b41
+        with:
+          version: ">=0.7.0"
 
       - name: Install runtime + dev dependencies (CPU-only torch)
-        run: uv sync --extra dev --torch-backend cpu
+        run: uv sync --extra dev
+        env:
+          UV_TORCH_BACKEND: cpu
 
       - name: Lint core package
         run: uv run ruff check src/kiji_inspector/__init__.py src/kiji_inspector/core/
