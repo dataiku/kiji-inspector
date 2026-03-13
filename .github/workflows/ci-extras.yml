@@ -1,0 +1,64 @@
+name: CI Extras
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    name: Runtime checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
+
+      - name: Install runtime + dev dependencies
+        run: uv sync --extra dev
+
+      - name: Run ruff linter
+        run: >
+          uv run ruff check src tests
+          --exclude src/kiji_inspector/__init__.py
+          --exclude src/kiji_inspector/core/
+
+      - name: Run ruff formatter check
+        run: >
+          uv run ruff format --check src tests
+          --exclude src/kiji_inspector/__init__.py
+          --exclude src/kiji_inspector/core/
+
+      - name: Build package
+        run: uv build
+
+  train-smoke:
+    runs-on: ubuntu-latest
+    name: Train extra smoke
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
+
+      - name: Install train + dev dependencies
+        run: uv sync --extra train --extra dev
+
+      - name: Run train namespace smoke tests
+        run: uv run pytest tests/test_train_smoke.py
