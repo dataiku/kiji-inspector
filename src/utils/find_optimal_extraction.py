@@ -186,7 +186,6 @@ def main():
     best = None
     results = []
     for tp, dp in configs:
-        label = f"TP={tp}/DP={dp}"
         print(f"{tp:>4} {dp:>4} {tp*dp:>5}  ", end="", flush=True)
 
         result = test_config(tp, dp, args.model, args.layer, args.num_prompts, args.timeout)
