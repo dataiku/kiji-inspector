@@ -2,7 +2,7 @@
 # Kiji Inspector: Mechanistic Interpretability for AI Agent Tool Selection
 
 <div align="center">
-  <img src="static/kiji_inspector_inverted.png" alt="Kiji Inspector" width="300">
+  <img src="https://raw.githubusercontent.com/dataiku/kiji-inspector/main/static/kiji_inspector_inverted.png" alt="Kiji Inspector" width="300">
 
   <p>
     <a href="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-core.yml"><img src="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-core.yml/badge.svg" alt="CI Core"></a>
