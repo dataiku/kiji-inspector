@@ -111,7 +111,7 @@ class JumpReLUSAE(nn.Module):
         top_values, top_indices = torch.topk(encoded, k)
         return [
             (idx.item(), features.get(idx.item(), "unknown"), val.item())
-            for idx, val in zip(top_indices, top_values)
+            for idx, val in zip(top_indices, top_values, strict=True)
         ]
 
     @classmethod
