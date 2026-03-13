@@ -36,10 +36,10 @@ jobs:
           UV_TORCH_BACKEND: cpu
 
       - name: Lint core package
-        run: uv run ruff check src/kiji_inspector/__init__.py src/kiji_inspector/core/
+        run: uv run ruff check src/kiji_inspector/__init__.py src/kiji_inspector/core/ tests/test_runtime_api.py tests/test_core_sae.py tests/test_core_registry.py
 
       - name: Format check core package
-        run: uv run ruff format --check src/kiji_inspector/__init__.py src/kiji_inspector/core/
+        run: uv run ruff format --check src/kiji_inspector/__init__.py src/kiji_inspector/core/ tests/test_runtime_api.py tests/test_core_sae.py tests/test_core_registry.py
 
       - name: Run core package tests
         run: uv run pytest tests/test_runtime_api.py tests/test_core_sae.py tests/test_core_registry.py

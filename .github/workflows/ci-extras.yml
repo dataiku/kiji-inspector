@@ -31,12 +31,18 @@ jobs:
           uv run ruff check src tests
           --exclude src/kiji_inspector/__init__.py
           --exclude src/kiji_inspector/core/
+          --exclude tests/test_runtime_api.py
+          --exclude tests/test_core_sae.py
+          --exclude tests/test_core_registry.py
 
       - name: Run ruff formatter check
         run: >
           uv run ruff format --check src tests
           --exclude src/kiji_inspector/__init__.py
           --exclude src/kiji_inspector/core/
+          --exclude tests/test_runtime_api.py
+          --exclude tests/test_core_sae.py
+          --exclude tests/test_core_registry.py
 
       - name: Build package
         run: uv build

@@ -223,7 +223,7 @@ class TestDescribe:
         activations = [val for _, _, val in results]
         assert activations == sorted(activations, reverse=True)
         # descriptions come from the dict
-        for feat_id, desc, val in results:
+        for feat_id, desc, _val in results:
             assert desc == feature_dict[feat_id]
 
     def test_top_k_larger_than_dict(self):
