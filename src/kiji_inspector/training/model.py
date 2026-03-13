@@ -1,7 +1,7 @@
 """
 JumpReLU Sparse Autoencoder — training extensions.
 
-Extends the inference-only base from ``kiji_inspector.sae_core`` with weight
+Extends the inference-only base from ``kiji_inspector.core.sae_core`` with weight
 initialisation, loss computation, decoder normalisation, and checkpoint
 serialisation used during training.
 
@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from kiji_inspector.sae_core import JumpReLUFunction
-from kiji_inspector.sae_core import JumpReLUSAE as _BaseJumpReLUSAE
+from kiji_inspector.core.sae_core import JumpReLUFunction
+from kiji_inspector.core.sae_core import JumpReLUSAE as _BaseJumpReLUSAE
 
 
 class JumpReLUSAE(_BaseJumpReLUSAE):

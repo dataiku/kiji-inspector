@@ -48,7 +48,7 @@ def _analyze_layer(
     """
     import torch
 
-    from kiji_inspector.sae_core import JumpReLUSAE
+    from kiji_inspector.core.sae_core import JumpReLUSAE
 
     sae_path = Path(sae_checkpoint)
     if not sae_path.exists():

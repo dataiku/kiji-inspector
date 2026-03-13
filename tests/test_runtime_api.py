@@ -3,7 +3,7 @@ import json
 import torch
 
 from kiji_inspector import SAE
-from kiji_inspector.sae_core import JumpReLUSAE
+from kiji_inspector.core.sae_core import JumpReLUSAE
 
 
 def _write_checkpoint(tmp_path):
@@ -72,7 +72,7 @@ def test_sae_from_pretrained_downloads_and_loads(monkeypatch, tmp_path):
             return str(descriptions_path)
         raise AssertionError(f"Unexpected filename: {filename}")
 
-    monkeypatch.setattr("kiji_inspector.sae.hf_hub_download", fake_download)
+    monkeypatch.setattr("kiji_inspector.core.sae.hf_hub_download", fake_download)
 
     sae, feature_descriptions = SAE.from_pretrained(
         base_model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",

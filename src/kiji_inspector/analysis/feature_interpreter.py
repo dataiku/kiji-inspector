@@ -124,7 +124,7 @@ def collect_max_activating_examples(
             "bottom": [{"prompt": str, "activation": float}, ...],
         }
     """
-    from kiji_inspector.sae_core import JumpReLUSAE
+    from kiji_inspector.core.sae_core import JumpReLUSAE
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sae = JumpReLUSAE.from_pretrained(sae_checkpoint, device=device)

@@ -7,8 +7,8 @@ from typing import Optional
 
 from huggingface_hub import hf_hub_download
 
-from kiji_inspector.registry import resolve_repo_id
-from kiji_inspector.sae_core import JumpReLUSAE
+from kiji_inspector.core.registry import resolve_repo_id
+from kiji_inspector.core.sae_core import JumpReLUSAE
 
 
 class SAE(JumpReLUSAE):

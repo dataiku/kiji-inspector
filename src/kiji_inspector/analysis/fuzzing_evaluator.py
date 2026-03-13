@@ -547,7 +547,7 @@ def build_fuzzing_examples(
     Returns:
         List of FuzzingExample objects.
     """
-    from kiji_inspector.sae_core import JumpReLUSAE
+    from kiji_inspector.core.sae_core import JumpReLUSAE
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sae = JumpReLUSAE.from_pretrained(sae_checkpoint, device=device)

@@ -1,0 +1,44 @@
+name: CI Core
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    name: Core tests (Python ${{ matrix.python-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "${{ matrix.python-version }}"
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
+
+      - name: Install runtime + dev dependencies
+        run: uv sync --extra dev
+
+      - name: Lint core package
+        run: uv run ruff check src/kiji_inspector/__init__.py src/kiji_inspector/core/
+
+      - name: Format check core package
+        run: uv run ruff format --check src/kiji_inspector/__init__.py src/kiji_inspector/core/
+
+      - name: Run core package tests
+        run: uv run pytest tests/test_runtime_api.py
+
+      - name: Base install smoke
+        run: uv run python -c "from kiji_inspector import SAE; from kiji_inspector.core.sae_core import JumpReLUSAE"

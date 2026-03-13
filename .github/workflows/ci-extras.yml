@@ -1,4 +1,4 @@
-name: Lint and Test
+name: CI Extras
 
 on:
   push:
@@ -27,16 +27,16 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run ruff linter
-        run: uv run ruff check src tests
+        run: >
+          uv run ruff check src tests
+          --exclude src/kiji_inspector/__init__.py
+          --exclude src/kiji_inspector/core/
 
       - name: Run ruff formatter check
-        run: uv run ruff format --check src tests
-
-      - name: Run runtime tests
-        run: uv run pytest tests/test_runtime_api.py
-
-      - name: Base install smoke
-        run: uv run python -c "from kiji_inspector import SAE; from kiji_inspector.sae_core import JumpReLUSAE"
+        run: >
+          uv run ruff format --check src tests
+          --exclude src/kiji_inspector/__init__.py
+          --exclude src/kiji_inspector/core/
 
       - name: Build package
         run: uv build

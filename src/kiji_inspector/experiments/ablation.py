@@ -283,7 +283,7 @@ def run_ablation_experiment(
     from kiji_inspector.data.scenario import load_scenarios_meta
     from kiji_inspector.extraction.activation_extractor import ActivationConfig, ActivationExtractor
     from kiji_inspector.extraction.extractor import build_agent_prompt
-    from kiji_inspector.sae_core import JumpReLUSAE
+    from kiji_inspector.core.sae_core import JumpReLUSAE
 
     random.seed(seed)
     np.random.seed(seed)

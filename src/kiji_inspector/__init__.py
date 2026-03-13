@@ -1,3 +1,3 @@
-from kiji_inspector.sae import SAE
+from kiji_inspector.core.sae import SAE
 
 __all__ = ["SAE"]

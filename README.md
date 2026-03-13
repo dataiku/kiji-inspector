@@ -5,7 +5,8 @@
   <img src="static/kiji_inspector_inverted.png" alt="Kiji Inspector" width="300">
 
   <p>
-    <a href="https://github.com/dataiku/kiji-inspector/actions/workflows/lint-and-test.yml"><img src="https://github.com/dataiku/kiji-inspector/actions/workflows/lint-and-test.yml/badge.svg" alt="Lint & Test"></a>
+    <a href="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-core.yml"><img src="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-core.yml/badge.svg" alt="CI Core"></a>
+    <a href="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-extras.yml"><img src="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-extras.yml/badge.svg" alt="CI Extras"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue" alt="License: Apache 2.0"></a>
     <a href="https://github.com/dataiku/kiji-inspector/stargazers"><img src="https://img.shields.io/github/stars/dataiku/kiji-inspector?style=social" alt="GitHub Stars"></a>
     <a href="https://github.com/dataiku/kiji-inspector/issues"><img src="https://img.shields.io/github/issues/dataiku/kiji-inspector" alt="GitHub Issues"></a>
