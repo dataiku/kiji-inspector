@@ -192,7 +192,6 @@ class TestFromPretrainedEncodeDecode:
         x = torch.randn(10, 4)
         features = sae.encode(x)
         assert (features >= 0).all()
-<<<<<<< HEAD
 
 
 class TestDescribe:
@@ -272,5 +271,3 @@ class TestDescribe:
         results = model.describe(x, feature_dict, top_k=2)
 
         assert len(results) <= 2
-=======
->>>>>>> main
