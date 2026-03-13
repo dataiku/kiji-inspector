@@ -99,9 +99,7 @@ class TestFromPretrainedWithBaseModel:
             "kiji_inspector.core.sae.hf_hub_download",
             _fake_download_factory(ckpt, downloads=downloads),
         )
-        SAE.from_pretrained(
-            base_model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16", layer=20
-        )
+        SAE.from_pretrained(base_model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16", layer=20)
         for repo_id, _ in downloads:
             assert repo_id == "hanneshapke/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
 
