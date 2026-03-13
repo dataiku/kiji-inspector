@@ -279,11 +279,11 @@ def run_ablation_experiment(
         n_prompts_per_type: Max prompts to test per contrast type.
         seed: Random seed.
     """
+    from kiji_inspector.core.sae_core import JumpReLUSAE
     from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
     from kiji_inspector.data.scenario import load_scenarios_meta
     from kiji_inspector.extraction.activation_extractor import ActivationConfig, ActivationExtractor
     from kiji_inspector.extraction.extractor import build_agent_prompt
-    from kiji_inspector.core.sae_core import JumpReLUSAE
 
     random.seed(seed)
     np.random.seed(seed)
