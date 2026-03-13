@@ -102,7 +102,7 @@ explicit = true
 
 [[tool.uv.index]]
 name = "flash-attn-3-wheels"
-url = "https://windreamer.github.io/flash-attention3-wheels/cu130_torch280"
+url = "https://windreamer.github.io/flash-attention3-wheels/cu130_torch2100"
 format = "flat"
 explicit = true
 
