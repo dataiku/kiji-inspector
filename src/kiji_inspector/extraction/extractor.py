@@ -304,7 +304,9 @@ class RawActivationExtractor:
 
         if dp_size > 1 and hasattr(self.extractor, "config"):
             # Data-parallel: workers write shards directly — no temp files
-            from kiji_inspector.extraction.vllm_activation_extractor import run_dp_extraction_to_shards
+            from kiji_inspector.extraction.vllm_activation_extractor import (
+                run_dp_extraction_to_shards,
+            )
 
             config_kwargs = {
                 "model_name": self.extractor.config.model_name,

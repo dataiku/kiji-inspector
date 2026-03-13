@@ -6,9 +6,9 @@ import json
 from typing import Optional
 
 from huggingface_hub import hf_hub_download
-from kiji_inspector.sae_core import JumpReLUSAE
 
 from kiji_inspector.registry import resolve_repo_id
+from kiji_inspector.sae_core import JumpReLUSAE
 
 
 class SAE(JumpReLUSAE):
@@ -88,7 +88,7 @@ class SAE(JumpReLUSAE):
                         f"  Make sure the repo contains {subfolder}/sae_checkpoints/ "
                         f"with sae_final.pt.\n"
                         f"  Original error: {e}"
-                    )
+                    ) from e
                 return None
 
         # --- Checkpoint ---

@@ -161,13 +161,14 @@ def run_layer(
     Returns a summary dict with feature health and fuzzing metrics (if available).
     """
     # Import generate_training_set functions
-    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
-    from kiji_inspector.data.scenario import load_scenarios_meta
     from pipeline import (
         extract_activations,
         identify_contrastive_features,
         train_sae_step,
     )
+
+    from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
+    from kiji_inspector.data.scenario import load_scenarios_meta
 
     layer_key = f"residual_{layer}"
     activations_dir = str(layer_output_dir / "activations")
