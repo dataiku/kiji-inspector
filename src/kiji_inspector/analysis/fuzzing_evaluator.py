@@ -55,6 +55,107 @@ class FuzzingExample:
 # ---------------------------------------------------------------------------
 
 
+def _extraction_subprocess(
+    formatted_prompts: list[str],
+    subject_model: str,
+    layers: list[int],
+    batch_size: int,
+    backend: str,
+    output_dir: str,
+) -> None:
+    """Child process: load HF model, extract per-token activations, save to disk, exit.
+
+    Running in a subprocess ensures all GPU memory is freed when the process
+    exits, leaving the GPUs clean for the judge model in step 5c.
+
+    Saves results incrementally to avoid accumulating all activations in RAM:
+    - Token strings: single pickle file (small).
+    - Activations: one ``.npz`` file per prompt, written as each batch completes.
+    """
+    import pickle
+
+    from tqdm import tqdm
+
+    from kiji_inspector.extraction import create_extractor
+
+    out = Path(output_dir)
+    acts_dir = out / "acts"
+    acts_dir.mkdir(parents=True, exist_ok=True)
+
+    layer_keys = [f"residual_{layer}" for layer in layers]
+
+    extractor = create_extractor(
+        backend=backend,
+        model_name=subject_model,
+        layers=layers,
+        token_positions="all",
+    )
+    tokenizer = extractor.tokenizer
+
+    all_token_strings: list[list[str]] = []
+    prompt_idx = 0
+
+    pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
+
+    for i in range(0, len(formatted_prompts), batch_size):
+        batch_formatted = formatted_prompts[i : i + batch_size]
+
+        acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
+
+        for j, prompt_text in enumerate(batch_formatted):
+            encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
+            token_ids = encoding.input_ids[0].tolist()
+            tokens = tokenizer.convert_ids_to_tokens(token_ids)
+
+            first_act = acts[j][layer_keys[0]]
+            min_len = min(len(tokens), first_act.shape[0])
+
+            all_token_strings.append(tokens[:min_len])
+
+            # Write activations for this prompt to a single .npz file
+            arrays = {lk: acts[j][lk][:min_len].astype(np.float16) for lk in layer_keys}
+            np.savez(acts_dir / f"{prompt_idx}.npz", **arrays)
+            prompt_idx += 1
+
+        # Free batch activations immediately
+        del acts
+
+        pbar.update(len(batch_formatted))
+
+    pbar.close()
+    extractor.cleanup()
+
+    # Save token strings (small — list of list of short strings)
+    with open(out / "token_strings.pkl", "wb") as f:
+        pickle.dump(all_token_strings, f)
+    print(f"  [subprocess] Saved {prompt_idx} prompts to {output_dir}")
+
+
+class DiskBackedActivations:
+    """Lazy-loading activation store backed by per-prompt ``.npz`` files on disk.
+
+    Only loads activations from disk when accessed, so all 6 layers' data
+    never needs to reside in RAM simultaneously.
+    """
+
+    def __init__(self, acts_dir: Path, n_prompts: int):
+        self._acts_dir = acts_dir
+        self._n = n_prompts
+
+    def __len__(self) -> int:
+        return self._n
+
+    def __getitem__(self, idx: int) -> dict[str, np.ndarray]:
+        data = np.load(self._acts_dir / f"{idx}.npz")
+        return dict(data)
+
+    def cleanup(self) -> None:
+        """Remove temp directory."""
+        import shutil
+
+        shutil.rmtree(self._acts_dir.parent, ignore_errors=True)
+
+
 def extract_per_token_activations(
     prompts: list[str],
     formatted_prompts: list[str],
@@ -63,29 +164,19 @@ def extract_per_token_activations(
     batch_size: int,
     backend: str = "vllm",
     dp_size: int = 1,
-) -> tuple[list[list[str]], list[dict[str, np.ndarray]]]:
+) -> tuple[list[list[str]], DiskBackedActivations]:
     """Extract per-token activations for a list of formatted prompts.
 
-    Returns activations for ALL requested layers so the caller can loop
-    over layers for per-SAE encoding without reloading the subject model.
-
-    Args:
-        prompts: Original user request strings (for display).
-        formatted_prompts: Full formatted prompts for the subject model.
-        subject_model: HuggingFace model name.
-        layers: Transformer layers to hook.
-        batch_size: GPU batch size.
-        backend: ``"vllm"`` or ``"hf"`` extraction backend.
-        dp_size: Data parallel size (model copies across GPUs).
+    Runs extraction in a subprocess so that all GPU memory is freed when
+    the subprocess exits, leaving GPUs clean for the judge model.
 
     Returns:
-        token_strings: List of list-of-token-strings per prompt.
-        token_activations: List of dicts mapping layer_key to (seq_len, d_model)
-            numpy arrays, one dict per prompt.
+        token_strings: List of per-prompt token string lists.
+        activations: A ``DiskBackedActivations`` that lazily loads
+            per-prompt activation dicts from disk.
     """
-    from kiji_inspector.extraction import create_extractor
-
-    layer_keys = [f"residual_{layer}" for layer in layers]
+    import pickle
+    import tempfile
 
     # Per-token extraction requires full sequence activations, which
     # the vLLM backend cannot provide (it only returns the decode step).
@@ -96,64 +187,29 @@ def extract_per_token_activations(
         )
         backend = "hf"
 
-    # Per-token extraction uses a single GPU (small prompt count).
-    # DP is handled at the judging step (5c) instead.
-    acts_list = None
-    extractor = create_extractor(
-        backend=backend,
-        model_name=subject_model,
-        layers=layers,
-        token_positions="all",
+    # Run in a subprocess so GPU memory is fully freed on exit
+    tmp_dir = tempfile.mkdtemp(prefix="kiji_extraction_")
+    ctx = mp.get_context("spawn")
+    p = ctx.Process(
+        target=_extraction_subprocess,
+        args=(formatted_prompts, subject_model, layers, batch_size, backend, tmp_dir),
     )
-    tokenizer = extractor.tokenizer
+    p.start()
+    p.join()
 
-    all_token_strings: list[list[str]] = []
-    all_token_activations: list[dict[str, np.ndarray]] = []
+    if p.exitcode != 0:
+        raise RuntimeError(f"Extraction subprocess failed with exit code {p.exitcode}")
 
-    pbar = tqdm(total=len(formatted_prompts), desc="[6a] Per-token extraction", unit="prompt")
+    tmp_path = Path(tmp_dir)
 
-    if acts_list is not None:
-        # DP path: activations already extracted
-        for j, prompt_text in enumerate(formatted_prompts):
-            encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
-            token_ids = encoding.input_ids[0].tolist()
-            tokens = tokenizer.convert_ids_to_tokens(token_ids)
+    # Load token strings (small)
+    with open(tmp_path / "token_strings.pkl", "rb") as f:
+        all_token_strings = pickle.load(f)
 
-            first_act = acts_list[j][layer_keys[0]]
-            min_len = min(len(tokens), first_act.shape[0])
+    # Return lazy-loading activation store instead of loading everything into RAM
+    activations = DiskBackedActivations(tmp_path / "acts", len(all_token_strings))
 
-            all_token_strings.append(tokens[:min_len])
-            act_dict = {lk: acts_list[j][lk][:min_len] for lk in layer_keys}
-            all_token_activations.append(act_dict)
-
-        pbar.update(len(formatted_prompts))
-    else:
-        for i in range(0, len(formatted_prompts), batch_size):
-            batch_formatted = formatted_prompts[i : i + batch_size]
-
-            # Get per-token activations (token_positions="all")
-            acts = extractor.extract_batch(batch_formatted, batch_size=len(batch_formatted))
-
-            # Get token strings by tokenizing each prompt
-            for j, prompt_text in enumerate(batch_formatted):
-                encoding = tokenizer(prompt_text, return_tensors="pt", truncation=True)
-                token_ids = encoding.input_ids[0].tolist()
-                tokens = tokenizer.convert_ids_to_tokens(token_ids)
-
-                first_act = acts[j][layer_keys[0]]
-                min_len = min(len(tokens), first_act.shape[0])
-
-                all_token_strings.append(tokens[:min_len])
-                act_dict = {lk: acts[j][lk][:min_len] for lk in layer_keys}
-                all_token_activations.append(act_dict)
-
-            pbar.update(len(batch_formatted))
-
-        extractor.cleanup()
-
-    pbar.close()
-
-    return all_token_strings, all_token_activations
+    return all_token_strings, activations
 
 
 # ---------------------------------------------------------------------------
