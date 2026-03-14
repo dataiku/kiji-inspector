@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kiji-inspector"
-version = "0.0.1"
+version = "0.0.2"
 description = "Kiji Inspector"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -59,6 +59,8 @@ full = [
     "transformers>=4.57.6",
     "vllm>=0.11.0",
 ]
+
+[dependency-groups]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -95,6 +97,14 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "kiji-inspector-v$version"
+version_scheme = "semver"
+version_provider = "pep621"
+update_changelog_on_bump = true
+changelog_start_rev = "kiji-inspector-v0.0.1"
 
 [[tool.uv.index]]
 name = "pytorch-cu130"
