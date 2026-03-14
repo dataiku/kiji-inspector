@@ -74,9 +74,8 @@ class ActivationExtractor:
         import sys
         import types
 
-        for _mod_name in ("selective_scan_cuda", "causal_conv1d_cuda"):
-            if _mod_name not in sys.modules:
-                sys.modules[_mod_name] = types.ModuleType(_mod_name)
+        if "selective_scan_cuda" not in sys.modules:
+            sys.modules["selective_scan_cuda"] = types.ModuleType("selective_scan_cuda")
 
         self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
         self.model.eval()
