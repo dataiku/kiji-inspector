@@ -6,7 +6,7 @@ from kiji_inspector.core.registry import MODEL_REGISTRY, resolve_repo_id
 class TestResolveRepoId:
     def test_known_model_returns_repo(self):
         repo = resolve_repo_id("nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16")
-        assert repo == "hanneshapke/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+        assert repo == "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
 
     def test_unknown_model_raises_keyerror(self):
         with pytest.raises(KeyError, match="No SAE repo registered"):

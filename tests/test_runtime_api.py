@@ -86,13 +86,13 @@ def test_sae_from_pretrained_downloads_and_loads(monkeypatch, tmp_path):
     assert feature_descriptions == expected_descriptions
     assert downloads == [
         (
-            "hanneshapke/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+            "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
             "layer_20/sae_checkpoints/sae_final.pt",
             str(tmp_path / "cache"),
             "secret-token",
         ),
         (
-            "hanneshapke/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+            "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
             "layer_20/activations/feature_descriptions.json",
             str(tmp_path / "cache"),
             "secret-token",
