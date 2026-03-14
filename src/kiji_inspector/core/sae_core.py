@@ -90,19 +90,28 @@ class JumpReLUSAE(nn.Module):
     def get_num_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
+    @staticmethod
+    def _lookup_feature_description(features: dict[int | str, str], feature_id: int) -> str:
+        description = features.get(feature_id)
+        if description is None:
+            description = features.get(str(feature_id))
+        return description if description is not None else "unknown"
+
     def describe(
-        self, x: torch.Tensor, features: dict[int, str], top_k: int = 5
+        self, x: torch.Tensor, features: dict[int | str, str], top_k: int = 5
     ) -> list[tuple[int, str, float]]:
-        """For the top_k features with the highest activation, return the descriptions.
+        """Return descriptions for the top active features.
 
         Args:
             x: Input activations, shape ``(d_model,)`` or ``(1, d_model)``.
             features: Mapping from feature dimension index to its description string.
-            top_k: Number of top-activated features to return.
+                Accepts either integer keys or stringified integer keys from JSON.
+            top_k: Maximum number of active features to return.
 
         Returns:
             List of ``(feature_id, description, activation_value)`` tuples,
-            sorted by activation value descending.
+            sorted by activation value descending. Inactive features
+            (activation ``<= 0``) are excluded.
         """
         if x.dim() == 1:
             x = x.unsqueeze(0)
@@ -110,8 +119,13 @@ class JumpReLUSAE(nn.Module):
         k = min(top_k, encoded.shape[0])
         top_values, top_indices = torch.topk(encoded, k)
         return [
-            (idx.item(), features.get(idx.item(), "unknown"), val.item())
+            (
+                idx.item(),
+                self._lookup_feature_description(features, idx.item()),
+                val.item(),
+            )
             for idx, val in zip(top_indices, top_values, strict=True)
+            if val.item() > 0
         ]
 
     @classmethod
@@ -127,6 +141,8 @@ class JumpReLUSAE(nn.Module):
         d_sae = config.get("d_sae", w_enc.shape[1])
         dtype_str = config.get("dtype", "bfloat16")
         dtype = getattr(torch, dtype_str)
+        if torch.device(device).type == "cpu" and dtype == torch.bfloat16:
+            dtype = torch.float32
         bandwidth = config.get("bandwidth", 0.001)
         threshold_init = config.get("threshold_init", 0.01)
 
