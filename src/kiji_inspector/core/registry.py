@@ -4,7 +4,11 @@ from __future__ import annotations
 
 # base_model → HuggingFace repo containing the trained SAEs
 MODEL_REGISTRY: dict[str, str] = {
-    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16": "hanneshapke/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+    # NVIDIA
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16": "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8": "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8",
+    # EXPERIMENTAL
+    "google/gemma-3-27b-it": "575-lab/kiji-inspector-google-gemma-3-27b-it",
 }
 
 
