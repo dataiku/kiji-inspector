@@ -24,7 +24,7 @@ jobs:
         uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
 
       - name: Install runtime + dev dependencies
-        run: uv sync --extra dev
+        run: uv sync --group dev
 
       - name: Run ruff linter
         run: >
@@ -64,7 +64,7 @@ jobs:
         uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
 
       - name: Install train + dev dependencies
-        run: uv sync --extra train --extra dev
+        run: uv sync --extra train --group dev
 
       - name: Run train namespace smoke tests
         run: uv run pytest tests/test_train_smoke.py

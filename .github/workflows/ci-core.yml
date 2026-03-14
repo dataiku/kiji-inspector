@@ -31,7 +31,7 @@ jobs:
           version: ">=0.7.0"
 
       - name: Install runtime + dev dependencies (CPU-only torch)
-        run: uv sync --extra dev
+        run: uv sync --group dev
         env:
           UV_TORCH_BACKEND: cpu
 
