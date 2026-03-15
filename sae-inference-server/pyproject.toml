@@ -1,6 +1,6 @@
 [project]
 name = "sae-server"
-version = "0.2.0"
+version = "0.0.2"
 description = "SAE Feature Description Server powered by kiji-inspector"
 readme = "README.md"
 requires-python = ">=3.10"

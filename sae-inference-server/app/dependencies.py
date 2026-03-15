@@ -21,25 +21,17 @@ class SAEEngine:
     def describe(self, activation: list[float], top_k: int) -> dict:
         x = torch.tensor(activation, dtype=torch.float32)
         results = self.sae.describe(x, self.feature_descriptions, top_k=top_k)
-        top_features = []
-        for feature_id, description, activation_value in results:
-            top_features.append(
-                {
-                    "feature_id": str(feature_id),
-                    "activation": activation_value,
-                    "description": self.feature_descriptions.get(
-                        str(feature_id), self.feature_descriptions.get(feature_id)
-                    ),
-                }
-            )
-
-        with torch.no_grad():
-            x_enc = self.sae.encode(x.unsqueeze(0) if x.dim() == 1 else x)
-            num_active = int((x_enc > 0).sum().item())
-
+        top_features = [
+            {
+                "feature_id": str(feature_id),
+                "activation": activation_value,
+                "description": description,
+            }
+            for feature_id, description, activation_value in results
+        ]
         return {
             "top_features": top_features,
-            "num_active_features": num_active,
+            "num_active_features": len(top_features),
         }
 
 
