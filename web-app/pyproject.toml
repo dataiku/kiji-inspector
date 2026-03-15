@@ -1,11 +1,13 @@
 [project]
 name = "sae-server"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "SAE Feature Description Server powered by kiji-inspector"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi[standard]>=0.129.0",
-    "torch>=2.10.0",
-    "torchvision>=0.25.0",
+    "kiji-inspector",
 ]
+
+[tool.uv.sources]
+kiji-inspector = { path = ".." }

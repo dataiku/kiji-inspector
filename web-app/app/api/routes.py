@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.dependencies import get_engine
+from app.dependencies import SAEEngine, get_engine
 from app.schemas import (
     BatchDescribeRequest,
     BatchDescribeResponse,
@@ -13,7 +13,6 @@ from app.schemas import (
     DescribeRequest,
     DescribeResponse,
 )
-from app.services.sae_inference import SAEInference
 
 router = APIRouter()
 
@@ -37,7 +36,7 @@ def _extract_activation(payload: DescribeRequest) -> list[float]:
     raise HTTPException(status_code=422, detail="Unsupported request shape")
 
 
-def _run_describe(payload: DescribeRequest, engine: SAEInference) -> dict[str, Any]:
+def _run_describe(payload: DescribeRequest, engine: SAEEngine) -> dict[str, Any]:
     activation = _extract_activation(payload)
     return engine.describe(activation=activation, top_k=payload.top_k)
 
@@ -48,7 +47,7 @@ def healthz() -> dict[str, str]:
 
 
 @router.post("/describe", response_model=DescribeResponse)
-def describe(payload: DescribeRequest, engine: SAEInference = Depends(get_engine)) -> dict[str, Any]:
+def describe(payload: DescribeRequest, engine: SAEEngine = Depends(get_engine)) -> dict[str, Any]:
     try:
         return _run_describe(payload, engine)
     except ValueError as exc:
@@ -57,7 +56,7 @@ def describe(payload: DescribeRequest, engine: SAEInference = Depends(get_engine
 
 @router.post("/describe/batch", response_model=BatchDescribeResponse)
 def describe_batch(
-    payload: BatchDescribeRequest, engine: SAEInference = Depends(get_engine)
+    payload: BatchDescribeRequest, engine: SAEEngine = Depends(get_engine)
 ) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     for idx, item in enumerate(payload.items):
