@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import json
 import re
+from typing import TYPE_CHECKING
 
-from vllm import LLM, SamplingParams
+if TYPE_CHECKING:
+    from vllm import LLM, SamplingParams
 
 from kiji_inspector.data.contrastive_dataset import ContrastiveDataset, ContrastivePair
 
@@ -164,11 +166,15 @@ class ContrastivePairGenerator:
         self.scenario_name = scenario_name
         self._malformed_count = 0
         self.tool_list = "\n".join(f"- {t['name']}: {t['description']}" for t in tools)
-        self.sampling_params = sampling_params or SamplingParams(
-            temperature=0.7,
-            top_p=0.8,
-            max_tokens=8000,
-        )
+        if sampling_params is None:
+            from vllm import SamplingParams
+
+            sampling_params = SamplingParams(
+                temperature=0.7,
+                top_p=0.8,
+                max_tokens=8000,
+            )
+        self.sampling_params = sampling_params
 
     def _build_prompt(
         self,
@@ -314,11 +320,14 @@ def generate_minimal_pair_variants(
     Returns a list of dicts with keys:
         modified_request, words_changed, why_different_tool
     """
-    sampling_params = sampling_params or SamplingParams(
-        temperature=0.7,
-        top_p=0.8,
-        max_tokens=4000,
-    )
+    if sampling_params is None:
+        from vllm import SamplingParams
+
+        sampling_params = SamplingParams(
+            temperature=0.7,
+            top_p=0.8,
+            max_tokens=4000,
+        )
 
     user_content = f"""
 Take this request and create {n_variants} minimal modifications that would
