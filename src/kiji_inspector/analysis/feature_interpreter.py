@@ -10,6 +10,7 @@ Feature interpretation pipeline (Step 5).
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -255,7 +256,7 @@ def _run_labeling_subprocess(
     sampling_params = SamplingParams(
         temperature=0.3,
         top_p=0.9,
-        max_tokens=500,
+        max_tokens=2048,
     )
 
     # Build ChatML prompts
@@ -277,6 +278,8 @@ def _run_labeling_subprocess(
     labels: dict[str, dict] = {}
     for (feat_idx, _), output in zip(label_prompts, outputs, strict=True):
         raw = output.outputs[0].text.strip()
+        # Strip <think>...</think> blocks from reasoning models
+        raw = re.sub(r"<think>[\s\S]*?</think>", "", raw).strip()
         # Strip markdown fences
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
