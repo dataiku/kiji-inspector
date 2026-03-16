@@ -73,6 +73,11 @@ def _analyze_layer(
         anchor_vecs = torch.from_numpy(np.stack(anchor_acts)).to(device=device, dtype=sae_dtype)
         contrast_vecs = torch.from_numpy(np.stack(contrast_acts)).to(device=device, dtype=sae_dtype)
 
+        # Normalize by the same RMS scale used during SAE training
+        if sae.rms_scale is not None and sae.rms_scale > 0:
+            anchor_vecs = anchor_vecs / sae.rms_scale
+            contrast_vecs = contrast_vecs / sae.rms_scale
+
         with torch.no_grad():
             anchor_features = sae.encode(anchor_vecs)
             contrast_features = sae.encode(contrast_vecs)
@@ -240,6 +245,7 @@ def identify_contrastive_features(
     scenarios_meta: dict | None = None,
     backend: str = "vllm",
     dp_size: int = 1,
+    tp_size: int = 1,
 ) -> dict[str, Path]:
     """Identify contrastive features for multiple layers.
 
@@ -352,6 +358,7 @@ def identify_contrastive_features(
                 "layers": layers,
                 "token_positions": "decision",
                 "gpu_memory_utilization": 0.90,
+                "tensor_parallel_size": tp_size,
                 "max_model_len": 8192,
                 "trust_remote_code": True,
             }

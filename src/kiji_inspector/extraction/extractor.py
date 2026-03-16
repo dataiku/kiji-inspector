@@ -162,7 +162,7 @@ class RawActivationExtractor:
 
     Output format is compatible with CachedActivationBuffer:
         activations_dir/
-            shard_000000.npy   # float16, shape (tokens_in_shard, d_model)
+            shard_000000.npy   # float32, shape (tokens_in_shard, d_model)
             shard_000001.npy
             ...
             metadata.json      # {model, layer, d_model, total_tokens, ...}
@@ -197,7 +197,7 @@ class RawActivationExtractor:
         """Extract raw activations for every prompt and save as numpy shards.
 
         Each contrastive pair contributes TWO activation vectors (one per
-        prompt).  Activations are saved as float16 numpy shards compatible
+        prompt).  Activations are saved as float32 numpy shards compatible
         with ``CachedActivationBuffer``.
 
         When multiple ``layer_keys`` are provided, the base extractor returns
@@ -313,6 +313,7 @@ class RawActivationExtractor:
                 "layers": self.extractor.config.layers,
                 "token_positions": self.extractor.config.token_positions,
                 "gpu_memory_utilization": self.extractor.config.gpu_memory_utilization,
+                "tensor_parallel_size": getattr(self.extractor.config, "tensor_parallel_size", 1),
                 "max_model_len": self.extractor.config.max_model_len,
                 "trust_remote_code": self.extractor.config.trust_remote_code,
             }
@@ -343,7 +344,7 @@ class RawActivationExtractor:
                 for act_dict in all_acts:
                     for lk in layer_keys:
                         vec = act_dict[lk]  # shape (d_model,), float32
-                        shard_buffers[lk].append(vec.astype(np.float16))
+                        shard_buffers[lk].append(vec.astype(np.float32))
                         shard_counts[lk] += 1
 
                         if shard_counts[lk] >= shard_size:
@@ -375,7 +376,7 @@ class RawActivationExtractor:
                 "total_tokens": total_written[lk],
                 "num_shards": shard_indices[lk],
                 "shard_size": shard_size,
-                "dtype": "float16",
+                "dtype": "float32",
                 "source": "agentbench-sae-dataset",
                 "prompts_per_pair": 2,
                 "total_pairs": len(pairs),
@@ -390,7 +391,7 @@ class RawActivationExtractor:
                 f"  {lk}: {total_written[lk]} vectors across {shard_indices[lk]} shard(s) → {ldir}"
             )
 
-        print(f"  Shape per vector: ({d_model},), dtype=float16")
+        print(f"  Shape per vector: ({d_model},), dtype=float32")
 
         return layer_dirs
 
@@ -401,7 +402,7 @@ class RawActivationExtractor:
         buffer: list[np.ndarray],
     ) -> Path:
         """Stack buffered vectors and save as a numpy shard."""
-        shard_data = np.stack(buffer, axis=0)  # (N, d_model), float16
+        shard_data = np.stack(buffer, axis=0)  # (N, d_model), float32
         shard_path = output_dir / f"shard_{shard_idx:06d}.npy"
         np.save(shard_path, shard_data)
         return shard_path

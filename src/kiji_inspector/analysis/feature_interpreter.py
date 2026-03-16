@@ -144,6 +144,8 @@ def collect_max_activating_examples(
             chunk = torch.from_numpy(activations[i : i + chunk_size]).to(
                 device=device, dtype=sae_dtype
             )
+            if sae.rms_scale is not None and sae.rms_scale > 0:
+                chunk = chunk / sae.rms_scale
             features = sae.encode(chunk)  # (chunk, d_sae)
             all_features.append(features.cpu())
 

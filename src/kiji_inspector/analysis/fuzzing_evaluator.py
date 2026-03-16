@@ -489,6 +489,8 @@ def _compute_highlighted_user_text(
     # Encode through SAE
     with torch.no_grad():
         act_tensor = torch.from_numpy(tok_acts).to(device=device, dtype=sae_dtype)
+        if sae.rms_scale is not None and sae.rms_scale > 0:
+            act_tensor = act_tensor / sae.rms_scale
         feat_acts = sae.encode(act_tensor)  # (seq_len, d_sae)
         feature_col = feat_acts[:, feat_id].float().cpu().numpy()  # (seq_len,)
 

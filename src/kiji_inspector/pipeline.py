@@ -40,6 +40,57 @@ from pathlib import Path
 _SUBJECT_MODEL_DEFAULT = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
 
 
+def _apply_p2p_mitigations(disable_p2p: str) -> None:
+    """Disable CUDA peer-to-peer access to prevent host OOM on GB200 (Blackwell).
+
+    GB200 NVLink-C2C maps all peer GPU memory into the host process's virtual
+    address space.  With 4x 189 GB GPUs this adds ~756 GB of virtual memory,
+    which can trigger the Linux OOM killer and silently kill the process.
+
+    This function must be called **before** any CUDA context is created
+    (i.e. before ``torch.cuda.*`` or model loading).
+    """
+    import os
+
+    if disable_p2p == "no":
+        return
+
+    if disable_p2p == "auto":
+        # Detect Blackwell (SM 100) without initializing a full CUDA context.
+        # NVIDIA_GPU_NAME is set on some cloud instances; fall back to torch.
+        gpu_name = os.environ.get("NVIDIA_GPU_NAME", "")
+        is_blackwell = "GB200" in gpu_name or "B200" in gpu_name or "B100" in gpu_name
+
+        if not is_blackwell:
+            try:
+                import torch
+
+                if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+                    major, _ = torch.cuda.get_device_capability(0)
+                    is_blackwell = major >= 10
+            except Exception:
+                pass
+
+        if not is_blackwell:
+            return
+
+    # Disable NVLink peer memory mapping — prevents the massive host VM footprint
+    os.environ.setdefault("NCCL_P2P_DISABLE", "1")
+    os.environ.setdefault("CUDA_DEVICE_MAX_CONNECTIONS", "1")
+
+    # Tune PyTorch CUDA allocator to reduce pinned memory fragmentation
+    existing = os.environ.get("PYTORCH_CUDA_ALLOC_CONF", "")
+    settings = "max_split_size_mb:512,expandable_segments:True"
+    if existing:
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = f"{existing},{settings}"
+    else:
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = settings
+
+    print("[P2P] Blackwell GPU detected — disabling CUDA peer access to prevent host OOM")
+    print(f"  NCCL_P2P_DISABLE={os.environ['NCCL_P2P_DISABLE']}")
+    print(f"  PYTORCH_CUDA_ALLOC_CONF={os.environ['PYTORCH_CUDA_ALLOC_CONF']}")
+
+
 def _resolve_model_defaults(args: argparse.Namespace) -> None:
     """Auto-detect layer and d_sae defaults based on the subject model config.
 
@@ -124,7 +175,14 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Data parallel size for subject model extraction: runs N model copies "
-        "on N GPUs for N× throughput (default: 1).",
+        "for N× throughput (default: 1).",
+    )
+    p.add_argument(
+        "--extraction-tp-size",
+        type=int,
+        default=1,
+        help="Tensor parallel size per extraction worker. Total GPUs used = "
+        "extraction-dp-size × extraction-tp-size (default: 1).",
     )
     p.add_argument(
         "--max-model-len",
@@ -199,6 +257,13 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=5e-3,
         help="SAE sparsity penalty (default: 5e-3).",
+    )
+    p.add_argument(
+        "--target-l0",
+        type=float,
+        default=None,
+        help="Target L0 sparsity. If set, auto-tunes l1-coefficient during "
+        "training to hit this target (recommended: 50-100).",
     )
     p.add_argument(
         "--sae-checkpoint-dir",
@@ -299,6 +364,14 @@ def parse_args() -> argparse.Namespace:
         help="Backend for activation extraction: 'vllm' (fast, default) "
         "or 'hf' (HuggingFace Transformers, required for ablation).",
     )
+    p.add_argument(
+        "--disable-p2p",
+        type=str,
+        default="auto",
+        choices=["auto", "yes", "no"],
+        help="Disable CUDA peer-to-peer access to avoid host OOM on GB200/Blackwell. "
+        "'auto' detects Blackwell GPUs and disables P2P if found (default: auto).",
+    )
 
     args = p.parse_args()
     return args
@@ -319,6 +392,7 @@ def extract_activations(
     scenarios_meta: dict | None = None,
     backend: str = "vllm",
     dp_size: int = 1,
+    tp_size: int = 1,
 ) -> dict[str, Path]:
     """Load subject model, extract raw activations for all layers, save as numpy shards.
 
@@ -353,6 +427,7 @@ def extract_activations(
                 self.layers = layers
                 self.token_positions = "decision"
                 self.gpu_memory_utilization = 0.90
+                self.tensor_parallel_size = tp_size
                 self.max_model_len = 8192
                 self.trust_remote_code = True
 
@@ -369,6 +444,7 @@ def extract_activations(
             model_name=subject_model,
             layers=layers,
             token_positions="decision",
+            tensor_parallel_size=tp_size,
         )
 
     raw_extractor = RawActivationExtractor(
@@ -406,6 +482,7 @@ def train_sae_step(
     num_epochs: int,
     resume_from: str | None,
     auto_scale_steps: bool = True,
+    target_l0: float | None = None,
 ) -> str:
     """Train a JumpReLU SAE on the numpy activation shards from Step 1."""
     from kiji_inspector.training import SAETrainingConfig, train_sae
@@ -415,6 +492,7 @@ def train_sae_step(
         batch_size=batch_size,
         learning_rate=learning_rate,
         l1_coefficient=l1_coefficient,
+        target_l0=target_l0,
         total_steps=total_steps,
         num_epochs=num_epochs,
         output_dir=checkpoint_dir,
@@ -477,6 +555,7 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
         scenarios_meta=scenarios_meta,
         backend=args.backend,
         dp_size=args.extraction_dp_size,
+        tp_size=args.extraction_tp_size,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
@@ -512,6 +591,7 @@ def _run_step2(args) -> dict[str, str]:
             num_epochs=args.sae_epochs,
             resume_from=args.sae_resume,
             auto_scale_steps=not args.no_auto_scale_steps,
+            target_l0=args.target_l0,
         )
         elapsed = time.time() - t0
         print(f"    SAE training complete ({elapsed:.1f}s): {final_path}")
@@ -547,6 +627,7 @@ def _run_step3(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
         scenarios_meta=scenarios_meta,
         backend=args.backend,
         dp_size=args.extraction_dp_size,
+        tp_size=args.extraction_tp_size,
     )
     elapsed = time.time() - t0
     print(f"  Feature identification complete ({elapsed:.1f}s)")
@@ -855,6 +936,9 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
 def main() -> None:
     args = parse_args()
 
+    # Apply Blackwell P2P mitigations before any CUDA context is created
+    _apply_p2p_mitigations(args.disable_p2p)
+
     # "all" runs steps 1 through 5
     if args.step == "all":
         steps = ["1", "2", "3", "4", "5"]
@@ -894,6 +978,8 @@ def main() -> None:
         print(f"  SAE batch size    : {args.sae_batch_size:,}")
         print(f"  SAE lr            : {args.sae_lr}")
         print(f"  SAE L1 coeff      : {args.l1_coefficient}")
+        if args.target_l0 is not None:
+            print(f"  SAE target L0     : {args.target_l0}")
     if "3" in steps:
         print(f"  SAE checkpoint    : {args.sae_checkpoint or '(auto from step 2)'}")
         print(f"  Top-K features    : {args.top_k_features}")

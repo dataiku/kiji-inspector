@@ -207,7 +207,15 @@ def _dp_shard_worker(
 
     from tqdm import tqdm
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
+    tp_size = config_kwargs.get("tensor_parallel_size", 1)
+    # Assign tp_size consecutive GPUs to this worker
+    gpu_ids = [str(rank * tp_size + i) for i in range(tp_size)]
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(gpu_ids)
+    # Disable P2P only for single-GPU workers to avoid host OOM on
+    # Blackwell NVLink-C2C.  Multi-GPU (TP>1) workers need P2P for
+    # all-reduce/all-gather across GPUs.
+    if tp_size == 1:
+        os.environ.setdefault("NCCL_P2P_DISABLE", "1")
 
     config = VLLMActivationConfig(**config_kwargs)
     extractor = VLLMActivationExtractor(config)
@@ -232,7 +240,7 @@ def _dp_shard_worker(
         for act_dict in acts_list:
             for lk in layer_keys:
                 vec = act_dict[lk]
-                shard_buffers[lk].append(vec.astype(np.float16))
+                shard_buffers[lk].append(vec.astype(np.float32))
                 shard_counts[lk] += 1
 
                 if shard_counts[lk] >= shard_size:
@@ -262,6 +270,7 @@ def _dp_shard_worker(
 
 def _flush_shard(output_dir, shard_idx: int, buffer: list[np.ndarray]):
     """Stack buffered vectors and save as a numpy shard."""
+    output_dir.mkdir(parents=True, exist_ok=True)
     shard_data = np.stack(buffer, axis=0)
     shard_path = output_dir / f"shard_{shard_idx:06d}.npy"
     np.save(shard_path, shard_data)
@@ -297,7 +306,8 @@ def run_dp_extraction_to_shards(
 
     ctx = multiprocessing.get_context("spawn")
 
-    config_kwargs = {**config_kwargs, "tensor_parallel_size": 1}
+    tp_size = config_kwargs.get("tensor_parallel_size", 1)
+    config_kwargs = {**config_kwargs, "tensor_parallel_size": tp_size}
 
     # Split prompts into exactly dp_size contiguous chunks
     base, remainder = divmod(len(prompts), dp_size)

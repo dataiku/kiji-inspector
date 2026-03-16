@@ -67,6 +67,16 @@ class ActivationExtractor:
         if self.config.max_memory is not None:
             load_kwargs["max_memory"] = self.config.max_memory
 
+        # Nemotron-H's custom modelling code needs mamba_ssm for a Triton-based
+        # rmsnorm, but mamba_ssm's __init__ unconditionally imports the CUDA kernel
+        # selective_scan_cuda which isn't compiled for all platforms (e.g. GB200).
+        # Inject a stub so the import succeeds; the model never calls this kernel.
+        import sys
+        import types
+
+        if "selective_scan_cuda" not in sys.modules:
+            sys.modules["selective_scan_cuda"] = types.ModuleType("selective_scan_cuda")
+
         self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
         self.model.eval()
 
@@ -81,6 +91,18 @@ class ActivationExtractor:
                 n_cast += 1
         if n_cast:
             print(f"  Cast {n_cast} FP8 parameters to {self.config.dtype}")
+
+        # Warn if running on Blackwell without P2P mitigations
+        if num_gpus > 1:
+            import os
+
+            major, _ = torch.cuda.get_device_capability(0)
+            if major >= 10 and os.environ.get("NCCL_P2P_DISABLE") != "1":
+                print(
+                    "  WARNING: Blackwell GPU detected with P2P enabled. "
+                    "This may cause host OOM from NVLink memory mapping. "
+                    "Use --disable-p2p auto (or set NCCL_P2P_DISABLE=1) to prevent this."
+                )
 
         # Enable CUDA optimizations for inference
         if hasattr(torch, "set_float32_matmul_precision"):
@@ -100,8 +122,11 @@ class ActivationExtractor:
         # Register hooks on target layers
         self._register_hooks()
 
-        # Cache hidden size for downstream consumers
-        self.hidden_size = self.model.config.hidden_size
+        # Cache hidden size for downstream consumers (Gemma3 nests under text_config)
+        self.hidden_size = (
+            getattr(self.model.config, "hidden_size", None)
+            or getattr(self.model.config, "text_config", self.model.config).hidden_size
+        )
         print(f"  hidden_size: {self.hidden_size}")
         print(f"  hooked layers: {self.config.layers}")
         print(f"  model type: {type(self.model).__name__}")
@@ -133,6 +158,7 @@ class ActivationExtractor:
         # Try common embedding attribute names
         for attr_path in (
             "language_model.model.embed_tokens",
+            "language_model.embed_tokens",
             "model.embed_tokens",
             "backbone.embed_tokens",
             "backbone.embedding",
@@ -158,6 +184,9 @@ class ActivationExtractor:
             lm = self.model.language_model
             if hasattr(lm, "model") and hasattr(lm.model, "layers"):
                 return lm.model.layers
+            # Some versions expose layers directly on language_model
+            if hasattr(lm, "layers"):
+                return lm.layers
         # Standard Llama/Nemotron/Gemma architecture
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers
