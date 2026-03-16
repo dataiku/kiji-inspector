@@ -18,6 +18,15 @@ class SAEEngine:
         self.sae = sae
         self.feature_descriptions = feature_descriptions or {}
 
+    @staticmethod
+    def _normalize_description(desc: object) -> dict | None:
+        """Convert a feature description to a FeatureDescription-compatible dict."""
+        if isinstance(desc, dict):
+            return desc
+        if isinstance(desc, str) and desc != "unknown":
+            return {"label": desc, "description": desc}
+        return None
+
     def describe(self, activation: list[float], top_k: int) -> dict:
         x = torch.tensor(activation, dtype=torch.float32)
         results = self.sae.describe(x, self.feature_descriptions, top_k=top_k)
@@ -25,7 +34,7 @@ class SAEEngine:
             {
                 "feature_id": str(feature_id),
                 "activation": activation_value,
-                "description": description,
+                "description": self._normalize_description(description),
             }
             for feature_id, description, activation_value in results
         ]
