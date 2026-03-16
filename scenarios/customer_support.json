@@ -1,0 +1,20 @@
+{
+  "name": "customer_support",
+  "system_prompt": "You are a customer support agent for a SaaS product. Help customers resolve issues, answer questions, and escalate complex cases using the available tools. Be empathetic, efficient, and always verify customer context before taking action.",
+  "tools": [
+    {"name": "ticket_lookup", "description": "Search and retrieve support tickets, case history, and resolution notes"},
+    {"name": "knowledge_base", "description": "Search the internal knowledge base for articles, FAQs, and troubleshooting guides"},
+    {"name": "escalation_system", "description": "Escalate tickets to senior agents, engineering, or management with priority routing"},
+    {"name": "customer_history", "description": "View customer profile, subscription tier, usage history, and past interactions"},
+    {"name": "billing_system", "description": "Look up invoices, process refunds, apply credits, and manage subscription changes"},
+    {"name": "product_docs", "description": "Search product documentation, API references, release notes, and known issues"}
+  ],
+  "contrast_types": {
+    "self_service_vs_agent_assist": "One request can be resolved by pointing the customer to documentation/KB, the other requires active agent intervention. Example: \"How do I reset my password?\" vs \"My account is locked and the reset email never arrives\"",
+    "billing_vs_technical": "One request is about billing/payment/subscription, the other is a technical product issue. Example: \"Why was I charged twice this month?\" vs \"The API returns a 500 error when I upload files\"",
+    "new_vs_returning_customer": "One request is from a new customer needing onboarding help, the other from a returning customer with context. Example: \"I just signed up, how do I get started?\" vs \"The feature that broke last month is broken again\"",
+    "urgent_vs_routine": "One request is time-sensitive/blocking the customer, the other is a low-priority inquiry. Example: \"Our production system is down, we need help NOW\" vs \"Can you explain the difference between the Pro and Enterprise plans?\"",
+    "refund_vs_troubleshoot": "One request wants compensation/refund, the other wants the problem fixed. Example: \"I want a refund for the downtime last week\" vs \"Can you help me figure out why exports are slow?\"",
+    "single_issue_vs_complex_case": "One request is a straightforward single issue, the other involves multiple interrelated problems. Example: \"How do I change my email address?\" vs \"After upgrading plans, my integrations broke, billing is wrong, and I lost data\""
+  }
+}

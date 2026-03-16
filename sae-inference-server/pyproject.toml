@@ -1,0 +1,13 @@
+[project]
+name = "sae-server"
+version = "0.0.2"
+description = "SAE Feature Description Server powered by kiji-inspector"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard]>=0.129.0",
+    "kiji-inspector",
+]
+
+[tool.uv.sources]
+kiji-inspector = { path = ".." }

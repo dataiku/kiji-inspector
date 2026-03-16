@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 540" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#e8563a"/>
+    </marker>
+    <marker id="arrow-navy" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1a2744"/>
+    </marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2c7a7b"/>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#1a2744" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d4a7a"/>
+      <stop offset="100%" stop-color="#1a2744"/>
+    </linearGradient>
+    <linearGradient id="grad-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff7b5f"/>
+      <stop offset="100%" stop-color="#e8563a"/>
+    </linearGradient>
+    <linearGradient id="grad-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38b2ac"/>
+      <stop offset="100%" stop-color="#2c7a7b"/>
+    </linearGradient>
+    <linearGradient id="grad-topbar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a2744"/>
+      <stop offset="100%" stop-color="#e8563a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="540" fill="#ffffff" rx="8"/>
+  <!-- Top accent bar -->
+  <rect width="1100" height="4" fill="url(#grad-topbar)" rx="2"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 1: Contrastive Pairs -> Formatted Prompt -> Subject Model -> Hidden State -->
+  <!-- ============================================================ -->
+
+  <!-- Step 1: Contrastive Pair Generation -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="50" width="175" height="95" rx="10" fill="url(#grad-teal)"/>
+  </g>
+  <text x="117" y="76" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Contrastive Pair</text>
+  <text x="117" y="93" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Generation</text>
+  <text x="117" y="113" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">500K pairs, 5 domains</text>
+  <text x="117" y="127" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">32 tools, 37 contrast types</text>
+  <circle cx="117" cy="37" r="11" fill="#e8563a"/>
+  <text x="117" y="41" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">1</text>
+
+  <!-- Arrow 1->2 -->
+  <line x1="205" y1="97" x2="248" y2="97" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Formatted Prompt -->
+  <g filter="url(#shadow)">
+    <rect x="255" y="55" width="160" height="85" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="335" y="80" text-anchor="middle" font-size="12" fill="#1a2744" font-weight="700">Formatted Prompt</text>
+  <text x="335" y="97" text-anchor="middle" font-size="10" fill="#718096">ChatML + tool defs</text>
+  <text x="335" y="114" text-anchor="middle" font-size="9" fill="#718096" font-style="italic">ends with: I'll use the '</text>
+  <text x="335" y="128" text-anchor="middle" font-size="9" fill="#e8563a" font-weight="600">&#x2191; decision token</text>
+  <circle cx="335" cy="42" r="11" fill="#e8563a"/>
+  <text x="335" y="46" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">2</text>
+
+  <!-- Arrow 2->3 -->
+  <line x1="415" y1="97" x2="458" y2="97" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Subject Model -->
+  <g filter="url(#shadow)">
+    <rect x="465" y="45" width="185" height="105" rx="10" fill="url(#grad-primary)"/>
+  </g>
+  <text x="557" y="70" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Subject Model</text>
+  <text x="557" y="87" text-anchor="middle" font-size="10" fill="#cbd5e0">Nemotron-3 Nano 30B</text>
+  <!-- Mini layer stack -->
+  <rect x="490" y="97" width="135" height="14" rx="3" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.2" stroke-width="0.8"/>
+  <text x="557" y="108" text-anchor="middle" font-size="8" fill="#cbd5e0">Layers 1-19</text>
+  <rect x="490" y="114" width="135" height="16" rx="3" fill="#e8563a" fill-opacity="0.85" stroke="#ff7b5f" stroke-width="1"/>
+  <text x="557" y="126" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="700">Layer 20 &#x2190; extract</text>
+  <rect x="490" y="133" width="135" height="14" rx="3" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.2" stroke-width="0.8"/>
+  <text x="557" y="144" text-anchor="middle" font-size="8" fill="#cbd5e0">Layers 21-54</text>
+  <circle cx="557" cy="32" r="11" fill="#e8563a"/>
+  <text x="557" y="36" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">3</text>
+
+  <!-- Arrow 3->4 -->
+  <line x1="650" y1="97" x2="698" y2="97" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: Hidden State / Activation -->
+  <g filter="url(#shadow)">
+    <rect x="705" y="55" width="155" height="85" rx="10" fill="#f7fafc" stroke="#e8563a" stroke-width="1.5"/>
+  </g>
+  <text x="782" y="80" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">HIDDEN STATE</text>
+  <text x="782" y="99" text-anchor="middle" font-size="13" fill="#1a2744" font-weight="700">4,096-dim</text>
+  <text x="782" y="116" text-anchor="middle" font-size="9.5" fill="#718096">at decision token</text>
+  <text x="782" y="130" text-anchor="middle" font-size="9" fill="#718096">1M vectors total</text>
+  <circle cx="782" cy="42" r="11" fill="#e8563a"/>
+  <text x="782" y="46" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">4</text>
+
+  <!-- ============================================================ -->
+  <!-- Arrow down from Hidden State to SAE Training -->
+  <!-- ============================================================ -->
+  <line x1="782" y1="140" x2="782" y2="195" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 2: SAE Training (center) -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="665" y="202" width="235" height="110" rx="12" fill="url(#grad-accent)"/>
+  </g>
+  <text x="782" y="228" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="700">JumpReLU SAE Training</text>
+  <text x="782" y="248" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.9">Unsupervised dictionary learning</text>
+  <text x="782" y="266" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.85">16,384 features (4x expansion)</text>
+  <text x="782" y="282" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.85">tanh sparsity + pseudo-gradients</text>
+  <text x="782" y="298" text-anchor="middle" font-size="9" fill="#ffffff" fill-opacity="0.7">L0 penalty, dead feature resampling</text>
+  <circle cx="782" cy="195" r="11" fill="#e8563a"/>
+  <text x="782" y="199" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">5</text>
+
+  <!-- ============================================================ -->
+  <!-- Arrow down from SAE to Sparse Features -->
+  <!-- ============================================================ -->
+  <line x1="782" y1="312" x2="782" y2="358" stroke="#e8563a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 3: Sparse Feature Vector -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="680" y="365" width="205" height="65" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  </g>
+  <text x="782" y="386" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">SPARSE FEATURES</text>
+  <text x="782" y="404" text-anchor="middle" font-size="12" fill="#1a2744" font-weight="700">16,384 dims, ~4% active</text>
+  <text x="782" y="420" text-anchor="middle" font-size="9.5" fill="#718096">81.2% alive, 0.19% dead, MSE 0.574</text>
+  <circle cx="782" cy="358" r="11" fill="#e8563a"/>
+  <text x="782" y="362" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">6</text>
+
+  <!-- ============================================================ -->
+  <!-- Fork: arrows to Contrastive Analysis and Feature Interpretation -->
+  <!-- ============================================================ -->
+
+  <!-- Arrow left to Contrastive Analysis -->
+  <path d="M 680 397 L 530 397 L 530 440 L 530 455" stroke="#1a2744" stroke-width="2" fill="none" marker-end="url(#arrow-navy)"/>
+
+  <!-- Arrow right to Feature Interpretation -->
+  <path d="M 885 397 L 1000 397 L 1000 455" stroke="#2c7a7b" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+
+  <!-- ============================================================ -->
+  <!-- ROW 4 LEFT: Contrastive Analysis -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="420" y="462" width="220" height="65" rx="10" fill="url(#grad-primary)"/>
+  </g>
+  <text x="530" y="486" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Contrastive Analysis</text>
+  <text x="530" y="504" text-anchor="middle" font-size="10" fill="#cbd5e0">Cohen's d effect size, top-200</text>
+  <text x="530" y="518" text-anchor="middle" font-size="9.5" fill="#cbd5e0">post-hoc statistical probes</text>
+  <circle cx="530" cy="455" r="11" fill="#e8563a"/>
+  <text x="530" y="459" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">7</text>
+
+  <!-- ============================================================ -->
+  <!-- ROW 4 RIGHT: Feature Interpretation -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="890" y="462" width="185" height="65" rx="10" fill="url(#grad-teal)"/>
+  </g>
+  <text x="982" y="486" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Feature Interpretation</text>
+  <text x="982" y="504" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.85">LLM labeling (Qwen3 235B)</text>
+  <text x="982" y="518" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">top-20 activating prompts</text>
+  <circle cx="982" cy="455" r="11" fill="#e8563a"/>
+  <text x="982" y="459" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">8</text>
+
+  <!-- ============================================================ -->
+  <!-- LEFT SIDEBAR: Generation Model label -->
+  <!-- ============================================================ -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="202" width="155" height="65" rx="8" fill="#f7fafc" stroke="#38b2ac" stroke-width="1.2"/>
+  </g>
+  <text x="107" y="224" text-anchor="middle" font-size="10" fill="#718096" font-weight="600" letter-spacing="0.5">GENERATION MODEL</text>
+  <text x="107" y="242" text-anchor="middle" font-size="11" fill="#2c7a7b" font-weight="700">Qwen3 235B</text>
+  <text x="107" y="257" text-anchor="middle" font-size="9" fill="#718096">pairs + labels + judge</text>
+
+  <!-- Dashed line from gen model to step 1 -->
+  <path d="M 107 202 L 107 155 L 117 155 L 117 145" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#arrow-teal)"/>
+  <!-- Dashed line from gen model to step 8 -->
+  <path d="M 185 234 L 250 234 L 250 375 L 380 375 L 380 494 L 420 494" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+  <path d="M 185 234 L 250 234 L 250 375 L 920 375 L 920 462" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+
+  <!-- ============================================================ -->
+  <!-- Step legend at bottom-left -->
+  <!-- ============================================================ -->
+  <rect x="30" y="475" width="370" height="48" rx="6" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Row 1 -->
+  <text x="45" y="494" font-size="9" fill="#e8563a" font-weight="700">1</text>
+  <text x="53" y="494" font-size="9" fill="#718096">Generate pairs</text>
+  <text x="133" y="494" font-size="9" fill="#e8563a" font-weight="700">2</text>
+  <text x="141" y="494" font-size="9" fill="#718096">Format prompts</text>
+  <text x="225" y="494" font-size="9" fill="#e8563a" font-weight="700">3</text>
+  <text x="233" y="494" font-size="9" fill="#718096">Extract activations</text>
+  <text x="335" y="494" font-size="9" fill="#e8563a" font-weight="700">4</text>
+  <text x="343" y="494" font-size="9" fill="#718096">Hidden states</text>
+  <!-- Row 2 -->
+  <text x="45" y="513" font-size="9" fill="#e8563a" font-weight="700">5</text>
+  <text x="53" y="513" font-size="9" fill="#718096">Train SAE</text>
+  <text x="115" y="513" font-size="9" fill="#e8563a" font-weight="700">6</text>
+  <text x="123" y="513" font-size="9" fill="#718096">Sparse features</text>
+  <text x="215" y="513" font-size="9" fill="#e8563a" font-weight="700">7</text>
+  <text x="223" y="513" font-size="9" fill="#718096">Contrastive analysis</text>
+  <text x="335" y="513" font-size="9" fill="#e8563a" font-weight="700">8</text>
+  <text x="343" y="513" font-size="9" fill="#718096">Interpret</text>
+</svg>

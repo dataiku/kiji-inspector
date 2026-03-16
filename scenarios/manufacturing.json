@@ -1,0 +1,20 @@
+{
+  "name": "manufacturing",
+  "system_prompt": "You are a manufacturing operations engineer at an industrial facility. Monitor equipment health, optimize production schedules, ensure quality standards, and manage maintenance workflows using the available tools. Prioritize safety and reliability in all decisions.",
+  "tools": [
+    {"name": "equipment_monitor", "description": "Get real-time sensor data, operating parameters, and health status for production equipment"},
+    {"name": "quality_check", "description": "Run quality inspection, retrieve defect rates, SPC charts, and compliance test results"},
+    {"name": "inventory_lookup", "description": "Check raw material inventory levels, reorder points, and warehouse locations"},
+    {"name": "maintenance_scheduler", "description": "Schedule maintenance tasks, view work orders, check maintenance history and MTBF data"},
+    {"name": "production_planner", "description": "Plan and optimize production schedules, capacity allocation, and shift assignments"},
+    {"name": "defect_analyzer", "description": "Analyze defect patterns, run root cause analysis, and generate Pareto/fishbone diagrams"}
+  ],
+  "contrast_types": {
+    "preventive_vs_reactive_maintenance": "One request plans scheduled preventive maintenance, the other responds to an active equipment failure. Example: \"Schedule the quarterly pump inspection\" vs \"Pump 3B just tripped on high vibration, what's wrong?\"",
+    "quality_vs_throughput": "One request prioritizes product quality (tighter tolerances, more inspection), the other prioritizes production speed/volume. Example: \"Tighten SPC limits on the coating line\" vs \"How do we increase output by 15% this week?\"",
+    "single_line_vs_multi_line": "One request concerns a single production line, the other coordinates across multiple lines or the entire plant. Example: \"Check Line A's OEE\" vs \"Balance production load across all three lines\"",
+    "manual_vs_automated_inspection": "One request involves manual quality checks by operators, the other uses automated/vision-based inspection. Example: \"Schedule operator visual inspection of welds\" vs \"Configure the vision system to catch surface defects\"",
+    "planned_vs_emergency_downtime": "One request plans a scheduled shutdown for maintenance, the other handles unexpected downtime. Example: \"Plan the annual turnaround for next month\" vs \"Line B is down, what's the fastest recovery path?\"",
+    "root_cause_vs_symptom_fix": "One request investigates the underlying cause of a problem, the other applies a quick fix to restore operation. Example: \"Why do we keep getting bearing failures on Pump 5?\" vs \"Replace the bearing on Pump 5 and get it running\""
+  }
+}
