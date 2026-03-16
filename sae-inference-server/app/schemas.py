@@ -8,9 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class DescribeByActivationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    activation: list[float] = Field(
-        description="Raw activation vector matching SAE d_model size."
-    )
+    activation: list[float] = Field(description="Raw activation vector matching SAE d_model size.")
     top_k: int = Field(default=10, ge=1, le=200)
 
 

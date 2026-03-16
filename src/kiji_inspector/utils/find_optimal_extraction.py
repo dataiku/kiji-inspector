@@ -186,7 +186,7 @@ def main():
     best = None
     results = []
     for tp, dp in configs:
-        print(f"{tp:>4} {dp:>4} {tp*dp:>5}  ", end="", flush=True)
+        print(f"{tp:>4} {dp:>4} {tp * dp:>5}  ", end="", flush=True)
 
         result = test_config(tp, dp, args.model, args.layer, args.num_prompts, args.timeout)
 
@@ -231,12 +231,14 @@ def main():
             mark = " <-- BEST"
         elif notes:
             mark = f"  {notes}"
-        print(f"{tp:>4} {dp:>4} {tp*dp:>5} {status:>8} {tp_str:>12} {mark}")
+        print(f"{tp:>4} {dp:>4} {tp * dp:>5} {status:>8} {tp_str:>12} {mark}")
     print("-" * 55)
 
     if best:
         (bt, bd), btp = best
-        print(f"\nOptimal: --extraction-tp-size {bt} --extraction-dp-size {bd}  ({btp:.1f} prompts/s)")
+        print(
+            f"\nOptimal: --extraction-tp-size {bt} --extraction-dp-size {bd}  ({btp:.1f} prompts/s)"
+        )
     else:
         print("\nNo valid configuration found!")
         sys.exit(1)
