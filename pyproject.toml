@@ -117,12 +117,7 @@ override-dependencies = [
 
 # vllm and CUDA-dependent packages: build against the venv's CUDA torch,
 # not the CPU torch that build isolation would pull from PyPI
-no-build-isolation-package = ["vllm", "causal-conv1d", "mamba-ssm", "flash-linear-attention"]
-
-# vllm's build-system.requires includes setuptools-scm but no-build-isolation
-# means uv won't install it automatically — declare it here
-[tool.uv.extra-build-dependencies]
-vllm = ["setuptools", "setuptools-scm", "wheel"]
+no-build-isolation-package = ["causal-conv1d", "mamba-ssm", "flash-linear-attention"]
 
 [[tool.uv.index]]
 name = "pytorch-cu130"
@@ -142,7 +137,7 @@ torch = [
 torchvision = [
   { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
 ]
-vllm = { git = "https://github.com/hanneshapke/vllm", branch = "claude/add-gemma3-support-SYnKU" }
+vllm = { path = "../vllm", editable = true }
 flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }
 causal-conv1d = { url = "https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1+cu13torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl", marker = "sys_platform == 'linux'" }
 mamba-ssm = { url = "https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1+cu13torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl", marker = "sys_platform == 'linux'" }
