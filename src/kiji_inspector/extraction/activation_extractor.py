@@ -83,6 +83,10 @@ class ActivationExtractor:
         # Blackwell (SM ≥ 100): mamba-ssm's Triton kernels crash with illegal
         # memory access.  Fall back to the pure-PyTorch path for Mamba mixer
         # blocks by monkey-patching forward → torch_forward on each mixer.
+        # The torch_forward path does a large outer product that scales with
+        # batch size, so callers must use a small batch size (see
+        # _mamba_slow_path_batch_cap).
+        self._mamba_slow_path = False
         major, _ = torch.cuda.get_device_capability(0)
         if major >= 10:
             _patched = 0
@@ -97,9 +101,25 @@ class ActivationExtractor:
                     mod.forward = mod.torch_forward
                     _patched += 1
             if _patched:
+                self._mamba_slow_path = True
                 print(
                     f"  Blackwell GPU: patched {_patched} Mamba mixer(s) to use torch_forward"
                 )
+                print(
+                    f"  WARNING: torch_forward is memory-hungry; batch size will be capped at "
+                    f"{self._mamba_slow_path_batch_cap}"
+                )
+
+    @property
+    def _mamba_slow_path_batch_cap(self) -> int:
+        """Max batch size when using the Mamba torch_forward (naive) path.
+
+        The naive path materialises a 6-D outer product (b, c, l, s, h, n)
+        that scales linearly with batch size — roughly 2 GiB per sample for
+        Nemotron-H 120B.  We cap at 16 which uses ~32 GiB, well within a
+        single 180 GiB Blackwell GPU.
+        """
+        return 16
 
         # FP8 quantized models (e.g. ModelOpt FP8) store weights in float8_e4m3fn.
         # HuggingFace doesn't auto-dequantize these, so F.linear fails with a
@@ -350,6 +370,9 @@ class ActivationExtractor:
         """
         self.tokenizer.padding_side = "left"
         results: list[dict[str, np.ndarray]] = []
+
+        if self._mamba_slow_path:
+            batch_size = min(batch_size, self._mamba_slow_path_batch_cap)
 
         for i in range(0, len(prompts), batch_size):
             batch_prompts = prompts[i : i + batch_size]
