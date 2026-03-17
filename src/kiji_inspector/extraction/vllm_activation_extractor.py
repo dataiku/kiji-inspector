@@ -46,7 +46,22 @@ class VLLMActivationExtractor:
             raise ValueError("VLLMActivationConfig.model_name is required.")
         self.config = config
 
+        from transformers import AutoConfig
         from vllm import LLM
+
+        # Validate requested layers against actual model depth
+        hf_config = AutoConfig.from_pretrained(
+            config.model_name, trust_remote_code=config.trust_remote_code
+        )
+        num_layers = getattr(hf_config, "num_hidden_layers", None)
+        if num_layers is not None:
+            invalid = [l for l in config.layers if l >= num_layers]
+            if invalid:
+                raise ValueError(
+                    f"Requested layers {invalid} but {config.model_name} "
+                    f"only has {num_layers} layers (0-{num_layers - 1}). "
+                    f"Use --layers with values < {num_layers}."
+                )
 
         print(f"Loading model via vLLM: {config.model_name}")
         print(f"  layers: {config.layers}")
