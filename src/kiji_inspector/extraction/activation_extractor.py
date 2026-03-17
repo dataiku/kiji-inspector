@@ -80,6 +80,20 @@ class ActivationExtractor:
         self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
         self.model.eval()
 
+        # Blackwell (SM ≥ 100): mamba-ssm's Triton kernels crash with illegal
+        # memory access.  Fall back to the pure-PyTorch path for Mamba mixer
+        # blocks by clearing the use_cuda_kernels flag that the HF modelling
+        # code checks in its forward().
+        major, _ = torch.cuda.get_device_capability(0)
+        if major >= 10:
+            _patched = 0
+            for mod in self.model.modules():
+                if getattr(mod, "use_cuda_kernels", False):
+                    mod.use_cuda_kernels = False
+                    _patched += 1
+            if _patched:
+                print(f"  Blackwell GPU: disabled CUDA kernels on {_patched} Mamba mixer block(s)")
+
         # FP8 quantized models (e.g. ModelOpt FP8) store weights in float8_e4m3fn.
         # HuggingFace doesn't auto-dequantize these, so F.linear fails with a
         # dtype mismatch.  Cast any FP8 parameters to the target dtype.
