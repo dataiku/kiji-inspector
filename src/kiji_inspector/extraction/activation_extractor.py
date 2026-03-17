@@ -110,17 +110,6 @@ class ActivationExtractor:
                     f"{self._mamba_slow_path_batch_cap}"
                 )
 
-    @property
-    def _mamba_slow_path_batch_cap(self) -> int:
-        """Max batch size when using the Mamba torch_forward (naive) path.
-
-        The naive path materialises a 6-D outer product (b, c, l, s, h, n)
-        that scales linearly with batch size — roughly 2 GiB per sample for
-        Nemotron-H 120B.  We cap at 16 which uses ~32 GiB, well within a
-        single 180 GiB Blackwell GPU.
-        """
-        return 16
-
         # FP8 quantized models (e.g. ModelOpt FP8) store weights in float8_e4m3fn.
         # HuggingFace doesn't auto-dequantize these, so F.linear fails with a
         # dtype mismatch.  Cast any FP8 parameters to the target dtype.
@@ -431,6 +420,17 @@ class ActivationExtractor:
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+    @property
+    def _mamba_slow_path_batch_cap(self) -> int:
+        """Max batch size when using the Mamba torch_forward (naive) path.
+
+        The naive path materialises a 6-D outer product (b, c, l, s, h, n)
+        that scales linearly with batch size — roughly 2 GiB per sample for
+        Nemotron-H 120B.  We cap at 16 which uses ~32 GiB, well within a
+        single 180 GiB Blackwell GPU.
+        """
+        return 16
 
     def __del__(self):
         self.cleanup()
