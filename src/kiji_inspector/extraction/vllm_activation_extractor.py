@@ -67,7 +67,12 @@ class VLLMActivationExtractor:
         print(f"  layers: {config.layers}")
         print(f"  tensor_parallel_size: {config.tensor_parallel_size}")
 
-        self.llm = LLM(
+        # FlashInfer has a bug with block_size=16 + head_size=256 (e.g. Gemma 3).
+        # Use block_size=32 when head_size is 256 to avoid the assertion.
+        head_size = getattr(hf_config, "head_dim", None) or getattr(hf_config, "hidden_size", 0) // getattr(hf_config, "num_attention_heads", 1)
+        block_size = 32 if head_size == 256 else None
+
+        llm_kwargs = dict(
             model=config.model_name,
             extract_activation_layers=config.layers,
             enforce_eager=True,
@@ -77,6 +82,10 @@ class VLLMActivationExtractor:
             max_model_len=config.max_model_len,
             disable_log_stats=True,
         )
+        if block_size is not None:
+            llm_kwargs["block_size"] = block_size
+
+        self.llm = LLM(**llm_kwargs)
 
         self.tokenizer = self.llm.get_tokenizer()
         if self.tokenizer.pad_token is None:
