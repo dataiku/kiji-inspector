@@ -102,9 +102,7 @@ class ActivationExtractor:
                     _patched += 1
             if _patched:
                 self._mamba_slow_path = True
-                print(
-                    f"  Blackwell GPU: patched {_patched} Mamba mixer(s) to use torch_forward"
-                )
+                print(f"  Blackwell GPU: patched {_patched} Mamba mixer(s) to use torch_forward")
                 print(
                     f"  WARNING: torch_forward is memory-hungry; batch size will be capped at "
                     f"{self._mamba_slow_path_batch_cap}"

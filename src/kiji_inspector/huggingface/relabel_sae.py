@@ -67,9 +67,7 @@ def _reconstruct_feature_examples(
 
         # Reconstruct bottom examples with near-zero activations
         bottom_prompts = info.get("bottom_examples", [])
-        bottom = [
-            {"prompt": prompt, "activation": 0.0} for prompt in bottom_prompts
-        ]
+        bottom = [{"prompt": prompt, "activation": 0.0} for prompt in bottom_prompts]
 
         feature_examples[feat_idx] = {
             "top": top,
@@ -180,9 +178,9 @@ def main() -> None:
             print(f"\n  Skipping {layer_dir.name}: no contrastive_features.json found")
             continue
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  Re-labeling {layer_dir.name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Reconstruct feature_examples from existing descriptions
         # (activation shards are not stored on HF)
@@ -191,7 +189,7 @@ def main() -> None:
         print(f"  {len(feature_examples)} features to re-label")
 
         # 5c: Label features via LLM
-        print(f"\n  [5c] Labeling features via LLM...")
+        print("\n  [5c] Labeling features via LLM...")
         feature_labels = label_features_via_llm(
             feature_examples=feature_examples,
             judging_model=args.judging_model,
@@ -203,7 +201,7 @@ def main() -> None:
         print(f"    {len(feature_labels)} features labeled")
 
         # 5d: Generate report
-        print(f"\n  [5d] Generating report...")
+        print("\n  [5d] Generating report...")
         report_path = generate_explanation_report(
             contrastive_features_path=str(contrastive_path),
             feature_examples=feature_examples,
@@ -217,9 +215,9 @@ def main() -> None:
         print(f"\n  Skipping upload (--skip-upload). Results in: {output_dir}")
         return
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Uploading to {args.repo_id}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     layer_names = [d.name for d in layer_dirs]
     layer_summaries = {}
