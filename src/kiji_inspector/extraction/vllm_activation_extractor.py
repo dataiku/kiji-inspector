@@ -46,22 +46,48 @@ class VLLMActivationExtractor:
             raise ValueError("VLLMActivationConfig.model_name is required.")
         self.config = config
 
+        from transformers import AutoConfig
         from vllm import LLM
+
+        # Validate requested layers against actual model depth
+        hf_config = AutoConfig.from_pretrained(
+            config.model_name, trust_remote_code=config.trust_remote_code
+        )
+        num_layers = getattr(hf_config, "num_hidden_layers", None)
+        if num_layers is not None:
+            invalid = [idx for idx in config.layers if idx >= num_layers]
+            if invalid:
+                raise ValueError(
+                    f"Requested layers {invalid} but {config.model_name} "
+                    f"only has {num_layers} layers (0-{num_layers - 1}). "
+                    f"Use --layers with values < {num_layers}."
+                )
 
         print(f"Loading model via vLLM: {config.model_name}")
         print(f"  layers: {config.layers}")
         print(f"  tensor_parallel_size: {config.tensor_parallel_size}")
 
-        self.llm = LLM(
-            model=config.model_name,
-            extract_activation_layers=config.layers,
-            enforce_eager=True,
-            trust_remote_code=config.trust_remote_code,
-            gpu_memory_utilization=config.gpu_memory_utilization,
-            tensor_parallel_size=config.tensor_parallel_size,
-            max_model_len=config.max_model_len,
-            disable_log_stats=True,
-        )
+        # FlashInfer has a bug with block_size=16 + head_size=256 (e.g. Gemma 3).
+        # Use block_size=32 when head_size is 256 to avoid the assertion.
+        head_size = getattr(hf_config, "head_dim", None) or getattr(
+            hf_config, "hidden_size", 0
+        ) // getattr(hf_config, "num_attention_heads", 1)
+        block_size = 32 if head_size == 256 else None
+
+        llm_kwargs = {
+            "model": config.model_name,
+            "extract_activation_layers": config.layers,
+            "enforce_eager": True,
+            "trust_remote_code": config.trust_remote_code,
+            "gpu_memory_utilization": config.gpu_memory_utilization,
+            "tensor_parallel_size": config.tensor_parallel_size,
+            "max_model_len": config.max_model_len,
+            "disable_log_stats": True,
+        }
+        if block_size is not None:
+            llm_kwargs["block_size"] = block_size
+
+        self.llm = LLM(**llm_kwargs)
 
         self.tokenizer = self.llm.get_tokenizer()
         if self.tokenizer.pad_token is None:
