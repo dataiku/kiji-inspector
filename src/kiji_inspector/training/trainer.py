@@ -459,6 +459,18 @@ def analyze_feature_health(
     l0_arr = np.array(l0_values)
     recon_arr = np.array(recon_losses)
 
+    if len(l0_arr) == 0:
+        print("  WARNING: No valid activation batches — all vectors were non-finite.")
+        print("  The activation shards are likely corrupt. Re-extract with a working backend.")
+        health = {
+            "total_features": d_sae,
+            "total_vectors_analyzed": 0,
+            "error": "no valid batches — all activation vectors were non-finite",
+        }
+        health_path = Path(output_dir) / "feature_health.json"
+        health_path.write_text(json.dumps(health, indent=2))
+        return health
+
     from scipy.stats import sem as _sem
 
     l0_ci = _bootstrap_ci(l0_arr)
