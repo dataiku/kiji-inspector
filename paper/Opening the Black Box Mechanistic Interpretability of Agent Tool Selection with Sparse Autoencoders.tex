@@ -17,13 +17,11 @@
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
-  frame=single,
-  xleftmargin=2em,
-  framexleftmargin=1.5em
+  frame=single
 }
 
-% hyperref for URLs
-\usepackage{hyperref}
+% hyperref loaded last to avoid conflicts with llncs.cls
+\usepackage[bookmarks=false,hidelinks]{hyperref}
 \renewcommand\UrlFont{\rmfamily}
 \urlstyle{rm}
 %

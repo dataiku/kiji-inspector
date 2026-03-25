@@ -28,27 +28,28 @@ SVG_NAMES = [
 # Applied in order.  For SVG gradients where two original colours map to the
 # same gray, we handle gradients first with context-aware replacement.
 
-# Gradient-level mapping (id → {original_color: gray_color})
+# Gradient-level mapping (id → {original_color: bw_color})
 GRADIENT_MAP = {
-    "grad-primary": {"#2d4a7a": "#444444", "#1a2744": "#222222"},
-    "grad-accent": {"#ff7b5f": "#888888", "#e8563a": "#666666"},
-    "grad-teal": {"#38b2ac": "#aaaaaa", "#2c7a7b": "#888888"},
-    "grad-topbar": {"#1a2744": "#222222", "#e8563a": "#666666"},
+    "grad-primary": {"#2d4a7a": "#333333", "#1a2744": "#000000"},
+    "grad-accent": {"#ff7b5f": "#999999", "#e8563a": "#666666"},
+    "grad-teal": {"#38b2ac": "#cccccc", "#2c7a7b": "#999999"},
+    "grad-topbar": {"#1a2744": "#000000", "#e8563a": "#666666"},
 }
 
 # Global (non-gradient) replacements — applied after gradient replacement
 # so that gradient stop-colors are already handled.
+# High-contrast BW: dark colors → black, accent → mid-grey, light → near-white.
 GLOBAL_MAP = [
-    ("#2d4a7a", "#444444"),
-    ("#1a2744", "#222222"),
-    ("#ff7b5f", "#888888"),
+    ("#2d4a7a", "#333333"),
+    ("#1a2744", "#000000"),
+    ("#ff7b5f", "#999999"),
     ("#e8563a", "#666666"),
-    ("#38b2ac", "#aaaaaa"),
-    ("#2c7a7b", "#888888"),
-    ("#cbd5e0", "#cccccc"),
-    ("#718096", "#777777"),
-    ("#2d3748", "#333333"),
-    ("#e2e8f0", "#cccccc"),
+    ("#38b2ac", "#cccccc"),
+    ("#2c7a7b", "#999999"),
+    ("#cbd5e0", "#e0e0e0"),
+    ("#718096", "#666666"),
+    ("#2d3748", "#222222"),
+    ("#e2e8f0", "#e0e0e0"),
 ]
 
 # Text-contrast fixes: on light-gray (teal) backgrounds, swap white text to dark.
