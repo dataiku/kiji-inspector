@@ -38,14 +38,14 @@
   <rect width="1100" height="4" fill="url(#grad-topbar)" rx="2"/>
 
   <!-- ============================================================ -->
-  <!-- INPUT: x (d_model = 4,096) -->
+  <!-- INPUT: x (d_model = 2,688) -->
   <!-- ============================================================ -->
   <g filter="url(#shadow)">
     <rect x="40" y="210" width="130" height="70" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
   </g>
   <text x="105" y="236" text-anchor="middle" font-size="12" fill="#718096" font-weight="600">INPUT</text>
   <text x="105" y="255" text-anchor="middle" font-size="14" fill="#1a2744" font-weight="700">x</text>
-  <text x="105" y="272" text-anchor="middle" font-size="10" fill="#718096">d_model = 4,096</text>
+  <text x="105" y="272" text-anchor="middle" font-size="10" fill="#718096">d_model = 2,688</text>
 
   <!-- ============================================================ -->
   <!-- ENCODER PATH (top) -->
@@ -70,7 +70,7 @@
   </g>
   <text x="435" y="222" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">W_enc @ (...)</text>
   <text x="435" y="240" text-anchor="middle" font-size="11" fill="#ffffff">+ b_enc</text>
-  <text x="435" y="260" text-anchor="middle" font-size="9" fill="#cbd5e0">4,096 x 16,384</text>
+  <text x="435" y="260" text-anchor="middle" font-size="9" fill="#cbd5e0">2,688 x 10,752</text>
 
   <!-- Arrow to pre-activation -->
   <line x1="505" y1="235" x2="543" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
@@ -80,7 +80,7 @@
     <rect x="550" y="210" width="110" height="50" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
   </g>
   <text x="605" y="233" text-anchor="middle" font-size="11" fill="#1a2744" font-weight="600">pre_activation</text>
-  <text x="605" y="249" text-anchor="middle" font-size="10" fill="#718096">d_sae = 16,384</text>
+  <text x="605" y="249" text-anchor="middle" font-size="10" fill="#718096">d_sae = 10,752</text>
 
   <!-- Arrow to JumpReLU -->
   <line x1="660" y1="235" x2="698" y2="235" stroke="#e8563a" stroke-width="2" marker-end="url(#arr)"/>
@@ -102,8 +102,8 @@
     <rect x="905" y="200" width="155" height="70" rx="10" fill="url(#grad-teal)"/>
   </g>
   <text x="982" y="225" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">features (sparse)</text>
-  <text x="982" y="244" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.9">d_sae = 16,384</text>
-  <text x="982" y="260" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">~668 active (~4%)</text>
+  <text x="982" y="244" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.9">d_sae = 10,752</text>
+  <text x="982" y="260" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">~668 active (~6%)</text>
 
   <!-- ============================================================ -->
   <!-- DECODER PATH (bottom) -->
@@ -118,7 +118,7 @@
   </g>
   <text x="982" y="367" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">W_dec @ features</text>
   <text x="982" y="385" text-anchor="middle" font-size="11" fill="#ffffff">+ b_dec</text>
-  <text x="982" y="403" text-anchor="middle" font-size="9" fill="#cbd5e0">16,384 x 4,096</text>
+  <text x="982" y="403" text-anchor="middle" font-size="9" fill="#cbd5e0">10,752 x 2,688</text>
 
   <!-- Arrow left to reconstruction -->
   <line x1="910" y1="380" x2="855" y2="380" stroke="#1a2744" stroke-width="2" marker-end="url(#arr-navy)"/>
@@ -128,7 +128,7 @@
     <rect x="700" y="350" width="148" height="60" rx="10" fill="#f7fafc" stroke="#2c7a7b" stroke-width="1.5"/>
   </g>
   <text x="774" y="374" text-anchor="middle" font-size="12" fill="#2c7a7b" font-weight="700">reconstruction</text>
-  <text x="774" y="393" text-anchor="middle" font-size="10" fill="#718096">d_model = 4,096</text>
+  <text x="774" y="393" text-anchor="middle" font-size="10" fill="#718096">d_model = 2,688</text>
 
   <!-- ============================================================ -->
   <!-- LOSS: connect reconstruction and input -->
@@ -153,7 +153,7 @@
   <!-- ============================================================ -->
   <!-- Shared b_dec annotation (below decoder path) -->
   <!-- ============================================================ -->
-  <path d="M 272 260 L 272 440 L 982 440 L 982 417" stroke="#718096" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
+  <path d="M 272 210 L 272 180 L 25 180 L 25 440 L 982 440 L 982 417" stroke="#718096" stroke-width="1" fill="none" stroke-dasharray="4,3"/>
   <text x="627" y="452" text-anchor="middle" font-size="9" fill="#718096" font-weight="600">b_dec shared (subtract before encode, add after decode)</text>
 
   <!-- ============================================================ -->
@@ -172,25 +172,25 @@
 
   <rect x="60" y="496" width="14" height="14" rx="3" fill="#1a2744"/>
   <text x="82" y="508" font-size="10" fill="#2d3748" font-weight="600">W_enc</text>
-  <text x="120" y="508" font-size="9.5" fill="#718096">(4,096 x 16,384)</text>
+  <text x="120" y="508" font-size="9.5" fill="#718096">(2,688 x 10,752)</text>
 
   <rect x="240" y="496" width="14" height="14" rx="3" fill="#1a2744"/>
   <text x="262" y="508" font-size="10" fill="#2d3748" font-weight="600">W_dec</text>
-  <text x="300" y="508" font-size="9.5" fill="#718096">(16,384 x 4,096)</text>
+  <text x="300" y="508" font-size="9.5" fill="#718096">(10,752 x 2,688)</text>
 
   <rect x="420" y="496" width="14" height="14" rx="3" fill="#e8563a"/>
   <text x="442" y="508" font-size="10" fill="#2d3748" font-weight="600">&#x3B8;</text>
-  <text x="454" y="508" font-size="9.5" fill="#718096">(16,384) thresholds</text>
+  <text x="454" y="508" font-size="9.5" fill="#718096">(10,752) thresholds</text>
 
   <rect x="590" y="496" width="14" height="14" rx="3" fill="#718096"/>
   <text x="612" y="508" font-size="10" fill="#2d3748" font-weight="600">b_enc</text>
-  <text x="648" y="508" font-size="9.5" fill="#718096">(16,384)</text>
+  <text x="648" y="508" font-size="9.5" fill="#718096">(10,752)</text>
 
   <rect x="720" y="496" width="14" height="14" rx="3" fill="#718096"/>
   <text x="742" y="508" font-size="10" fill="#2d3748" font-weight="600">b_dec</text>
-  <text x="778" y="508" font-size="9.5" fill="#718096">(4,096) shared</text>
+  <text x="778" y="508" font-size="9.5" fill="#718096">(2,688) shared</text>
 
-  <text x="60" y="530" font-size="10" fill="#718096">Total: ~134M trainable parameters</text>
+  <text x="60" y="530" font-size="10" fill="#718096">Total: ~58M trainable parameters</text>
   <text x="350" y="530" font-size="10" fill="#718096">Activation: JumpReLU with STE pseudo-gradients</text>
   <text x="700" y="530" font-size="10" fill="#718096">Loss: MSE + &#x3BB; * tanh-smoothed L0</text>
 </svg>

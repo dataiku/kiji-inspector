@@ -191,7 +191,7 @@ CONTRAST [file_write]: Set the latest version of Product X to v3.2.1
 
 Every formatted prompt ends with the assistant turn beginning ``I'll use the ''. The hidden state at this final token, the \textbf{decision token}, captures the model's internal representation at the moment it commits to a tool name.
 
-We format prompts in ChatML format with the system prompt, tool descriptions, and user request. Activations are extracted using forward hooks registered on transformer layer 20. For the Nemotron-3-Nano-30B model (a Mixture-of-Experts architecture with 30B total parameters, 3B active per token), the hidden dimension is 4096. Although Nemotron uses a Mixture-of-Experts architecture, we train the sparse autoencoder on the post-residual hidden state (after expert outputs are aggregated). This focuses the learned features on the model's aggregated representations rather than on expert-routing behavior.
+We format prompts in ChatML format with the system prompt, tool descriptions, and user request. Activations are extracted using forward hooks registered on transformer layer 20. For the Nemotron-3-Nano-30B model (a Mixture-of-Experts architecture with 30B total parameters, 3B active per token), the hidden dimension is 2,688. Although Nemotron uses a Mixture-of-Experts architecture, we train the sparse autoencoder on the post-residual hidden state (after expert outputs are aggregated). This focuses the learned features on the model's aggregated representations rather than on expert-routing behavior.
 
 Batched extraction uses left-padding to align the decision token across variable-length prompts. Activations are cast to float16 and saved as NumPy shards for efficient loading during SAE training.
 
@@ -252,7 +252,7 @@ where $K(u) = \frac{1}{2}\mathbbm{1}\{|u| \leq 1\}$ is the rectangular kernel. G
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{images/sae_architecture.png}
-\caption{JumpReLU Sparse Autoencoder architecture. The input activation $\mathbf{x}$ is centered by subtracting $\mathbf{b}_\text{dec}$, projected to a 16,384-dimensional latent space via $W_\text{enc}$, and sparsified by the JumpReLU activation with learnable thresholds $\boldsymbol{\theta}$. The decoder reconstructs via $W_\text{dec} + \mathbf{b}_\text{dec}$ (shared bias). The loss combines reconstruction MSE with a smooth tanh-based L0 sparsity penalty.}
+\caption{JumpReLU Sparse Autoencoder architecture. The input activation $\mathbf{x}$ is centered by subtracting $\mathbf{b}_\text{dec}$, projected to a 10,752-dimensional latent space via $W_\text{enc}$, and sparsified by the JumpReLU activation with learnable thresholds $\boldsymbol{\theta}$. The decoder reconstructs via $W_\text{dec} + \mathbf{b}_\text{dec}$ (shared bias). The loss combines reconstruction MSE with a smooth tanh-based L0 sparsity penalty.}
 \label{fig:sae}
 \end{figure}
 
@@ -266,7 +266,7 @@ where $K(u) = \frac{1}{2}\mathbbm{1}\{|u| \leq 1\}$ is the rectangular kernel. G
 \toprule
 Parameter & Value & Description \\
 \midrule
-$M$ & 16,384 & Dictionary size ($4\times n$) \\
+$M$ & 10,752 & Dictionary size ($4\times n$) \\
 Batch size & 8,192 & Activations per training step \\
 Learning rate & $3 \times 10^{-4}$ & Peak learning rate \\
 $\lambda$ & $5 \times 10^{-3}$ & Sparsity coefficient \\
@@ -379,7 +379,7 @@ Post-training analysis of the layer-20 SAE on the full dataset (1M activation ve
 \toprule
 Metric & Value \\
 \midrule
-Total features ($M$) & 16,384 \\
+Total features ($M$) & 10,752 \\
 Alive features ($>$0.1\% firing rate) & 81.2\% [80.6, 81.8] \\
 Dead features (0\% firing rate) & 0.19\% [0.13, 0.27] \\
 L0 (mean active features per input) & $668 \pm 26$ (SEM) \\
@@ -388,7 +388,7 @@ Reconstruction MSE & 0.574 \\
 \end{tabular}
 \end{table}
 
-The 81.2\% alive feature rate indicates that the majority of SAE capacity is utilized, while the L0 statistic confirms sparse encoding (668 active features out of 16,384 total, i.e., 4.1\% activation density).
+The 81.2\% alive feature rate indicates that the majority of SAE capacity is utilized, while the L0 statistic confirms sparse encoding (668 active features out of 10,752 total, i.e., 6.2\% activation density).
 
 \subsection{Baseline Comparisons}
 
@@ -493,7 +493,7 @@ Critically, the reconstruction-only baseline reveals that the random ablation fl
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{images/inference_pipeline.png}
-\caption{Inference pipeline for real-time decision explainability. A user prompt is encoded by the Nemotron subject model; the hidden state at layer~20 is intercepted and projected through the trained SAE into a sparse 16,384-dimensional feature vector. The top-K active dimensions are mapped to pre-computed feature labels to produce a human-readable decision report.}
+\caption{Inference pipeline for real-time decision explainability. A user prompt is encoded by the Nemotron subject model; the hidden state at layer~20 is intercepted and projected through the trained SAE into a sparse 10,752-dimensional feature vector. The top-K active dimensions are mapped to pre-computed feature labels to produce a human-readable decision report.}
 \label{fig:inference}
 \end{figure}
 
