@@ -5,6 +5,7 @@ Usage:
     python3 render_svgs.py --mode color   # render color PNGs into images/
     python3 render_svgs.py --mode bw       # render grayscale PNGs into images/
 """
+
 import argparse
 import os
 import re
@@ -28,28 +29,27 @@ SVG_NAMES = [
 # Applied in order.  For SVG gradients where two original colours map to the
 # same gray, we handle gradients first with context-aware replacement.
 
-# Gradient-level mapping (id → {original_color: bw_color})
+# Gradient-level mapping (id → {original_color: gray_color})
 GRADIENT_MAP = {
-    "grad-primary": {"#2d4a7a": "#333333", "#1a2744": "#000000"},
-    "grad-accent": {"#ff7b5f": "#999999", "#e8563a": "#666666"},
-    "grad-teal": {"#38b2ac": "#cccccc", "#2c7a7b": "#999999"},
-    "grad-topbar": {"#1a2744": "#000000", "#e8563a": "#666666"},
+    "grad-primary": {"#2d4a7a": "#444444", "#1a2744": "#222222"},
+    "grad-accent": {"#ff7b5f": "#888888", "#e8563a": "#666666"},
+    "grad-teal": {"#38b2ac": "#aaaaaa", "#2c7a7b": "#888888"},
+    "grad-topbar": {"#1a2744": "#222222", "#e8563a": "#666666"},
 }
 
 # Global (non-gradient) replacements — applied after gradient replacement
 # so that gradient stop-colors are already handled.
-# High-contrast BW: dark colors → black, accent → mid-grey, light → near-white.
 GLOBAL_MAP = [
-    ("#2d4a7a", "#333333"),
-    ("#1a2744", "#000000"),
-    ("#ff7b5f", "#999999"),
+    ("#2d4a7a", "#444444"),
+    ("#1a2744", "#222222"),
+    ("#ff7b5f", "#888888"),
     ("#e8563a", "#666666"),
-    ("#38b2ac", "#cccccc"),
-    ("#2c7a7b", "#999999"),
-    ("#cbd5e0", "#e0e0e0"),
-    ("#718096", "#666666"),
-    ("#2d3748", "#222222"),
-    ("#e2e8f0", "#e0e0e0"),
+    ("#38b2ac", "#aaaaaa"),
+    ("#2c7a7b", "#888888"),
+    ("#cbd5e0", "#cccccc"),
+    ("#718096", "#777777"),
+    ("#2d3748", "#333333"),
+    ("#e2e8f0", "#cccccc"),
 ]
 
 # Text-contrast fixes: on light-gray (teal) backgrounds, swap white text to dark.
@@ -58,45 +58,68 @@ CONTRAST_FIXES = {
     # --- training_pipeline ---
     "training_pipeline": [
         # Step 1 – Contrastive Pair Generation (teal box)
-        ('y="76" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Contrastive Pair<',
-         'y="76" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">Contrastive Pair<'),
-        ('y="93" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Generation<',
-         'y="93" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">Generation<'),
-        ('y="113" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">500K',
-         'y="113" text-anchor="middle" font-size="9.5" fill="#333333">500K'),
-        ('y="127" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">32 tools',
-         'y="127" text-anchor="middle" font-size="9.5" fill="#333333">32 tools'),
+        (
+            'y="76" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Contrastive Pair<',
+            'y="76" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">Contrastive Pair<',
+        ),
+        (
+            'y="93" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Generation<',
+            'y="93" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">Generation<',
+        ),
+        (
+            'y="113" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">500K',
+            'y="113" text-anchor="middle" font-size="9.5" fill="#333333">500K',
+        ),
+        (
+            'y="127" text-anchor="middle" font-size="9.5" fill="#ffffff" fill-opacity="0.85">32 tools',
+            'y="127" text-anchor="middle" font-size="9.5" fill="#333333">32 tools',
+        ),
         # Step 8 – Feature Interpretation (teal box)
-        ('y="486" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Feature Interpretation<',
-         'y="486" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">Feature Interpretation<'),
-        ('fill="#ffffff" fill-opacity="0.85">LLM labeling',
-         'fill="#333333">LLM labeling'),
-        ('fill="#ffffff" fill-opacity="0.85">top-20 activating',
-         'fill="#333333">top-20 activating'),
+        (
+            'y="486" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Feature Interpretation<',
+            'y="486" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">Feature Interpretation<',
+        ),
+        ('fill="#ffffff" fill-opacity="0.85">LLM labeling', 'fill="#333333">LLM labeling'),
+        (
+            'fill="#ffffff" fill-opacity="0.85">top-20 activating',
+            'fill="#333333">top-20 activating',
+        ),
     ],
     # --- sae_architecture ---
     "sae_architecture": [
-        ('y="225" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">features (sparse)<',
-         'y="225" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">features (sparse)<'),
-        ('fill="#ffffff" fill-opacity="0.9">d_sae = 10,752<',
-         'fill="#333333">d_sae = 10,752<'),
-        ('fill="#ffffff" fill-opacity="0.85">~668 active (~6%)<',
-         'fill="#333333">~668 active (~6%)<'),
+        (
+            'y="225" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">features (sparse)<',
+            'y="225" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">features (sparse)<',
+        ),
+        ('fill="#ffffff" fill-opacity="0.9">d_sae = 10,752<', 'fill="#333333">d_sae = 10,752<'),
+        (
+            'fill="#ffffff" fill-opacity="0.85">~668 active (~6%)<',
+            'fill="#333333">~668 active (~6%)<',
+        ),
     ],
     # --- inference_pipeline ---
     "inference_pipeline": [
-        ('y="310" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">FEATURE THEMES<',
-         'y="310" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">FEATURE THEMES<'),
-        ('fill="#ffffff" fill-opacity="0.8">pre-computed labels<',
-         'fill="#333333">pre-computed labels<'),
-        ('fill="#ffffff" font-weight="600">"internal data access"<',
-         'fill="#222222" font-weight="600">"internal data access"<'),
-        ('fill="#ffffff" font-weight="600">"financial analysis"<',
-         'fill="#222222" font-weight="600">"financial analysis"<'),
-        ('fill="#ffffff" font-weight="600">"temporal reasoning"<',
-         'fill="#222222" font-weight="600">"temporal reasoning"<'),
-        ('fill="#ffffff" fill-opacity="0.6">...</',
-         'fill="#444444">...</'),
+        (
+            'y="310" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">FEATURE THEMES<',
+            'y="310" text-anchor="middle" font-size="12" fill="#222222" font-weight="700">FEATURE THEMES<',
+        ),
+        (
+            'fill="#ffffff" fill-opacity="0.8">pre-computed labels<',
+            'fill="#333333">pre-computed labels<',
+        ),
+        (
+            'fill="#ffffff" font-weight="600">"internal data access"<',
+            'fill="#222222" font-weight="600">"internal data access"<',
+        ),
+        (
+            'fill="#ffffff" font-weight="600">"financial analysis"<',
+            'fill="#222222" font-weight="600">"financial analysis"<',
+        ),
+        (
+            'fill="#ffffff" font-weight="600">"temporal reasoning"<',
+            'fill="#222222" font-weight="600">"temporal reasoning"<',
+        ),
+        ('fill="#ffffff" fill-opacity="0.6">...</', 'fill="#444444">...</'),
     ],
 }
 
@@ -109,11 +132,13 @@ def _replace_gradient_colors(svg_text: str, color_map: dict) -> str:
             rf'(<linearGradient\s+id="{re.escape(grad_id)}"[^>]*>)(.*?)(</linearGradient>)',
             re.DOTALL,
         )
+
         def _repl(m):
             inner = m.group(2)
             for orig, gray in mapping.items():
                 inner = inner.replace(orig, gray)
             return m.group(1) + inner + m.group(3)
+
         svg_text = pattern.sub(_repl, svg_text)
     return svg_text
 
