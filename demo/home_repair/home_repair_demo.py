@@ -20,10 +20,10 @@ Prerequisites:
     huggingface-cli login
 
 Usage:
-    uv run python demo/home_repair_demo.py
-    uv run python demo/home_repair_demo.py --device cuda
-    uv run python demo/home_repair_demo.py --youtube-api-key YOUR_KEY
-    uv run python demo/home_repair_demo.py \\
+    uv run python demo/home_repair/home_repair_demo.py
+    uv run python demo/home_repair/home_repair_demo.py --device cuda
+    uv run python demo/home_repair/home_repair_demo.py --youtube-api-key YOUR_KEY
+    uv run python demo/home_repair/home_repair_demo.py \\
         --sae-checkpoint output/sae_checkpoints/sae_final.pt \\
         --feature-descriptions output/activations/feature_descriptions.json
 """
@@ -40,7 +40,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-_SRC_DIR = str(Path(__file__).resolve().parent.parent / "src")
+_SRC_DIR = str(Path(__file__).resolve().parent.parent.parent / "src")
 if _SRC_DIR not in sys.path:
     sys.path.insert(0, _SRC_DIR)
 
@@ -1152,7 +1152,7 @@ def main():
     engine.cleanup()
 
     # Phase 5: Save results
-    output_path = Path("demo/output/home_repair")
+    output_path = Path("demo/home_repair/output")
     output_path.mkdir(parents=True, exist_ok=True)
 
     with open(output_path / "analysis_results.json", "w") as f:
