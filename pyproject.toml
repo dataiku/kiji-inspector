@@ -35,29 +35,9 @@ dependencies = [
     "datasets>=3.0.0",
     "accelerate>=1.12.0",
     "transformers>=4.57.6",
-]
-
-[project.optional-dependencies]
-# Mamba/NemotronH support — requires source build on aarch64 (GB200):
-#   uv pip install flash-linear-attention causal-conv1d mamba-ssm --no-build-isolation
-mamba = [
-    "flash-linear-attention>=0.4.1 ; sys_platform == 'linux'",
-    "causal-conv1d ; sys_platform == 'linux'",
-    "mamba-ssm ; sys_platform == 'linux'",
-]
-# flash-attn: install manually for your CUDA/torch version:
-#   Blackwell (SM 100): uv pip install https://github.com/Dao-AILab/flash-attention/releases/download/fa4-v4.0.0.beta2/flash_attn4-4.0.0b2-py3-none-any.whl
-#   Hopper (SM 90):     uv pip install flash-attn-3 --no-build-isolation
-hf = [
-    "huggingface-hub>=0.20",
-]
-# vllm: CI installs from PyPI via this extra.
-# For local dev with a custom fork, install manually:
-#   uv pip install -e ../vllm --no-build-isolation
-full = [
-    "kiji-inspector[mamba,hf]",
-    "vllm>=0.11.0",
-    "flash-attn-3 ; sys_platform == 'linux'",
+    "accelerate>=1.13.0",
+    "causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1%2Bcu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl",
+    "mamba-ssm @ https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1%2Bcu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
 ]
 
 [dependency-groups]
@@ -106,40 +86,13 @@ version_provider = "pep621"
 update_changelog_on_bump = true
 changelog_start_rev = "kiji-inspector-v0.0.1"
 
-[tool.uv]
-environments = [
-    "sys_platform == 'linux' and platform_machine == 'x86_64'",
-    "sys_platform == 'linux' and platform_machine == 'aarch64'",
-    "sys_platform == 'darwin'",
-]
-
-# Override vllm's torch==2.10.0+cpu requirement — we use the CUDA build
-override-dependencies = [
-    "torch>=2.10.0",
-]
-
-# vllm and CUDA-dependent packages: build against the venv's CUDA torch,
-# not the CPU torch that build isolation would pull from PyPI
-no-build-isolation-package = ["causal-conv1d", "mamba-ssm", "flash-linear-attention"]
 
 [[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
-explicit = true
-
-[[tool.uv.index]]
-name = "flash-attn-3-wheels"
-url = "https://windreamer.github.io/flash-attention3-wheels/cu130_torch2100"
-format = "flat"
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-torchvision = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux'" },
-]
-flash-attn-3 = { index = "flash-attn-3-wheels", marker = "sys_platform == 'linux'" }
-causal-conv1d = { url = "https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1+cu13torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl", marker = "sys_platform == 'linux'" }
-mamba-ssm = { url = "https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1+cu13torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl", marker = "sys_platform == 'linux'" }
