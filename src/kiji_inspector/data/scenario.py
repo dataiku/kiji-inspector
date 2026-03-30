@@ -188,14 +188,14 @@ def discover_scenarios(scenario_paths: list[str | Path] | None = None) -> list[S
     if scenario_paths:
         return load_scenarios(scenario_paths)
 
-    scenarios_dir = Path(__file__).resolve().parent.parent.parent / "scenarios"
+    scenarios_dir = Path(__file__).resolve().parent.parent.parent.parent / "scenarios"
     paths = sorted(scenarios_dir.glob("*.json"))
     if not paths:
         raise FileNotFoundError(
             f"No scenario files found in {scenarios_dir}. "
             "Create at least one .json file or use --scenario."
         )
-    return load_scenarios(paths)
+    return load_scenarios(list(paths))
 
 
 def save_scenarios_meta(scenarios: list[ScenarioConfig], output_dir: Path) -> Path:
