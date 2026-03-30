@@ -11,7 +11,7 @@ from kiji_inspector.extraction.vllm_activation_extractor import (
 )
 
 
-def test_hf_hook_keeps_only_last_token_for_decision_mode():
+def test_hf_hook_stores_full_sequence():
     extractor = ActivationExtractor.__new__(ActivationExtractor)
     extractor.config = ActivationConfig(
         model_name="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
@@ -24,8 +24,27 @@ def test_hf_hook_keeps_only_last_token_for_decision_mode():
     extractor._make_hook("residual_20")(None, None, activation)
 
     stored = extractor._activations["residual_20"]
-    assert stored.shape == (2, 4)
-    assert torch.equal(stored, activation[:, -1, :])
+    assert stored.shape == (2, 3, 4)
+    assert torch.equal(stored, activation)
+
+
+def test_hf_activation_to_numpy_uses_last_token_by_default():
+    extractor = ActivationExtractor.__new__(ActivationExtractor)
+    extractor.config = ActivationConfig(
+        model_name="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+        token_positions="decision",
+    )
+
+    activation = np.arange(12, dtype=np.float32).reshape(3, 4)
+
+    np.testing.assert_array_equal(
+        extractor._activation_to_numpy(activation),
+        activation[-1],
+    )
+    np.testing.assert_array_equal(
+        extractor._activation_to_numpy(activation, decision_token_offset=-2),
+        activation[-2],
+    )
 
 
 def test_hf_hook_preserves_full_sequence_for_all_mode():
