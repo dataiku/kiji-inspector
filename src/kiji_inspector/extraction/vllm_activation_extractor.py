@@ -57,7 +57,7 @@ class VLLMActivationExtractor:
         print(f"Loading model via vLLM: {config.model_name}")
         print(f"  layers: {config.layers}")
         print(f"  tensor_parallel_size: {config.tensor_parallel_size}")
-        print("  compilation_mode: STOCK_TORCH_COMPILE")
+        # print("  compilation_mode: STOCK_TORCH_COMPILE")
 
         self.llm = LLM(
             model=config.model_name,
@@ -67,7 +67,7 @@ class VLLMActivationExtractor:
             tensor_parallel_size=config.tensor_parallel_size,
             max_model_len=config.max_model_len,
             extract_activation_layers=tuple(config.layers),
-            compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
+            # compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
             disable_log_stats=True,
         )
 

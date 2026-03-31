@@ -103,9 +103,3 @@ We welcome contributions! Whether you're fixing a bug, improving documentation, 
 Copyright (c) 2026 Dataiku SAS
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
-
----
-
-Examples
-git am --directory=vllm 0001-patch-venv.mbox.patch
-git am --directory=.venv/lib/python3.12/site-packages/vllm/ patches/0001-patch-venv.mbox.patch

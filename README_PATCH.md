@@ -1,5 +1,11 @@
 # Local vLLM patch workflow
 
+## Requirements
+Install vllm as:
+```
+uv pip install vllm --torch-backend=cu128
+```
+
 This repository includes scripts to apply and revert a local patch on the installed `vllm` package in:
 
 `.venv/lib/python3.12/site-packages/vllm`
