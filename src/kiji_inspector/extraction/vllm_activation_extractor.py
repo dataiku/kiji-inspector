@@ -52,7 +52,7 @@ class VLLMActivationExtractor:
         self.config = config
 
         from vllm import LLM
-        from vllm.config.compilation import CompilationConfig, CompilationMode
+        # from vllm.config.compilation import CompilationConfig, CompilationMode
 
         print(f"Loading model via vLLM: {config.model_name}")
         print(f"  layers: {config.layers}")
