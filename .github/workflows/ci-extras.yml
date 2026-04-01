@@ -8,7 +8,7 @@ on:
 
 jobs:
   runtime:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     name: Runtime checks
 
     steps:
@@ -23,7 +23,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
         with:
-          version: "0.10.10"
+          version: ">=0.7.0"
 
       - name: Install runtime + dev dependencies
         run: uv sync --group dev
@@ -50,7 +50,7 @@ jobs:
         run: uv build
 
   train-smoke:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     name: Train extra smoke
 
     steps:
@@ -65,7 +65,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5
         with:
-          version: "0.10.10"
+          version: ">=0.7.0"
 
       - name: Install full + dev dependencies
         run: uv sync --extra full --group dev
