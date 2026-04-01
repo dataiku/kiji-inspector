@@ -8,7 +8,7 @@ on:
 
 jobs:
   runtime:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Runtime checks
 
     steps:
@@ -50,7 +50,7 @@ jobs:
         run: uv build
 
   train-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Train extra smoke
 
     steps:
