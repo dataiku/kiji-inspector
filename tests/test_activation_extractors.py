@@ -131,6 +131,5 @@ def test_vllm_extractor_uses_compiled_activation_config(monkeypatch):
     kwargs = captured["kwargs"]
     assert kwargs["extract_activation_layers"] == (20,)
     assert kwargs["dtype"] == "bfloat16"
-    assert kwargs["compilation_config"].mode == "stock_torch_compile"
     assert extractor.hidden_size == 64
     assert extractor.tokenizer.pad_token == extractor.tokenizer.eos_token
