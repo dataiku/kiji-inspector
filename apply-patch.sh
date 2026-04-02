@@ -1,7 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-VLLM_DIR=".venv/lib/python3.12/site-packages/vllm"
+VLLM_DIR="$(uv run python - <<'PY'
+import sys
+import pathlib
+try:
+    import vllm
+except ImportError:
+    sys.stderr.write('Error: vllm is not installed in the current Python environment.\n')
+    sys.exit(1)
+vllm_path = pathlib.Path(vllm.__file__).resolve().parent
+print(vllm_path)
+PY
+)"
 PATCH_SRC_DIR="patches"
 PATCH_DST_DIR="${VLLM_DIR}/patches"
 PATCH_NAME="0001-patch-venv.mbox.patch"
@@ -28,13 +39,13 @@ cp -r "$PATCH_SRC_DIR" "$PATCH_DST_DIR"
 
 cd "$VLLM_DIR"
 
-if git apply --reverse --check "$PATCH_REL_FILE" >/dev/null 2>&1; then
+if patch -p1 --reverse --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
   echo "Patch is already applied. Skipping."
   exit 0
 fi
 
-if git apply --check "$PATCH_REL_FILE"; then
-  git apply "$PATCH_REL_FILE"
+if patch -p1 --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
+  patch -p1 < "$PATCH_REL_FILE"
   echo "Patch applied successfully."
 else
   echo "Patch could not be applied cleanly. The installed vllm version may differ from the patch." >&2
