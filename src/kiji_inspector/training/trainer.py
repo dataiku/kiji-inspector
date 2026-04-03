@@ -461,6 +461,10 @@ def analyze_feature_health(
 
     from scipy.stats import sem as _sem
 
+    if len(l0_arr) == 0:
+        raise ValueError(
+            "No batches were analyzed — activation buffer is empty. Check value --sae-batch-size and number of shards."
+        )
     l0_ci = _bootstrap_ci(l0_arr)
     recon_ci = _bootstrap_ci(recon_arr)
     alive_ci = _wilson_score_ci(alive, d_sae)

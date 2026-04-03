@@ -78,6 +78,23 @@ python -m kiji_inspector.generate_pairs 1300
 python -m kiji_inspector.pipeline --layers 10 20 30
 ```
 
+## Local vLLM patches
+
+For local experiments that require the custom `vllm` extraction changes, rebuild the environment and apply the patch set from the repository root:
+
+```bash
+uv sync --no-cache --refresh --extra full --group dev
+./patches/apply-patch.sh
+```
+
+The apply script installs every `*.patch` file under [patches](patches/) in lexical order:
+
+- `01_allow_extract_hidden_states.patch`
+- `02_support_nemotron_models.patch`
+- `03_support_gemma3_models.patch`
+
+Additional workflow details live in [patches/README_PATCH.md](patches/README_PATCH.md).
+
 ---
 
 ## 🤝 Contributing

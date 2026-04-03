@@ -787,7 +787,7 @@ def _run_judge_subprocess(
         trust_remote_code=True,
         gpu_memory_utilization=0.95,
         enforce_eager=True,
-        enable_expert_parallel=True,
+        enable_expert_parallel=False,
         disable_log_stats=True,
     )
 

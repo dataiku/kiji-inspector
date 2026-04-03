@@ -1,0 +1,80 @@
+diff --git a/model_executor/models/nemotron_h.py b/model_executor/models/nemotron_h.py
+index 859e34a..a3e4a3d 100644
+--- a/model_executor/models/nemotron_h.py
++++ b/model_executor/models/nemotron_h.py
+@@ -66,6 +66,7 @@ from vllm.model_executor.models.interfaces import (
+     HasInnerState,
+     IsHybrid,
+     MixtureOfExperts,
++    SupportsEagle3,
+     SupportsLoRA,
+     SupportsMambaPrefixCaching,
+     SupportsPP,
+@@ -602,6 +603,7 @@ class NemotronHModel(nn.Module):
+         )
+ 
+         self.norm_f = RMSNorm(config.hidden_size, eps=config.layer_norm_epsilon)
++        self.aux_hidden_state_layers: tuple[int, ...] = ()
+ 
+     def embed_input_ids(self, input_ids: torch.Tensor) -> torch.Tensor:
+         return self.embed_tokens(input_ids)
+@@ -612,7 +614,11 @@ class NemotronHModel(nn.Module):
+         positions: torch.Tensor,
+         intermediate_tensors: IntermediateTensors | None = None,
+         inputs_embeds: torch.Tensor | None = None,
+-    ) -> torch.Tensor | IntermediateTensors:
++    ) -> (
++        torch.Tensor
++        | IntermediateTensors
++        | tuple[torch.Tensor, list[torch.Tensor]]
++    ):
+         if get_pp_group().is_first_rank:
+             if inputs_embeds is not None:
+                 hidden_states = inputs_embeds
+@@ -624,18 +630,27 @@ class NemotronHModel(nn.Module):
+             hidden_states = intermediate_tensors["hidden_states"]
+             residual = intermediate_tensors["residual"]
+ 
+-        for layer in islice(self.layers, self.start_layer, self.end_layer):
++        aux_hidden_states: list[torch.Tensor] = []
++        for idx, layer in enumerate(
++            islice(self.layers, self.start_layer, self.end_layer),
++            start=self.start_layer,
++        ):
+             hidden_states, residual = layer(
+                 positions=positions,
+                 hidden_states=hidden_states,
+                 residual=residual,
+             )
++            if idx in self.aux_hidden_state_layers:
++                value = hidden_states + residual if residual is not None else hidden_states
++                aux_hidden_states.append(value)
+ 
+         if not get_pp_group().is_last_rank:
+             return IntermediateTensors(
+                 {"hidden_states": hidden_states, "residual": residual}
+             )
+         hidden_states, _ = self.norm_f(hidden_states, residual)
++        if aux_hidden_states:
++            return hidden_states, aux_hidden_states
+         return hidden_states
+ 
+     def is_spec_layer(self, config: NemotronHConfig, weight_name: str) -> bool:
+@@ -786,6 +801,7 @@ class NemotronHForCausalLM(
+     HasInnerState,
+     SupportsLoRA,
+     SupportsPP,
++    SupportsEagle3,
+     IsHybrid,
+     SupportsQuant,
+     MixtureOfExperts,
+@@ -931,6 +947,9 @@ class NemotronHForCausalLM(
+     def embed_input_ids(self, input_ids: torch.Tensor) -> torch.Tensor:
+         return self.model.embed_input_ids(input_ids)
+ 
++    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:
++        self.model.aux_hidden_state_layers = layers
++
+     def forward(
+         self,
+         input_ids: torch.Tensor | None,
