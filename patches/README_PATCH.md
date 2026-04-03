@@ -30,12 +30,6 @@ Run from the repository root:
 
 `./patches/apply-patch.sh`
 
-## Revert the patch
-
-Run from the repository root:
-
-`./revert-patch.sh`
-
 ## Assumptions
 
 - Python is installed in `.venv`.
