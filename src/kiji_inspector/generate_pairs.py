@@ -56,6 +56,13 @@ def parse_args() -> argparse.Namespace:
         help=argparse.SUPPRESS,
     )
     p.add_argument(
+        "--api-base",
+        type=str,
+        default=None,
+        help="OpenAI-compatible API base URL (e.g. http://localhost:8000/v1). "
+        "When set, uses HTTP API instead of in-process vLLM.",
+    )
+    p.add_argument(
         "--generation-tp-size",
         type=int,
         default=4,
@@ -99,6 +106,48 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+class _OpenAILLMAdapter:
+    """Wraps an OpenAI-compatible API to mimic vLLM's LLM.generate() interface."""
+
+    def __init__(self, api_base: str, model: str):
+        from openai import OpenAI
+
+        self.client = OpenAI(base_url=api_base, api_key="unused")
+        self.model = model
+
+    def generate(self, prompts: list[str], sampling_params: object, use_tqdm: bool = False) -> list:
+        import concurrent.futures
+
+        temperature = getattr(sampling_params, "temperature", 0.7)
+        top_p = getattr(sampling_params, "top_p", 0.8)
+        max_tokens = getattr(sampling_params, "max_tokens", 8000)
+
+        def _call(prompt: str) -> object:
+            resp = self.client.completions.create(
+                model=self.model,
+                prompt=prompt,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+            )
+            return resp
+
+        # Parallel HTTP requests for throughput
+        with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
+            results = list(pool.map(_call, prompts))
+
+        # Wrap into vLLM-compatible output shape
+        class _Output:
+            def __init__(self, text: str):
+                self.text = text
+
+        class _RequestOutput:
+            def __init__(self, text: str):
+                self.outputs = [_Output(text)]
+
+        return [_RequestOutput(r.choices[0].text) for r in results]
+
+
 def _run_generation_subprocess(
     num_samples: int,
     scenario_dicts: list[dict],
@@ -108,10 +157,9 @@ def _run_generation_subprocess(
     tp_size: int,
     max_model_len: int,
     output_dir: str,
+    api_base: str | None = None,
 ) -> None:
-    """Child-process entry point: load vLLM, generate pairs for all scenarios, save, exit."""
-    from vllm import LLM, SamplingParams
-
+    """Child-process entry point: load vLLM (or connect to API), generate pairs, save, exit."""
     from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
     from kiji_inspector.data.generator import ContrastivePairGenerator
     from kiji_inspector.data.scenario import ScenarioConfig
@@ -127,25 +175,38 @@ def _run_generation_subprocess(
             f"  [subprocess] Found {len(existing_pairs)} existing pairs in {output_dir}, will append"
         )
 
-    print(f"  [subprocess] Loading vLLM model: {judging_model}")
-    print(f"  [subprocess] tensor_parallel_size={tp_size}, max_model_len={max_model_len}")
+    if api_base:
+        print(f"  [subprocess] Using OpenAI-compatible API: {api_base}")
+        print(f"  [subprocess] Model: {judging_model}")
+        llm = _OpenAILLMAdapter(api_base, judging_model)
 
-    llm = LLM(
-        model=judging_model,
-        tensor_parallel_size=tp_size,
-        max_model_len=max_model_len,
-        trust_remote_code=True,
-        gpu_memory_utilization=0.95,
-        enforce_eager=True,
-        enable_expert_parallel=True,
-        disable_log_stats=True,
-    )
+        class _SamplingParams:
+            def __init__(self, **kwargs: object):
+                self.__dict__.update(kwargs)
 
-    sampling_params = SamplingParams(
-        temperature=0.7,
-        top_p=0.8,
-        max_tokens=8000,
-    )
+        sampling_params = _SamplingParams(temperature=0.7, top_p=0.8, max_tokens=8000)
+    else:
+        from vllm import LLM, SamplingParams
+
+        print(f"  [subprocess] Loading vLLM model: {judging_model}")
+        print(f"  [subprocess] tensor_parallel_size={tp_size}, max_model_len={max_model_len}")
+
+        llm = LLM(
+            model=judging_model,
+            tensor_parallel_size=tp_size,
+            max_model_len=max_model_len,
+            trust_remote_code=True,
+            gpu_memory_utilization=0.95,
+            enforce_eager=True,
+            enable_expert_parallel=True,
+            disable_log_stats=True,
+        )
+
+        sampling_params = SamplingParams(
+            temperature=0.7,
+            top_p=0.8,
+            max_tokens=8000,
+        )
 
     scenarios = [ScenarioConfig.from_dict(d) for d in scenario_dicts]
     pairs_per_scenario = math.ceil(num_samples / len(scenarios))
@@ -232,8 +293,9 @@ def generate_pairs(
     tp_size: int,
     max_model_len: int,
     output_dir: str,
+    api_base: str | None = None,
 ) -> list:
-    """Spawn a subprocess to generate pairs via vLLM, then load results."""
+    """Spawn a subprocess to generate pairs via vLLM (or OpenAI API), then load results."""
     ctx = mp.get_context("spawn")
     p = ctx.Process(
         target=_run_generation_subprocess,
@@ -246,6 +308,7 @@ def generate_pairs(
             tp_size,
             max_model_len,
             output_dir,
+            api_base,
         ),
     )
     p.start()
@@ -264,9 +327,10 @@ def main() -> None:
     args = parse_args()
 
     # Apply Blackwell P2P mitigations before any CUDA context is created
-    from kiji_inspector.pipeline import _apply_p2p_mitigations
+    if not args.api_base:
+        from kiji_inspector.pipeline import _apply_p2p_mitigations
 
-    _apply_p2p_mitigations(args.disable_p2p)
+        _apply_p2p_mitigations(args.disable_p2p)
 
     from kiji_inspector.data.scenario import discover_scenarios, save_scenarios_meta
 
@@ -293,6 +357,7 @@ def main() -> None:
         tp_size=args.generation_tp_size,
         max_model_len=args.max_model_len,
         output_dir=args.output_dir,
+        api_base=args.api_base,
     )
 
     # Save scenarios_meta.json alongside the pairs
