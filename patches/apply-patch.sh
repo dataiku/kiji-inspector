@@ -3,8 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCH_SRC_DIR="$SCRIPT_DIR"
-PATCH_NAME="extract-hiddenstates-gemma3-nemotron.patch"
-PATCH_SRC_FILE="${PATCH_SRC_DIR}/${PATCH_NAME}"
 
 VLLM_DIR="$(uv run python - <<'PY'
 import pathlib
@@ -20,15 +18,16 @@ PY
 )"
 
 PATCH_DST_DIR="${VLLM_DIR}/patches"
-PATCH_REL_FILE="patches/${PATCH_NAME}"
 
 if [[ ! -d "$VLLM_DIR" ]]; then
   echo "Error: vllm directory not found: $VLLM_DIR" >&2
   exit 1
 fi
 
-if [[ ! -f "$PATCH_SRC_FILE" ]]; then
-  echo "Error: patch file not found: $PATCH_SRC_FILE" >&2
+mapfile -t PATCH_FILES < <(find "$PATCH_SRC_DIR" -maxdepth 1 -type f -name '*.patch' | sort)
+
+if [[ "${#PATCH_FILES[@]}" -eq 0 ]]; then
+  echo "Error: no patch files found in $PATCH_SRC_DIR" >&2
   exit 1
 fi
 
@@ -37,17 +36,43 @@ cp -r "$PATCH_SRC_DIR" "$PATCH_DST_DIR"
 
 cd "$VLLM_DIR"
 
-if patch -p1 --reverse --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
-  echo "Patch is already applied. Skipping."
-  exit 0
-fi
+all_already_applied=true
 
-# `-N` ignores hunks that are already applied, which lets us complete
-# partially applied patch states without failing on duplicate hunks.
-if patch -p1 -N --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
-  patch -p1 -N < "$PATCH_REL_FILE"
-  echo "Patch applied successfully."
-else
-  echo "Patch could not be applied cleanly. The installed vllm version may differ from the patch." >&2
+for patch_file in "${PATCH_FILES[@]}"; do
+  patch_name="$(basename "$patch_file")"
+  patch_rel_file="patches/${patch_name}"
+
+  if patch -p1 --reverse --dry-run < "$patch_rel_file" >/dev/null 2>&1; then
+    echo "Patch already applied: $patch_name"
+    continue
+  fi
+
+  all_already_applied=false
+
+  set +e
+  patch_output="$(patch -p1 -N < "$patch_rel_file" 2>&1)"
+  patch_status=$?
+  set -e
+
+  printf '%s\n' "$patch_output"
+
+  if [[ "$patch_status" -eq 0 ]]; then
+    echo "Patch applied: $patch_name"
+    continue
+  fi
+
+  if patch -p1 --reverse --dry-run < "$patch_rel_file" >/dev/null 2>&1; then
+    echo "Patch applied with already-present hunks: $patch_name"
+    find . -name '*.rej' -delete
+    continue
+  fi
+
+  echo "Patch could not be applied cleanly: $patch_name" >&2
   exit 1
+done
+
+if [[ "$all_already_applied" == true ]]; then
+  echo "All patches are already applied. Skipping."
+else
+  echo "All patches applied successfully."
 fi

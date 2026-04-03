@@ -6,15 +6,19 @@ Install vllm as:
 uv pip install vllm --torch-backend=cu128
 ```
 
-This repository includes scripts to apply and revert a local patch on the installed `vllm` package in:
+This repository includes scripts to apply and revert a local patch set on the installed `vllm` package in:
 
 `.venv/lib/python3.12/site-packages/vllm`
 
-The patch file used by both scripts is:
+The patch files are:
 
-`patches/extract-hiddenstates-gemma3-nemotron.patch`
+- `patches/01_allow_extract_hidden_states.patch`
+- `patches/02_support_nemotron_models.patch`
+- `patches/03_support_gemma3_models.patch`
 
-The patch adds:
+They are applied in lexical order by `patches/apply-patch.sh`.
+
+The patch set adds:
 
 `Support extracting hidden states for Gemma3 and Nemotron models`
 
@@ -38,4 +42,4 @@ Run from the repository root:
 - The installed package path is `.venv/lib/python3.12/site-packages/vllm`.
 - The installed `vllm` version matches the patch context.
 
-Both scripts copy the local `patches/` directory into the installed `vllm` directory before invoking `patch`. They also skip cleanly when the requested state is already satisfied.
+The apply script copies the local `patches/` directory into the installed `vllm` directory, then applies every `*.patch` file in lexical order with `patch -p1`. It skips patches that are already present and can complete partially applied states as long as the final installed files match the requested patch content.
