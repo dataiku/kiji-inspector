@@ -19,9 +19,6 @@ class ActivationConfig:
 
     model_name: str = ""  # Required — HuggingFace model ID (e.g. "Qwen/Qwen2.5-3B-Instruct")
     layers: list[int] = field(default_factory=lambda: [8, 12, 16, 20, 24])
-    extract_residual_stream: bool = True
-    extract_attention: bool = False
-    extract_mlp: bool = False
     token_positions: str = "decision"  # "all", "last", "decision"
     dtype: torch.dtype = torch.bfloat16
     trust_remote_code: bool = True
@@ -39,6 +36,8 @@ class ActivationExtractor:
     def __init__(self, config: ActivationConfig):
         if not config.model_name:
             raise ValueError("ActivationConfig.model_name is required.")
+        if config.token_positions not in {"all", "last", "decision"}:
+            raise ValueError(f"Unknown token_positions: {config.token_positions}")
         self.config = config
         self._hooks: list[torch.utils.hooks.RemovableHook] = []
 
@@ -242,29 +241,14 @@ class ActivationExtractor:
                 continue
 
             layer = layers[layer_idx]
-
-            if self.config.extract_residual_stream:
-                hook = layer.register_forward_hook(self._make_hook(f"residual_{layer_idx}"))
-                self._hooks.append(hook)
-
-            if self.config.extract_attention:
-                attn = getattr(layer, "self_attn", None) or getattr(layer, "attention", None)
-                if attn is not None:
-                    hook = attn.register_forward_hook(self._make_hook(f"attention_{layer_idx}"))
-                    self._hooks.append(hook)
-
-            if self.config.extract_mlp:
-                mlp = getattr(layer, "mlp", None)
-                if mlp is not None:
-                    hook = mlp.register_forward_hook(self._make_hook(f"mlp_{layer_idx}"))
-                    self._hooks.append(hook)
+            hook = layer.register_forward_hook(self._make_hook(f"residual_{layer_idx}"))
+            self._hooks.append(hook)
 
     def _make_hook(self, name: str):
-        """Create a hook function that stores activations.
+        """Create a hook function that stores the full activation sequence.
 
         Activations are moved to CPU and cast to float32 immediately.
-        This is critical for multi-GPU: hooked tensors may live on any GPU,
-        and we need a uniform representation for numpy conversion.
+        Token position selection is deferred to extract/extract_batch.
         """
 
         def hook(module, input, output):
@@ -272,17 +256,31 @@ class ActivationExtractor:
                 activation = output[0]
             else:
                 activation = output
-            self._activations[name] = activation.detach().cpu().to(torch.float32)
+            self._activations[name] = activation.detach().to(device="cpu", dtype=torch.float32)
 
         return hook
+
+    def _activation_to_numpy(
+        self,
+        activation: np.ndarray,
+        decision_token_offset: int = -1,
+    ) -> np.ndarray:
+        """Select the requested token position from an activation array."""
+        if self.config.token_positions == "all":
+            return activation
+        if self.config.token_positions in ("last", "decision"):
+            if activation.ndim == 1:
+                return activation
+            position = activation.shape[0] + decision_token_offset
+            return activation[position]
+        raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
 
     def extract(
         self,
         prompt: str,
         decision_token_offset: int = -1,
     ) -> dict[str, np.ndarray]:
-        """
-        Extract activations for a single prompt.
+        """Extract activations for a single prompt.
 
         Args:
             prompt: The full formatted prompt text.
@@ -295,26 +293,15 @@ class ActivationExtractor:
         self._activations = {}
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self._input_device)
-        seq_len = inputs.input_ids.shape[1]
 
-        # Run the transformer body only — skip lm_head to avoid
-        # allocating the huge (batch × seq × vocab) logit tensor.
         inner_model = self._get_inner_model()
         with torch.no_grad():
             inner_model(**inputs)
 
-        if self.config.token_positions in ("last", "decision"):
-            position = seq_len + decision_token_offset
-            result = {
-                name: act[:, position, :].squeeze(0).numpy()
-                for name, act in self._activations.items()
-            }
-        elif self.config.token_positions == "all":
-            result = {name: act.squeeze(0).numpy() for name, act in self._activations.items()}
-        else:
-            raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
-
-        return result
+        return {
+            name: self._activation_to_numpy(act.squeeze(0).numpy(), decision_token_offset)
+            for name, act in self._activations.items()
+        }
 
     def extract_batch(
         self,
@@ -341,39 +328,30 @@ class ActivationExtractor:
                 truncation=True,
             ).to(self._input_device)
 
-            attention_mask = inputs.attention_mask  # (B, T)
-
-            # Run the transformer body only — skip lm_head to avoid
-            # allocating the huge (batch × seq × vocab) logit tensor.
             inner_model = self._get_inner_model()
             with torch.no_grad():
                 inner_model(**inputs)
 
-            # For each item in the batch, find its last real token position
             for b in range(len(batch_prompts)):
-                # Last non-pad token index
-                real_len = attention_mask[b].sum().item()
-                position = real_len - 1  # 0-indexed last real token
-
-                if self.config.token_positions in ("last", "decision"):
-                    item = {
-                        name: act[b, position, :].numpy() for name, act in self._activations.items()
-                    }
-                elif self.config.token_positions == "all":
-                    # Return only non-padded tokens
+                if self.config.token_positions == "all":
+                    attention_mask = inputs.attention_mask
+                    real_len = attention_mask[b].sum().item()
                     item = {
                         name: act[b, :real_len, :].numpy()
                         for name, act in self._activations.items()
                     }
                 else:
-                    raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
+                    item = {
+                        name: self._activation_to_numpy(act[b].numpy())
+                        for name, act in self._activations.items()
+                    }
                 results.append(item)
 
         return results
 
     def cleanup(self):
         """Remove hooks, delete model, and free GPU memory."""
-        for hook in self._hooks:
+        for hook in getattr(self, "_hooks", []):
             hook.remove()
         self._hooks = []
         self._activations = {}

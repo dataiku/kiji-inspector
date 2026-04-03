@@ -1,22 +1,24 @@
 """
-Activation extractor using vLLM's built-in activation capture.
+Activation extractor using vLLM's compiled prompt activation capture.
 
 Drop-in replacement for ActivationExtractor that uses vLLM's
 ``extract_activation_layers`` API instead of HuggingFace Transformers
-with manual forward hooks.  Significantly faster for bulk extraction
-thanks to vLLM's continuous batching and optimized kernels.
+with manual forward hooks. Significantly faster for bulk extraction
+thanks to vLLM's continuous batching and compiled kernels.
 
-Requires a patched vLLM build that supports ``extract_activation_layers``
-on ``ModelConfig`` (engine-level) and ``extract_activations`` on
-``SamplingParams`` (request-level).
+Requires a patched vLLM build that attaches prompt activations to the
+public ``RequestOutput`` when ``extract_activation_layers`` is enabled.
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 
 import numpy as np
 import torch
+
+os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
 
 
 @dataclass
@@ -26,6 +28,7 @@ class VLLMActivationConfig:
     model_name: str = ""
     layers: list[int] = field(default_factory=lambda: [20])
     token_positions: str = "decision"  # "all", "last", "decision"
+    dtype: str = "bfloat16"
     gpu_memory_utilization: float = 0.90
     tensor_parallel_size: int = 1
     max_model_len: int = 8192
@@ -44,22 +47,27 @@ class VLLMActivationExtractor:
     def __init__(self, config: VLLMActivationConfig):
         if not config.model_name:
             raise ValueError("VLLMActivationConfig.model_name is required.")
+        if config.token_positions not in {"all", "last", "decision"}:
+            raise ValueError(f"Unknown token_positions: {config.token_positions}")
         self.config = config
 
         from vllm import LLM
+        # from vllm.config.compilation import CompilationConfig, CompilationMode
 
         print(f"Loading model via vLLM: {config.model_name}")
         print(f"  layers: {config.layers}")
         print(f"  tensor_parallel_size: {config.tensor_parallel_size}")
+        # print("  compilation_mode: STOCK_TORCH_COMPILE")
 
         self.llm = LLM(
             model=config.model_name,
-            extract_activation_layers=config.layers,
-            enforce_eager=True,
+            dtype=config.dtype,
             trust_remote_code=config.trust_remote_code,
             gpu_memory_utilization=config.gpu_memory_utilization,
             tensor_parallel_size=config.tensor_parallel_size,
             max_model_len=config.max_model_len,
+            extract_activation_layers=tuple(config.layers),
+            # compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
             disable_log_stats=True,
         )
 
@@ -67,19 +75,31 @@ class VLLMActivationExtractor:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.hidden_size = self.llm.model_config.hf_text_config.hidden_size
+        hf_text_config = getattr(self.llm.model_config, "hf_text_config", None)
+        self.hidden_size = getattr(hf_text_config, "hidden_size", None) or getattr(
+            self.llm.model_config, "hidden_size", None
+        )
+        if self.hidden_size is None:
+            raise AttributeError("Could not determine hidden_size from vLLM model_config.")
         print(f"  hidden_size: {self.hidden_size}")
         print(f"  token_positions: {config.token_positions}")
 
-        if config.token_positions == "all":
-            import warnings
+    def _activation_to_numpy(
+        self,
+        activation: torch.Tensor,
+        decision_token_offset: int = -1,
+    ) -> np.ndarray:
+        """Convert a vLLM activation tensor into the requested numpy view."""
+        array = activation.to(device="cpu", dtype=torch.float32).numpy()
 
-            warnings.warn(
-                "vLLM backend with token_positions='all' only returns activations "
-                "from the last forward step (decode), not the full prompt sequence. "
-                "Use --backend hf for full per-token activations.",
-                stacklevel=2,
-            )
+        if self.config.token_positions == "all":
+            return array
+        if self.config.token_positions in ("last", "decision"):
+            if array.ndim == 1:
+                return array
+            position = array.shape[0] + decision_token_offset
+            return array[position]
+        raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
 
     def extract(
         self,
@@ -101,7 +121,6 @@ class VLLMActivationExtractor:
         sp = SamplingParams(
             max_tokens=1,
             temperature=0.0,
-            extract_activations=True,
         )
         outputs = self.llm.generate([prompt], sp, use_tqdm=False)
         activations = outputs[0].outputs[0].activations
@@ -111,17 +130,8 @@ class VLLMActivationExtractor:
 
         result = {}
         for layer_idx, tensor in activations.items():
-            # vLLM overwrites activations per step (prefill then decode).
-            # With max_tokens=1 the returned tensor is from the decode step:
-            # shape (1, hidden_size) — the hidden state at the decision point.
             key = f"residual_{layer_idx}"
-
-            if self.config.token_positions in ("last", "decision"):
-                result[key] = tensor[-1].float().numpy()
-            elif self.config.token_positions == "all":
-                result[key] = tensor.float().numpy()
-            else:
-                raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
+            result[key] = self._activation_to_numpy(tensor, decision_token_offset)
 
         return result
 
@@ -142,7 +152,6 @@ class VLLMActivationExtractor:
         sp = SamplingParams(
             max_tokens=1,
             temperature=0.0,
-            extract_activations=True,
         )
         results: list[dict[str, np.ndarray]] = []
 
@@ -158,13 +167,7 @@ class VLLMActivationExtractor:
                 item = {}
                 for layer_idx, tensor in activations.items():
                     key = f"residual_{layer_idx}"
-
-                    if self.config.token_positions in ("last", "decision"):
-                        item[key] = tensor[-1].float().numpy()
-                    elif self.config.token_positions == "all":
-                        item[key] = tensor.float().numpy()
-                    else:
-                        raise ValueError(f"Unknown token_positions: {self.config.token_positions}")
+                    item[key] = self._activation_to_numpy(tensor)
 
                 results.append(item)
 

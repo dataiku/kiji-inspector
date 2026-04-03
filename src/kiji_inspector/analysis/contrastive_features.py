@@ -1,5 +1,5 @@
 """
-Step 4: Contrastive feature identification.
+Step 3: Contrastive feature identification.
 
 Identify which SAE features are decision-relevant using contrastive pairs.
 For each contrastive pair, encode both the anchor and contrast prompts
@@ -7,9 +7,9 @@ through the SAE and compare which features activate differently.  Features
 that consistently differ across many pairs of the same contrast type are
 the decision-relevant features for that contrast.
 
-When multiple layers are specified, the subject model is loaded once and
-activations for all layers are extracted in a single pass.  Each layer's
-SAE is then applied independently to produce per-layer reports.
+Activations are loaded from the numpy shards produced by Step 1 (activation
+extraction), so the subject model does not need to be loaded again.  Each
+layer's SAE is applied independently to produce per-layer reports.
 """
 
 from __future__ import annotations
@@ -232,167 +232,133 @@ def _load_shards_as_act_dicts(
     return result
 
 
+def _load_and_regroup_activations(
+    pairs: list,
+    layer_keys: list[str],
+    base_output_dir: Path,
+) -> tuple[dict[str, list], dict[str, list[dict[str, np.ndarray]]]]:
+    """Load Step 1 shards and regroup into the format ``_analyze_layer`` expects.
+
+    Step 1 saves activations interleaved per pair:
+        [anchor_0, contrast_0, anchor_1, contrast_1, ...]
+
+    ``_analyze_layer`` expects activations grouped by contrast type with all
+    anchors first then all contrasts:
+        {ct: [anchor_0, anchor_3, ..., contrast_0, contrast_3, ...]}
+
+    This function bridges the two orderings.
+
+    Returns:
+        (pairs_by_type, all_acts_by_type) ready for ``_analyze_layer``.
+    """
+    # Build layer_dirs from the base output directory
+    layer_dirs: dict[str, str] = {}
+    for lk in layer_keys:
+        layer_num = lk.split("_", 1)[1]
+        layer_dir = base_output_dir / f"layer_{layer_num}" / "activations"
+        if not layer_dir.exists():
+            raise FileNotFoundError(
+                f"Step 1 activations not found for {lk}. "
+                f"Expected at: {layer_dir}\n"
+                "Run step 1 first to extract activations."
+            )
+        layer_dirs[lk] = str(layer_dir)
+
+    # Load metadata to validate pair count
+    first_layer_dir = Path(layer_dirs[layer_keys[0]])
+    metadata_path = first_layer_dir / "metadata.json"
+    with open(metadata_path) as f:
+        metadata = json.load(f)
+
+    total_tokens = metadata["total_tokens"]
+    total_pairs_in_shards = metadata.get("total_pairs", total_tokens // 2)
+    if total_pairs_in_shards != len(pairs):
+        raise ValueError(
+            f"Pair count mismatch: shards have {total_pairs_in_shards} pairs "
+            f"but {len(pairs)} pairs were loaded. "
+            "Ensure the same pairs directory is used for steps 1 and 3."
+        )
+
+    # Validate prompt ordering against prompts.json
+    prompts_path = first_layer_dir / "prompts.json"
+    if prompts_path.exists():
+        with open(prompts_path) as f:
+            saved_prompts = json.load(f)
+        for i, pair in enumerate(pairs):
+            if saved_prompts[2 * i] != pair.anchor_prompt:
+                raise ValueError(
+                    f"Prompt ordering mismatch at pair {i} (anchor). "
+                    "The pairs may have been regenerated since step 1."
+                )
+            if saved_prompts[2 * i + 1] != pair.contrast_prompt:
+                raise ValueError(
+                    f"Prompt ordering mismatch at pair {i} (contrast). "
+                    "The pairs may have been regenerated since step 1."
+                )
+
+    # Load all shards into a flat list of per-prompt activation dicts
+    all_acts = _load_shards_as_act_dicts(layer_keys, layer_dirs, total_tokens)
+
+    # Group pairs by contrast type
+    pairs_by_type: dict[str, list] = defaultdict(list)
+    pair_indices_by_type: dict[str, list[int]] = defaultdict(list)
+    for i, pair in enumerate(pairs):
+        pairs_by_type[pair.contrast_type].append(pair)
+        pair_indices_by_type[pair.contrast_type].append(i)
+
+    # Regroup activations: for each contrast type, all anchors first then all contrasts
+    # (matching _analyze_layer's expectation: first n = anchors, next n = contrasts)
+    all_acts_by_type: dict[str, list[dict[str, np.ndarray]]] = {}
+    for ct_value, ct_pair_indices in pair_indices_by_type.items():
+        ct_acts: list[dict[str, np.ndarray]] = []
+        # Anchors first
+        for pair_idx in ct_pair_indices:
+            ct_acts.append(all_acts[2 * pair_idx])
+        # Then contrasts
+        for pair_idx in ct_pair_indices:
+            ct_acts.append(all_acts[2 * pair_idx + 1])
+        all_acts_by_type[ct_value] = ct_acts
+
+    return pairs_by_type, all_acts_by_type
+
+
 def identify_contrastive_features(
     pairs: list,
     sae_checkpoints: dict[str, str],
-    subject_model: str,
     layers: list[int],
-    batch_size: int,
     top_k: int,
     base_output_dir: str,
     min_effect_size: float = 0.3,
     min_activation: float = 0.01,
-    scenarios_meta: dict | None = None,
-    backend: str = "vllm",
-    dp_size: int = 1,
-    tp_size: int = 1,
 ) -> dict[str, Path]:
     """Identify contrastive features for multiple layers.
 
-    Loads the subject model once, extracts activations for all layers in a
-    single pass, then loops over layers — loading each SAE and computing
-    contrastive features independently.
+    Loads pre-extracted activations from Step 1 numpy shards, then loops
+    over layers — loading each SAE and computing contrastive features
+    independently.
 
     Args:
         pairs: Contrastive pairs.
         sae_checkpoints: {layer_key: checkpoint_path} for each layer.
-        subject_model: HuggingFace model ID.
         layers: Transformer layer indices.
-        batch_size: GPU batch size for extraction.
         top_k: Top features per contrast type.
         base_output_dir: Base output directory. Per-layer reports go to
             ``base_output_dir/layer_N/activations/contrastive_features.json``.
         min_effect_size: Minimum Cohen's d.
         min_activation: Minimum mean activation.
-        scenarios_meta: {scenario_name: ScenarioConfig}.
-        backend: ``"vllm"`` or ``"hf"``.
-        dp_size: Number of data-parallel GPUs for extraction.
 
     Returns:
         Dict mapping layer_key to report path.
     """
-    import tempfile
-
-    from tqdm import tqdm
-
-    from kiji_inspector.data.scenario import default_scenario
-    from kiji_inspector.extraction.extractor import build_agent_prompt
-
-    _scenarios_meta = scenarios_meta or {}
-    _default_scenario = default_scenario()
-
     layer_keys = [f"residual_{layer}" for layer in layers]
 
-    # Build tokenizer (lightweight — no model loaded in main process for DP)
-    if dp_size > 1 and backend == "vllm":
-        from transformers import AutoTokenizer
+    pairs_by_type, all_acts_by_type = _load_and_regroup_activations(
+        pairs=pairs,
+        layer_keys=layer_keys,
+        base_output_dir=Path(base_output_dir),
+    )
 
-        tokenizer = AutoTokenizer.from_pretrained(subject_model, trust_remote_code=True)
-    else:
-        from kiji_inspector.extraction import create_extractor
-
-        extractor = create_extractor(
-            backend=backend,
-            model_name=subject_model,
-            layers=layers,
-            token_positions="decision",
-        )
-        tokenizer = extractor.tokenizer
-
-    # Group pairs by contrast type
-    pairs_by_type: dict[str, list] = defaultdict(list)
-    for pair in pairs:
-        pairs_by_type[pair.contrast_type].append(pair)
-
-    # Build all prompts, tracking which contrast type each belongs to
-    all_prompts: list[str] = []
-    prompt_ct_labels: list[str] = []  # contrast type for each prompt
-    ct_prompt_counts: dict[str, int] = {}  # total prompts per contrast type
-
-    for ct_value, ct_pairs in pairs_by_type.items():
-        ct_start = len(all_prompts)
-        # Anchors first, then contrasts — _analyze_layer expects this order
-        for pair in ct_pairs:
-            scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
-            all_prompts.append(
-                build_agent_prompt(
-                    system_prompt=scenario.system_prompt,
-                    tools=scenario.tools,
-                    user_request=pair.anchor_prompt,
-                    tokenizer=tokenizer,
-                )
-            )
-        for pair in ct_pairs:
-            scenario = _scenarios_meta.get(pair.scenario_name, _default_scenario)
-            all_prompts.append(
-                build_agent_prompt(
-                    system_prompt=scenario.system_prompt,
-                    tools=scenario.tools,
-                    user_request=pair.contrast_prompt,
-                    tokenizer=tokenizer,
-                )
-            )
-        ct_prompt_counts[ct_value] = len(all_prompts) - ct_start
-        prompt_ct_labels.extend([ct_value] * ct_prompt_counts[ct_value])
-
-    total_prompts = len(all_prompts)
-
-    # Extract activations
-    if dp_size > 1 and backend == "vllm":
-        from kiji_inspector.extraction.vllm_activation_extractor import (
-            run_dp_extraction_to_shards,
-        )
-
-        # Write to temp dir, then load back
-        with tempfile.TemporaryDirectory(prefix="kiji_step3_") as tmp_dir:
-            tmp_path = Path(tmp_dir)
-            layer_dirs: dict[str, str] = {}
-            for lk in layer_keys:
-                layer_num = lk.split("_", 1)[1]
-                ldir = tmp_path / f"layer_{layer_num}"
-                ldir.mkdir(parents=True)
-                layer_dirs[lk] = str(ldir)
-
-            config_kwargs = {
-                "model_name": subject_model,
-                "layers": layers,
-                "token_positions": "decision",
-                "gpu_memory_utilization": 0.90,
-                "tensor_parallel_size": tp_size,
-                "max_model_len": 8192,
-                "trust_remote_code": True,
-            }
-            run_dp_extraction_to_shards(
-                prompts=all_prompts,
-                dp_size=dp_size,
-                config_kwargs=config_kwargs,
-                batch_size=batch_size,
-                layer_keys=layer_keys,
-                layer_dirs=layer_dirs,
-                shard_size=500_000,
-            )
-
-            # Load shards back into per-prompt activation dicts
-            all_acts = _load_shards_as_act_dicts(layer_keys, layer_dirs, total_prompts)
-    else:
-        # Single-GPU extraction
-        all_acts: list[dict[str, np.ndarray]] = []
-        pbar = tqdm(total=total_prompts, desc="Extracting pair activations", unit="prompt")
-        for bi in range(0, total_prompts, batch_size):
-            batch_prompts = all_prompts[bi : bi + batch_size]
-            all_acts.extend(extractor.extract_batch(batch_prompts, batch_size=len(batch_prompts)))
-            pbar.update(len(batch_prompts))
-        pbar.close()
-        extractor.cleanup()
-
-    # Redistribute activations into per-contrast-type groups
-    all_acts_by_type: dict[str, list[dict[str, np.ndarray]]] = defaultdict(list)
-    for i, ct_label in enumerate(prompt_ct_labels):
-        all_acts_by_type[ct_label].append(all_acts[i])
-
-    # Now loop over layers — each gets its own SAE and report
     report_paths: dict[str, Path] = {}
-    layer_keys = [f"residual_{layer}" for layer in layers]
 
     for layer, layer_key in zip(layers, layer_keys, strict=True):
         checkpoint = sae_checkpoints[layer_key]

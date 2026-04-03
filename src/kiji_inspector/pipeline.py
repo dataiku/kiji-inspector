@@ -607,27 +607,17 @@ def _run_step3(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
 
     pairs = _load_pairs(pairs_dir)
 
-    from kiji_inspector.data.scenario import load_scenarios_meta
-
-    scenarios_meta = load_scenarios_meta(Path(pairs_dir))
-
     print(f"\n[Step 3] Identifying contrastive SAE features for {len(args.layers)} layer(s)...")
-    print(f"  Scenarios: {', '.join(scenarios_meta.keys())}")
+    print(f"  Using pre-extracted activations from {args.output_dir}")
     t0 = time.time()
     identify_contrastive_features(
         pairs=pairs,
         sae_checkpoints=checkpoints,
-        subject_model=args.subject_model,
         layers=args.layers,
-        batch_size=args.batch_size,
         top_k=args.top_k_features,
         base_output_dir=args.output_dir,
         min_effect_size=args.min_effect_size,
         min_activation=args.min_activation,
-        scenarios_meta=scenarios_meta,
-        backend=args.backend,
-        dp_size=args.extraction_dp_size,
-        tp_size=args.extraction_tp_size,
     )
     elapsed = time.time() - t0
     print(f"  Feature identification complete ({elapsed:.1f}s)")
