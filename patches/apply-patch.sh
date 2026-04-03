@@ -1,9 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATCH_SRC_DIR="$SCRIPT_DIR"
+PATCH_NAME="extract-hiddenstates-gemma3-nemotron.patch"
+PATCH_SRC_FILE="${PATCH_SRC_DIR}/${PATCH_NAME}"
+
 VLLM_DIR="$(uv run python - <<'PY'
-import sys
 import pathlib
+import sys
 try:
     import vllm
 except ImportError:
@@ -13,19 +18,12 @@ vllm_path = pathlib.Path(vllm.__file__).resolve().parent
 print(vllm_path)
 PY
 )"
-PATCH_SRC_DIR="patches"
+
 PATCH_DST_DIR="${VLLM_DIR}/patches"
-PATCH_NAME="0001-patch-venv.mbox.patch"
-PATCH_SRC_FILE="${PATCH_SRC_DIR}/${PATCH_NAME}"
 PATCH_REL_FILE="patches/${PATCH_NAME}"
 
 if [[ ! -d "$VLLM_DIR" ]]; then
   echo "Error: vllm directory not found: $VLLM_DIR" >&2
-  exit 1
-fi
-
-if [[ ! -d "$PATCH_SRC_DIR" ]]; then
-  echo "Error: patches directory not found: $PATCH_SRC_DIR" >&2
   exit 1
 fi
 
@@ -44,8 +42,10 @@ if patch -p1 --reverse --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
   exit 0
 fi
 
-if patch -p1 --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
-  patch -p1 < "$PATCH_REL_FILE"
+# `-N` ignores hunks that are already applied, which lets us complete
+# partially applied patch states without failing on duplicate hunks.
+if patch -p1 -N --dry-run < "$PATCH_REL_FILE" >/dev/null 2>&1; then
+  patch -p1 -N < "$PATCH_REL_FILE"
   echo "Patch applied successfully."
 else
   echo "Patch could not be applied cleanly. The installed vllm version may differ from the patch." >&2

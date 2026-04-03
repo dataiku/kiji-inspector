@@ -12,11 +12,11 @@ This repository includes scripts to apply and revert a local patch on the instal
 
 The patch file used by both scripts is:
 
-`patches/0001-patch-venv.mbox.patch`
+`patches/extract-hiddenstates-gemma3-nemotron.patch`
 
-The patch subject is:
+The patch adds:
 
-`Expose activations in OpenAI serve responses`
+`Support extracting hidden states for Gemma3 and Nemotron models`
 
 At a high level, this patch adds support for configuring `extract_activation_layers`, capturing prompt activations for selected layers, and returning serialized activations in OpenAI-compatible chat and completion responses.
 
@@ -24,7 +24,7 @@ At a high level, this patch adds support for configuring `extract_activation_lay
 
 Run from the repository root:
 
-`./apply-patch.sh`
+`./patches/apply-patch.sh`
 
 ## Revert the patch
 
@@ -34,10 +34,8 @@ Run from the repository root:
 
 ## Assumptions
 
-- You run the scripts from the repository root.
 - Python is installed in `.venv`.
 - The installed package path is `.venv/lib/python3.12/site-packages/vllm`.
-- The local `patches/` directory exists.
 - The installed `vllm` version matches the patch context.
 
-Both scripts copy `patches/` into the installed `vllm` directory before running `git apply`. They also skip cleanly when the requested state is already satisfied.
+Both scripts copy the local `patches/` directory into the installed `vllm` directory before invoking `patch`. They also skip cleanly when the requested state is already satisfied.
