@@ -663,18 +663,22 @@ def run_home_repair_analysis(
             )
 
             prompt = engine._build_prompt(_SYSTEM_PROMPT, user_msg)
-            analysis = engine.generate(prompt, step_label, max_tokens=300)
+            analysis = engine.generate(prompt, step_label, max_tokens=150)
             problem_context += f"\n[{tool_name}] {analysis.strip()}\n"
 
         per_problem_analyses[pid] = problem_context
         all_context += f"\n=== {problem['summary']} ===\n{problem_context}\n"
 
-    # Final recommendation
+    # Final recommendation — truncate context to avoid OOM on the long prompt
     print("\n  --- Final Recommendation ---")
+    # Keep only the last ~4000 chars of context to stay within GPU memory
+    truncated_context = all_context
+    if len(truncated_context) > 4000:
+        truncated_context = "...(earlier analysis truncated)...\n" + truncated_context[-4000:]
     final_user_msg = (
         "You have analyzed three home repair problems. "
-        "Here is your full analysis:\n\n"
-        f"{all_context}\n\n"
+        "Here is a summary of your analysis:\n\n"
+        f"{truncated_context}\n\n"
         "Now provide your final recommendation for each problem:\n"
         "1. DIY or hire a professional? Why?\n"
         "2. Estimated cost (DIY vs professional)\n"
@@ -684,7 +688,7 @@ def run_home_repair_analysis(
     )
 
     final_prompt = engine._build_prompt(_SYSTEM_PROMPT, final_user_msg)
-    final_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=800)
+    final_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=500)
 
     return final_rec, per_problem_analyses
 
