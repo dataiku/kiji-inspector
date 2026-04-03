@@ -663,7 +663,7 @@ def run_home_repair_analysis(
             )
 
             prompt = engine._build_prompt(_SYSTEM_PROMPT, user_msg)
-            analysis = engine.generate(prompt, step_label, max_tokens=150)
+            analysis = engine.generate(prompt, step_label, max_tokens=300)
             problem_context += f"\n[{tool_name}] {analysis.strip()}\n"
 
         per_problem_analyses[pid] = problem_context
@@ -1451,6 +1451,12 @@ def main():
         default=None,
         help="YouTube Data API v3 key for real tutorial search (optional)",
     )
+    parser.add_argument(
+        "--explain",
+        action="store_true",
+        default=False,
+        help="Generate LLM-based explanations in Phase 4 (needs extra GPU memory)",
+    )
     args = parser.parse_args()
 
     print("=" * 60)
@@ -1477,6 +1483,11 @@ def main():
     print("\n[Phase 2] Extracting activations...")
     activation_log = engine.extract_all_prompts(args.layers)
 
+    # Free generation KV cache before SAE analysis
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     # Phase 3: Analyze activations through SAE
     print("\n[Phase 3] Analyzing activations through SAE...")
     analysis = analyze_activations(
@@ -1487,7 +1498,16 @@ def main():
     print_analysis_summary(analysis)
 
     # Phase 4: Generate explanations (reuses same model)
-    if analysis["sae_available"]:
+    # Skip by default on single-GPU setups — the explanation prompts are
+    # large and the naive Mamba path (no causal-conv1d) is memory-hungry.
+    # Use --explain to opt in.
+    technical, layman = "", ""
+    if not args.explain:
+        print("\n[Phase 4] Skipped explanation generation (pass --explain to enable).")
+    elif analysis["sae_available"]:
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         print("\n[Phase 4] Generating decision explanations...")
         technical, layman = generate_decision_explanations(engine, analysis, final_recommendation)
         print(f"\n{'=' * 60}")
@@ -1499,7 +1519,6 @@ def main():
         print(f"{'=' * 60}")
         print(render_markdown(layman))
     else:
-        technical, layman = "", ""
         print("\n[Phase 4] Skipped explanation generation (no SAE available).")
 
     # Cleanup model
