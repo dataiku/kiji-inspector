@@ -2,7 +2,7 @@
 """
 Home Repair Agent Demo with SAE Activation Analysis.
 
-Orchestrates a home repair advisor using google/gemma-3-4b-it:
+Orchestrates a home repair advisor using NVIDIA Nemotron-3-Nano-30B:
   1. For each repair problem (dishwasher, disposal, water heater), the model
      is presented with tool results and asked to analyze them -- one LLM call
      per (problem, tool) pair
@@ -13,19 +13,17 @@ Orchestrates a home repair advisor using google/gemma-3-4b-it:
 Uses HuggingFace transformers for both generation and activation capture
 (no vLLM required). Single model instance serves both purposes.
 
+The SAE is loaded from HuggingFace Hub (davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16).
+
 Prerequisites:
-    pip install 'kiji-inspector'
-    # Gemma 3 requires accepting the license:
-    #   https://huggingface.co/google/gemma-3-4b-it
+    pip install 'kiji-inspector[huggingface]'
     huggingface-cli login
 
 Usage:
     uv run python demo/home_repair/home_repair_demo.py
     uv run python demo/home_repair/home_repair_demo.py --device cuda
     uv run python demo/home_repair/home_repair_demo.py --youtube-api-key YOUR_KEY
-    uv run python demo/home_repair/home_repair_demo.py \\
-        --sae-checkpoint output/sae_checkpoints/sae_final.pt \\
-        --feature-descriptions output/activations/feature_descriptions.json
+    uv run python demo/home_repair/home_repair_demo.py --sae-layer 20
 """
 
 from __future__ import annotations
@@ -33,25 +31,22 @@ from __future__ import annotations
 import argparse
 import gc
 import json
-import sys
 import textwrap
 from pathlib import Path
 
 import numpy as np
 import torch
 
-_SRC_DIR = str(Path(__file__).resolve().parent.parent.parent / "src")
-if _SRC_DIR not in sys.path:
-    sys.path.insert(0, _SRC_DIR)
-
-from kiji_inspector.core.sae_core import JumpReLUSAE
+from kiji_inspector.core.sae import SAE
 
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-_MODEL_NAME = "google/gemma-3-4b-it"
+_MODEL_NAME = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+_SAE_REPO_ID = "davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+_SAE_LAYER = 20
 
 _SYSTEM_PROMPT = (
     "You are an experienced home repair advisor. You help homeowners diagnose "
@@ -138,7 +133,7 @@ class HFEngine:
 
         self._input_device = self._find_input_device()
 
-        # Resolve hidden_size (Gemma3 nests under text_config)
+        # Resolve hidden_size (some models nest under text_config)
         self.hidden_size = (
             getattr(self.model.config, "hidden_size", None)
             or getattr(self.model.config, "text_config", self.model.config).hidden_size
@@ -202,7 +197,7 @@ class HFEngine:
                 messages, tokenize=False, add_generation_prompt=True
             )
         except Exception:
-            # Gemma3 may not support system role -- prepend to user message
+            # Some models may not support system role -- prepend to user message
             messages = [{"role": "user", "content": f"{system}\n\n{user}"}]
             return self.tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
@@ -699,37 +694,29 @@ def run_home_repair_analysis(
 # ---------------------------------------------------------------------------
 
 
-def _try_load_sae(checkpoint_path: str | None) -> JumpReLUSAE | None:
-    paths_to_try = [
-        checkpoint_path,
-        "output/sae_checkpoints/sae_final.pt",
-        "../output/sae_checkpoints/sae_final.pt",
-    ]
-    for p in paths_to_try:
-        if p and Path(p).exists():
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            return JumpReLUSAE.from_pretrained(p, device=device)
-    return None
-
-
-def _try_load_feature_descriptions(path: str | None) -> dict | None:
-    paths_to_try = [
-        path,
-        "output/activations/feature_descriptions.json",
-        "../output/activations/feature_descriptions.json",
-    ]
-    for p in paths_to_try:
-        if p and Path(p).exists():
-            with open(p) as f:
-                return json.load(f)
-    return None
+def _load_sae_from_hub(
+    repo_id: str,
+    layer: int,
+    device: str = "cpu",
+) -> tuple[SAE | None, dict | None]:
+    """Load SAE and feature descriptions from HuggingFace Hub."""
+    try:
+        sae, feature_descriptions = SAE.from_pretrained(
+            repo_id=repo_id,
+            layer=layer,
+            device=device,
+        )
+        return sae, feature_descriptions
+    except Exception as e:
+        print(f"  Could not load SAE from {repo_id} layer {layer}: {e}")
+        return None, None
 
 
 def analyze_activations(
     activation_log: list[tuple[str, dict[str, np.ndarray]]],
-    sae_checkpoint: str | None,
-    feature_descriptions_path: str | None,
-    layer_key: str = "residual_15",
+    sae_repo_id: str,
+    sae_layer: int,
+    layer_key: str = "residual_20",
 ) -> dict:
     """Encode captured activations through SAE and map to feature descriptions.
 
@@ -761,15 +748,15 @@ def analyze_activations(
             }
         results["steps"].append(step_info)
 
-    # Tier 2: SAE feature decomposition
-    sae = _try_load_sae(sae_checkpoint)
+    # Tier 2: SAE feature decomposition (from HuggingFace Hub)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    sae, feature_descs = _load_sae_from_hub(sae_repo_id, sae_layer, device=device)
     if sae is None:
-        print("  SAE checkpoint not found -- showing raw activation stats only.")
+        print("  SAE not available -- showing raw activation stats only.")
         return results
 
     results["sae_available"] = True
     sae.eval()
-    device = next(sae.parameters()).device
     sae_dtype = next(sae.parameters()).dtype
 
     for step_info, (_step_label, acts) in zip(results["steps"], activation_log, strict=True):
@@ -805,8 +792,7 @@ def analyze_activations(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    # Tier 3: Feature label mapping
-    feature_descs = _try_load_feature_descriptions(feature_descriptions_path)
+    # Tier 3: Feature label mapping (already loaded from Hub)
     if feature_descs is None:
         print("  Feature descriptions not found -- showing SAE features without labels.")
         return results
@@ -827,7 +813,370 @@ def analyze_activations(
 
 
 # ---------------------------------------------------------------------------
-# Section E: Explanation generation
+# Section E: UI data generation (for index.html)
+# ---------------------------------------------------------------------------
+
+
+_TOOL_DISPLAY_NAMES = {
+    "ManualCheck": "Repair Manual Lookup",
+    "PartsSearch": "Parts & Pricing Search",
+    "TutorialSearch": "Video Tutorial Search",
+    "ProQuote": "Professional Quote",
+}
+
+_PROBLEM_META = {
+    "dishwasher_leak": {
+        "icon": "\U0001f4a7",
+        "urgency": {"label": "Fix Soon", "level": "yellow"},
+        "difficulty": {"label": "Moderate", "level": "yellow"},
+        "costRange": "$13\u2013$90 DIY",
+    },
+    "disposal_stuck": {
+        "icon": "\u2699\ufe0f",
+        "urgency": {"label": "Can Wait", "level": "green"},
+        "difficulty": {"label": "Easy", "level": "green"},
+        "costRange": "$0\u2013$8 DIY",
+    },
+    "water_heater_noise": {
+        "icon": "\U0001f525",
+        "urgency": {"label": "Act Now", "level": "red"},
+        "difficulty": {"label": "Difficult", "level": "red"},
+        "costRange": "$15\u2013$649 DIY",
+    },
+}
+
+# Feature-to-theme mapping for comparison chart derivation.
+# Each theme has keywords — if a feature label contains any, it counts.
+_THEME_KEYWORDS = {
+    "Safety Concern": ["safety", "hazard", "gas", "risk", "danger"],
+    "Cost Sensitivity": ["cost", "budget", "price", "replacement cost", "expense"],
+    "DIY Feasibility": ["diy", "beginner", "skill", "tool requirement"],
+    "Urgency Level": ["urgent", "immediate", "damage", "active"],
+    "Age / Warranty Factor": ["age", "lifespan", "warranty", "coverage"],
+}
+
+
+def _summarize_manual(data: dict) -> str:
+    causes = ", ".join(c.split(" -- ")[0] for c in data.get("possible_causes", []))
+    safety = data.get("safety", "")
+    difficulty = data.get("diy_difficulty", "")
+    parts = [f"<strong>Possible causes:</strong> {causes}"]
+    if difficulty:
+        parts.append(f"<strong>DIY difficulty:</strong> {difficulty}")
+    if safety:
+        parts.append(f"<strong>Safety:</strong> {safety}")
+    if data.get("quick_fix"):
+        parts.append(f"<strong>Quick fix:</strong> {data['quick_fix']}")
+    return "<br>".join(parts)
+
+
+def _summarize_parts(data: dict) -> str:
+    items = []
+    for p in data.get("parts", [])[:3]:
+        items.append(f"<strong>{p['name']}:</strong> ${p['price']:.2f}")
+    line1 = " &middot; ".join(items)
+    line2 = data.get("diy_cost_range", "")
+    return f"{line1}<br>{line2}" if line2 else line1
+
+
+def _summarize_tutorials(data: dict) -> str:
+    lines = []
+    for r in data.get("results", [])[:2]:
+        meta = []
+        if r.get("views"):
+            meta.append(f"{r['views']} views")
+        if r.get("duration"):
+            meta.append(r["duration"])
+        if r.get("difficulty"):
+            meta.append(r["difficulty"])
+        meta_str = f" ({', '.join(meta)})" if meta else ""
+        channel = r.get("channel", "")
+        lines.append(f"<strong>\"{r['title']}\"</strong> by {channel}{meta_str}")
+    return "<br>".join(lines)
+
+
+def _summarize_pro_quote(data: dict) -> str:
+    items = []
+    for est in data.get("repair_estimates", []):
+        items.append(f"<strong>{est['repair']}:</strong> ${est['total']} total")
+    line1 = " &middot; ".join(items)
+    extras = []
+    if data.get("diagnosis_fee"):
+        extras.append(f"<strong>Diagnosis fee:</strong> ${data['diagnosis_fee']}")
+    if data.get("next_available"):
+        extras.append(f"Available in {data['next_available']}")
+    if data.get("warranty_on_repair"):
+        extras.append(f"{data['warranty_on_repair']} warranty")
+    line2 = ". ".join(extras)
+    return f"{line1}<br>{line2}"
+
+
+_TOOL_SUMMARIZERS = {
+    "ManualCheck": _summarize_manual,
+    "PartsSearch": _summarize_parts,
+    "TutorialSearch": _summarize_tutorials,
+    "ProQuote": _summarize_pro_quote,
+}
+
+
+def _generate_feature_sentence(tool_name: str, features: list[dict]) -> str:
+    """Generate a plain-language sentence from top features."""
+    if not features:
+        return ""
+    display = _TOOL_DISPLAY_NAMES.get(tool_name, tool_name)
+    top = features[:2]
+    labels = [f"<strong>{f['label']}</strong>" for f in top]
+    if len(labels) == 2:
+        focus = f"{labels[0]} and {labels[1]}"
+    else:
+        focus = labels[0]
+    verb = {
+        "ManualCheck": "checking the repair manual",
+        "PartsSearch": "reviewing parts and pricing",
+        "TutorialSearch": "searching for tutorials",
+        "ProQuote": "reviewing professional quotes",
+    }.get(tool_name, f"running {display}")
+    return f"While {verb}, the AI focused most on {focus}."
+
+
+def _derive_comparison_scores(
+    sae_features: dict[str, dict[str, dict]],
+) -> dict[str, dict[str, int]]:
+    """Derive comparison scores from SAE features by theme-keyword matching."""
+    comparison: dict[str, dict[str, float]] = {
+        theme: {} for theme in _THEME_KEYWORDS
+    }
+    for pid in sae_features:
+        # Collect all features for this problem across tools
+        all_features: list[dict] = []
+        for tool_data in sae_features[pid].values():
+            all_features.extend(tool_data.get("features", []))
+
+        for theme, keywords in _THEME_KEYWORDS.items():
+            score = 0.0
+            count = 0
+            for f in all_features:
+                label_lower = f.get("label", "").lower()
+                if any(kw in label_lower for kw in keywords):
+                    score += f.get("strength", 0)
+                    count += 1
+            comparison[theme][pid] = round(score / max(count, 1) * 100) if count else 10
+
+    return comparison
+
+
+def build_ui_data(
+    analysis: dict,
+    per_problem: dict[str, str],
+    final_recommendation: str,
+    youtube_api_key: str | None = None,
+) -> dict:
+    """Transform demo outputs into the DATA shape expected by index.html."""
+
+    # --- problems ---
+    problems = []
+    for p in _PROBLEMS:
+        meta = _PROBLEM_META.get(p["id"], {})
+        problems.append({
+            "id": p["id"],
+            "icon": meta.get("icon", ""),
+            "title": p["summary"],
+            "appliance": p["appliance"],
+            "age": p["age"],
+            "details": p["details"],
+            "urgency": meta.get("urgency", {"label": "Unknown", "level": "yellow"}),
+            "difficulty": meta.get("difficulty", {"label": "Unknown", "level": "yellow"}),
+            "costRange": meta.get("costRange", ""),
+        })
+
+    # --- toolResults: HTML summaries from mock data ---
+    tool_results: dict[str, dict[str, str]] = {}
+    for p in _PROBLEMS:
+        pid = p["id"]
+        tool_results[pid] = {}
+        for tool_name, (source, _) in _TOOLS.items():
+            data = source.get(pid, {})
+            summarizer = _TOOL_SUMMARIZERS.get(tool_name)
+            tool_results[pid][tool_name] = summarizer(data) if summarizer else json.dumps(data)
+
+    # --- saeFeatures: from analysis_results steps ---
+    sae_features: dict[str, dict[str, dict]] = {}
+    step_lookup: dict[str, dict] = {}
+    for step_info in analysis.get("steps", []):
+        step_lookup[step_info["step"]] = step_info
+
+    for p in _PROBLEMS:
+        pid = p["id"]
+        sae_features[pid] = {}
+        for tool_name in _TOOLS:
+            step_key = f"{pid}_{tool_name}"
+            step_info = step_lookup.get(step_key)
+
+            features_list: list[dict] = []
+            if step_info and "sae_features" in step_info:
+                top_feats = step_info["sae_features"].get("top_features", [])
+                # Normalize strengths: max feature in this step = 1.0
+                max_act = max((f.get("activation", 0) for f in top_feats[:5]), default=1.0) or 1.0
+                for f in top_feats[:5]:
+                    act = f.get("activation", 0)
+                    features_list.append({
+                        "label": f.get("label", f"Feature #{f.get('index', '?')}"),
+                        "strength": round(act / max_act, 2),
+                        "description": f.get("description", ""),
+                    })
+
+            sentence = _generate_feature_sentence(tool_name, features_list)
+            sae_features[pid][tool_name] = {
+                "features": features_list,
+                "sentence": sentence,
+            }
+
+    # --- recommendations: from per-problem analyses + final recommendation ---
+    # Parse the LLM's final recommendation into per-problem sections.
+    # Fallback: use per-problem analysis text directly.
+    pro_quote_data = _TOOLS["ProQuote"][0]
+    parts_data = _TOOLS["PartsSearch"][0]
+
+    recommendations: dict[str, dict] = {}
+    for p in _PROBLEMS:
+        pid = p["id"]
+        meta = _PROBLEM_META.get(pid, {})
+        pq = pro_quote_data.get(pid, {})
+        pd_parts = parts_data.get(pid, {})
+
+        # Determine verdict from difficulty/urgency
+        difficulty_level = meta.get("difficulty", {}).get("level", "yellow")
+        if difficulty_level == "red":
+            verdict, verdict_label = "pro", "Call a Professional"
+        elif difficulty_level == "green":
+            verdict, verdict_label = "diy", "Easy DIY Fix"
+        else:
+            verdict, verdict_label = "diy", "DIY Repair"
+
+        # Cost ranges from tool data
+        diy_cost = pd_parts.get("diy_cost_range", "")
+        estimates = pq.get("repair_estimates", [])
+        if estimates:
+            lo = min(e["total"] for e in estimates)
+            hi = max(e["total"] for e in estimates)
+            pro_cost = f"${lo}\u2013${hi}" if lo != hi else f"${lo}"
+        else:
+            pro_cost = ""
+
+        # Rationale from per-problem analysis
+        raw = per_problem.get(pid, "")
+        # Use the last tool analysis (ProQuote) as it's the most synthesized
+        sections = raw.split("[ProQuote]")
+        rationale = sections[-1].strip() if len(sections) > 1 else raw.strip()
+        # Truncate to reasonable length
+        if len(rationale) > 500:
+            rationale = rationale[:497] + "..."
+
+        recommendations[pid] = {
+            "verdict": verdict,
+            "verdictLabel": verdict_label,
+            "diyCost": diy_cost,
+            "proCost": pro_cost,
+            "rationale": rationale,
+        }
+
+    # --- comparison: derive from SAE feature strengths ---
+    comparison = _derive_comparison_scores(sae_features)
+
+    # --- themes: static definitions from home_repair.json contrast types ---
+    themes_raw = {
+        "diy_vs_professional": {
+            "title": "DIY vs. Professional",
+            "leftLabel": "Easy DIY",
+            "rightLabel": "Needs a Pro",
+        },
+        "urgent_vs_planned": {
+            "title": "Urgent vs. Planned",
+            "leftLabel": "Can Wait",
+            "rightLabel": "Act Now",
+        },
+        "cheap_fix_vs_replacement": {
+            "title": "Cheap Fix vs. Replacement",
+            "leftLabel": "Quick Part Swap",
+            "rightLabel": "Consider Replacing",
+        },
+        "safe_vs_hazardous": {
+            "title": "Safe vs. Hazardous",
+            "leftLabel": "Low Risk",
+            "rightLabel": "High Hazard",
+        },
+        "warranty_vs_out_of_pocket": {
+            "title": "Warranty vs. Out of Pocket",
+            "leftLabel": "May Be Covered",
+            "rightLabel": "Out of Pocket",
+        },
+    }
+
+    # Load descriptions from home_repair.json if available
+    json_path = Path(__file__).parent / "home_repair.json"
+    contrast_descriptions = {}
+    if json_path.exists():
+        with open(json_path) as f:
+            hr_config = json.load(f)
+        contrast_descriptions = hr_config.get("contrast_types", {})
+
+    # Map comparison themes to theme IDs for marker derivation
+    theme_to_comparison = {
+        "diy_vs_professional": "DIY Feasibility",
+        "urgent_vs_planned": "Urgency Level",
+        "cheap_fix_vs_replacement": "Cost Sensitivity",
+        "safe_vs_hazardous": "Safety Concern",
+        "warranty_vs_out_of_pocket": "Age / Warranty Factor",
+    }
+
+    themes = []
+    for theme_id, tmeta in themes_raw.items():
+        desc = contrast_descriptions.get(theme_id, "")
+        comp_key = theme_to_comparison.get(theme_id, "")
+        comp_scores = comparison.get(comp_key, {})
+        markers = {}
+        for pid in ["dishwasher_leak", "disposal_stuck", "water_heater_noise"]:
+            markers[pid] = comp_scores.get(pid, 50)
+
+        # Identify top 2 features driving this theme
+        comp_theme_kws = _THEME_KEYWORDS.get(comp_key, [])
+        driving_features: list[str] = []
+        for pid_data in sae_features.values():
+            for tool_data in pid_data.values():
+                for f in tool_data.get("features", []):
+                    lbl = f.get("label", "").lower()
+                    if any(kw in lbl for kw in comp_theme_kws) and f["label"] not in driving_features:
+                        driving_features.append(f["label"])
+        driving_features = driving_features[:2]
+        if driving_features:
+            features_html = "Driven by " + " and ".join(
+                f"<strong>{lbl}</strong>" for lbl in driving_features
+            )
+        else:
+            features_html = ""
+
+        themes.append({
+            "id": theme_id,
+            "title": tmeta["title"],
+            "description": desc,
+            "leftLabel": tmeta["leftLabel"],
+            "rightLabel": tmeta["rightLabel"],
+            "markers": markers,
+            "features": features_html,
+        })
+
+    return {
+        "problems": problems,
+        "toolResults": tool_results,
+        "saeFeatures": sae_features,
+        "recommendations": recommendations,
+        "comparison": comparison,
+        "themes": themes,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Section F: Explanation generation
 # ---------------------------------------------------------------------------
 
 
@@ -837,7 +1186,7 @@ def _build_feature_summary(analysis_results: dict) -> str:
         lines.append(f"## {step_info['step']}")
 
         for layer, stats in step_info.get("raw_stats", {}).items():
-            if "residual_15" in layer:
+            if "residual_20" in layer:
                 lines.append(
                     f"  L2={stats['l2_norm']:.2f}, mean={stats['mean']:.4f}, std={stats['std']:.4f}"
                 )
@@ -1032,7 +1381,7 @@ def print_analysis_summary(analysis: dict):
     for step_info in analysis["steps"]:
         print(f"\n  --- {step_info['step']} ---")
         for layer, stats in step_info.get("raw_stats", {}).items():
-            if "residual_15" in layer:
+            if "residual_20" in layer:
                 print(f"    L2 norm: {stats['l2_norm']:.2f}, std: {stats['std']:.4f}")
         sae = step_info.get("sae_features")
         if sae:
@@ -1055,22 +1404,22 @@ def main():
         description="Home Repair Agent Demo with SAE Activation Analysis"
     )
     parser.add_argument(
-        "--sae-checkpoint",
+        "--sae-repo-id",
         type=str,
-        default=None,
-        help="Path to trained SAE checkpoint (default: auto-detect in output/)",
+        default=_SAE_REPO_ID,
+        help=f"HuggingFace repo ID for the SAE (default: {_SAE_REPO_ID})",
     )
     parser.add_argument(
-        "--feature-descriptions",
-        type=str,
-        default=None,
-        help="Path to feature_descriptions.json (default: auto-detect in output/)",
+        "--sae-layer",
+        type=int,
+        default=_SAE_LAYER,
+        help=f"SAE layer to load from the HF repo (default: {_SAE_LAYER})",
     )
     parser.add_argument(
         "--layers",
         type=int,
         nargs="+",
-        default=[5, 10, 15, 20, 25],
+        default=[10, 20, 30, 40, 50],
         help="Transformer layers to hook for activation extraction",
     )
     parser.add_argument(
@@ -1102,7 +1451,8 @@ def main():
 
     print("=" * 60)
     print("  Home Repair Agent Demo")
-    print("  Gemma3-4B-IT (HuggingFace) + SAE Activation Analysis")
+    print("  Nemotron-3-Nano-30B (HuggingFace) + SAE Activation Analysis")
+    print(f"  SAE: {args.sae_repo_id} (layer {args.sae_layer})")
     print("=" * 60)
 
     # Phase 1: Run scripted multi-step analysis
@@ -1127,8 +1477,8 @@ def main():
     print("\n[Phase 3] Analyzing activations through SAE...")
     analysis = analyze_activations(
         activation_log=activation_log,
-        sae_checkpoint=args.sae_checkpoint,
-        feature_descriptions_path=args.feature_descriptions,
+        sae_repo_id=args.sae_repo_id,
+        sae_layer=args.sae_layer,
     )
     print_analysis_summary(analysis)
 
@@ -1168,7 +1518,19 @@ def main():
         with open(output_path / "layman_explanation.txt", "w") as f:
             f.write(layman)
 
+    # Phase 6: Generate UI data for index.html
+    print("\n[Phase 6] Generating UI data...")
+    ui_data = build_ui_data(
+        analysis=analysis,
+        per_problem=per_problem,
+        final_recommendation=final_recommendation,
+        youtube_api_key=args.youtube_api_key,
+    )
+    with open(output_path / "ui_data.json", "w") as f:
+        json.dump(ui_data, f, indent=2, ensure_ascii=False)
+
     print(f"\n  Results saved to {output_path}/")
+    print(f"  Open demo/home_repair/index.html to view the interactive explanation.")
     print("\n  Done.")
 
 
