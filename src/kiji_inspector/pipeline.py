@@ -526,7 +526,12 @@ def _load_pairs(pairs_dir: str) -> list:
         sys.exit(1)
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
     pairs = dataset.pairs
+    total = len(pairs)
+    pairs = [p for p in pairs if p.anchor_tool != p.contrast_tool]
+    excluded = total - len(pairs)
     print(f"  Loaded {len(pairs)} pairs from {pairs_dir}")
+    if excluded:
+        print(f"  Excluded {excluded} pairs where anchor_tool == contrast_tool")
     return pairs
 
 
