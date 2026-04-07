@@ -283,12 +283,14 @@ def _run_labeling_subprocess(
             raw = raw.rsplit("```", 1)[0].strip()
         try:
             parsed = json.loads(raw)
+            if not isinstance(parsed, dict):
+                raise ValueError("Expected JSON object")
             labels[str(feat_idx)] = {
                 "label": parsed.get("label", "unknown"),
                 "description": parsed.get("description", ""),
                 "confidence": parsed.get("confidence", "low"),
             }
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, KeyError, ValueError, AttributeError):
             labels[str(feat_idx)] = {
                 "label": "parse_error",
                 "description": raw[:200],
