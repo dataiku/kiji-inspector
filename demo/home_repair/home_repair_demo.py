@@ -698,6 +698,40 @@ def run_home_repair_analysis(
 # ---------------------------------------------------------------------------
 
 
+def _load_contrastive_feature_map(output_dir: str, layer: int) -> dict[int, list[dict]]:
+    """Load contrastive_features.json and build a feature_index -> themes mapping.
+
+    Returns a dict mapping feature index to a list of
+    {"theme": str, "rank": int, "cohens_d": float, "direction": str} entries.
+    """
+    report_path = Path(output_dir) / f"layer_{layer}" / "contrastive_features.json"
+    if not report_path.exists():
+        return {}
+
+    with open(report_path) as f:
+        report = json.load(f)
+
+    feature_map: dict[int, list[dict]] = {}
+    for theme, info in report.items():
+        if theme.startswith("_"):  # skip _summary
+            continue
+        for feat in info.get("top_features", []):
+            idx = feat["feature_index"]
+            anchor_act = feat.get("anchor_mean_activation", 0)
+            contrast_act = feat.get("contrast_mean_activation", 0)
+            direction = "anchor" if anchor_act > contrast_act else "contrast"
+            entry = {
+                "theme": theme,
+                "rank": feat["rank"],
+                "cohens_d": feat["cohens_d"],
+                "direction": direction,
+            }
+            feature_map.setdefault(idx, []).append(entry)
+
+    print(f"  Loaded contrastive feature map: {len(feature_map)} features across {len(report) - 1} themes")
+    return feature_map
+
+
 def _load_sae_local(
     output_dir: str,
     layer: int,
@@ -791,7 +825,17 @@ def analyze_activations(
         print("  SAE not available -- showing raw activation stats only.")
         return results
 
+    # Load contrastive feature map (feature_index -> themes from training)
+    contrastive_map: dict[int, list[dict]] = {}
+    if sae_local_dir:
+        contrastive_map = _load_contrastive_feature_map(sae_local_dir, sae_layer)
+
     results["sae_available"] = True
+    results["contrast_themes"] = list({
+        entry["theme"]
+        for entries in contrastive_map.values()
+        for entry in entries
+    }) if contrastive_map else []
     sae.eval()
     sae_dtype = next(sae.parameters()).dtype
 
@@ -813,14 +857,39 @@ def analyze_activations(
         top_indices = nonzero_indices[sort_order[:top_k]]
         top_values = nonzero_values[sort_order[:top_k]]
 
+        top_features = []
+        for idx, val in zip(top_indices, top_values, strict=True):
+            feat_entry: dict = {"index": int(idx), "activation": float(val)}
+            # Annotate with contrast themes from training
+            if int(idx) in contrastive_map:
+                feat_entry["themes"] = contrastive_map[int(idx)]
+            top_features.append(feat_entry)
+
+        # Aggregate theme scores across all active features for this step
+        theme_scores: dict[str, list[float]] = {}
+        for idx in nonzero_indices:
+            act_val = float(features_np[idx])
+            for entry in contrastive_map.get(int(idx), []):
+                theme = entry["theme"]
+                # Weight by activation strength and Cohen's d
+                score = act_val * abs(entry["cohens_d"])
+                theme_scores.setdefault(theme, []).append(score)
+
         step_info["sae_features"] = {
             "num_active": int(nonzero_mask.sum()),
             "total_features": int(features_np.shape[0]),
             "sparsity_pct": float((1.0 - nonzero_mask.mean()) * 100),
-            "top_features": [
-                {"index": int(idx), "activation": float(val)}
-                for idx, val in zip(top_indices, top_values, strict=True)
-            ],
+            "top_features": top_features,
+            "theme_activations": {
+                theme: {
+                    "total_score": round(sum(scores), 4),
+                    "num_features": len(scores),
+                    "mean_score": round(sum(scores) / len(scores), 4),
+                }
+                for theme, scores in sorted(
+                    theme_scores.items(), key=lambda x: -sum(x[1])
+                )
+            },
         }
 
     del sae
@@ -828,7 +897,7 @@ def analyze_activations(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    # Tier 3: Feature label mapping (already loaded from Hub)
+    # Tier 3: Feature label mapping (already loaded from Hub or local)
     if feature_descs is None:
         print("  Feature descriptions not found -- showing SAE features without labels.")
         return results
@@ -1425,9 +1494,20 @@ def print_analysis_summary(analysis: dict):
                 f"    Active features: {sae['num_active']}/{sae['total_features']} "
                 f"({100 - sae['sparsity_pct']:.1f}%)"
             )
-            for feat in sae["top_features"][:3]:
+            for feat in sae["top_features"][:5]:
                 label = feat.get("label", f"Feature #{feat['index']}")
-                print(f"      {label}: {feat['activation']:.4f}")
+                themes = feat.get("themes", [])
+                theme_str = ""
+                if themes:
+                    theme_names = [t["theme"] for t in themes[:2]]
+                    theme_str = f"  [{', '.join(theme_names)}]"
+                print(f"      {label}: {feat['activation']:.4f}{theme_str}")
+            # Show theme activation summary
+            theme_acts = sae.get("theme_activations", {})
+            if theme_acts:
+                print("    Theme signals:")
+                for theme, info in list(theme_acts.items())[:5]:
+                    print(f"      {theme}: score={info['total_score']:.2f} ({info['num_features']} features)")
 
 
 # ---------------------------------------------------------------------------
