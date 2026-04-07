@@ -45,7 +45,7 @@ from kiji_inspector.core.sae import SAE
 # ---------------------------------------------------------------------------
 
 _MODEL_NAME = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-_SAE_REPO_ID = "davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-multiple-scenarios"
+_SAE_REPO_ID = "davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-Home-scenarios"
 _SAE_LAYER = 20
 
 _SYSTEM_PROMPT = (
