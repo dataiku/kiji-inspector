@@ -698,6 +698,34 @@ def run_home_repair_analysis(
 # ---------------------------------------------------------------------------
 
 
+def _load_sae_local(
+    output_dir: str,
+    layer: int,
+    device: str = "cpu",
+) -> tuple[SAE | None, dict | None]:
+    """Load SAE and feature descriptions from local pipeline output."""
+    from kiji_inspector.core.sae_core import JumpReLUSAE
+
+    layer_dir = Path(output_dir) / f"layer_{layer}"
+    checkpoint = layer_dir / "sae_checkpoints" / "sae_final.pt"
+    if not checkpoint.exists():
+        print(f"  No local SAE checkpoint at {checkpoint}")
+        return None, None
+
+    print(f"  Loading local SAE from {checkpoint}")
+    sae = JumpReLUSAE.from_pretrained(str(checkpoint), device=device)
+    sae.eval()
+
+    feature_descriptions = None
+    desc_path = layer_dir / "feature_labels.json"
+    if desc_path.exists():
+        with open(desc_path) as f:
+            feature_descriptions = json.load(f)
+        print(f"  Loaded {len(feature_descriptions)} feature labels from {desc_path}")
+
+    return sae, feature_descriptions
+
+
 def _load_sae_from_hub(
     repo_id: str,
     layer: int,
@@ -721,6 +749,7 @@ def analyze_activations(
     sae_repo_id: str,
     sae_layer: int,
     layer_key: str = "residual_20",
+    sae_local_dir: str | None = None,
 ) -> dict:
     """Encode captured activations through SAE and map to feature descriptions.
 
@@ -752,9 +781,12 @@ def analyze_activations(
             }
         results["steps"].append(step_info)
 
-    # Tier 2: SAE feature decomposition (from HuggingFace Hub)
+    # Tier 2: SAE feature decomposition (local or HuggingFace Hub)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    sae, feature_descs = _load_sae_from_hub(sae_repo_id, sae_layer, device=device)
+    if sae_local_dir:
+        sae, feature_descs = _load_sae_local(sae_local_dir, sae_layer, device=device)
+    else:
+        sae, feature_descs = _load_sae_from_hub(sae_repo_id, sae_layer, device=device)
     if sae is None:
         print("  SAE not available -- showing raw activation stats only.")
         return results
@@ -1414,6 +1446,13 @@ def main():
         help=f"HuggingFace repo ID for the SAE (default: {_SAE_REPO_ID})",
     )
     parser.add_argument(
+        "--sae-local-dir",
+        type=str,
+        default=None,
+        help="Load SAE from local pipeline output directory instead of HF Hub "
+        "(e.g. output/)",
+    )
+    parser.add_argument(
         "--sae-layer",
         type=int,
         default=_SAE_LAYER,
@@ -1494,6 +1533,7 @@ def main():
         activation_log=activation_log,
         sae_repo_id=args.sae_repo_id,
         sae_layer=args.sae_layer,
+        sae_local_dir=args.sae_local_dir,
     )
     print_analysis_summary(analysis)
 
