@@ -751,7 +751,7 @@ def _load_sae_local(
     sae.eval()
 
     feature_descriptions = None
-    desc_path = layer_dir / "feature_labels.json"
+    desc_path = layer_dir / "activations" / "feature_descriptions.json"
     if desc_path.exists():
         with open(desc_path) as f:
             feature_descriptions = json.load(f)
@@ -1105,10 +1105,28 @@ def build_ui_data(
             tool_results[pid][tool_name] = summarizer(data) if summarizer else json.dumps(data)
 
     # --- saeFeatures: from analysis_results steps ---
+    # Instead of showing features with the highest raw activation (which are
+    # the same generic "home repair" features for every step), show features
+    # that are *distinctive* for each (problem, tool) pair — i.e. features
+    # whose activation deviates most from the cross-step average.
     sae_features: dict[str, dict[str, dict]] = {}
     step_lookup: dict[str, dict] = {}
     for step_info in analysis.get("steps", []):
         step_lookup[step_info["step"]] = step_info
+
+    # Build per-feature activation across all steps
+    feature_activations: dict[int, list[float]] = {}
+    for step_info in analysis.get("steps", []):
+        if "sae_features" not in step_info:
+            continue
+        for f in step_info["sae_features"].get("top_features", []):
+            idx = f.get("index", -1)
+            feature_activations.setdefault(idx, []).append(f.get("activation", 0))
+
+    # Compute per-feature mean activation as baseline
+    feature_mean: dict[int, float] = {
+        idx: sum(vals) / len(vals) for idx, vals in feature_activations.items()
+    }
 
     for p in _PROBLEMS:
         pid = p["id"]
@@ -1120,13 +1138,24 @@ def build_ui_data(
             features_list: list[dict] = []
             if step_info and "sae_features" in step_info:
                 top_feats = step_info["sae_features"].get("top_features", [])
-                # Normalize strengths: max feature in this step = 1.0
-                max_act = max((f.get("activation", 0) for f in top_feats[:5]), default=1.0) or 1.0
-                for f in top_feats[:5]:
+                # Rank by deviation from cross-step mean
+                scored = []
+                for f in top_feats:
+                    idx = f.get("index", -1)
                     act = f.get("activation", 0)
+                    mean = feature_mean.get(idx, act)
+                    deviation = act - mean
+                    scored.append((deviation, f))
+                scored.sort(key=lambda x: x[0], reverse=True)
+
+                # Take top 5 most distinctive, normalize strengths
+                distinctive = scored[:5]
+                max_dev = max(abs(d) for d, _ in distinctive) if distinctive else 1.0
+                max_dev = max_dev or 1.0
+                for dev, f in distinctive:
                     features_list.append({
                         "label": f.get("label", f"Feature #{f.get('index', '?')}"),
-                        "strength": round(act / max_act, 2),
+                        "strength": round(abs(dev) / max_dev, 2),
                         "description": f.get("description", ""),
                     })
 

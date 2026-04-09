@@ -61,13 +61,26 @@ _CHATML_SYSTEM = (
 )
 
 
-def _format_chatml(user_content: str, system_content: str = _CHATML_SYSTEM) -> str:
-    """Construct a ChatML prompt string for Qwen3-VL.
+def _format_chat(
+    user_content: str,
+    system_content: str = _CHATML_SYSTEM,
+    tokenizer: object | None = None,
+) -> str:
+    """Format a system+user prompt using the model's chat template.
 
-    ChatML is the stable chat template for all Qwen models.  Building it
-    manually avoids loading the heavy AutoProcessor just for text-only
-    generation -- vLLM handles tokenisation internally.
+    When *tokenizer* is provided its ``apply_chat_template`` method is used,
+    which works with any model family.  Falls back to ChatML (Qwen) when no
+    tokenizer is available (e.g. OpenAI-compatible API path).
     """
+    messages = [
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": user_content},
+    ]
+    if tokenizer is not None and hasattr(tokenizer, "apply_chat_template"):
+        return tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+    # Fallback: manual ChatML for API / tokenizer-less paths
     return (
         f"<|im_start|>system\n{system_content}<|im_end|>\n"
         f"<|im_start|>user\n{user_content}<|im_end|>\n"
@@ -159,6 +172,7 @@ class ContrastivePairGenerator:
         contrast_types: dict[str, str],
         scenario_name: str = "",
         sampling_params: SamplingParams | None = None,
+        tokenizer: object | None = None,
     ):
         self.llm = llm
         self.tools = tools
@@ -166,6 +180,7 @@ class ContrastivePairGenerator:
         self.scenario_name = scenario_name
         self._malformed_count = 0
         self.tool_list = "\n".join(f"- {t['name']}: {t['description']}" for t in tools)
+        self.tokenizer = tokenizer
         if sampling_params is None:
             from vllm import SamplingParams
 
@@ -189,7 +204,7 @@ class ContrastivePairGenerator:
             tool_list=self.tool_list,
             contrast_explanation=explanation,
         )
-        return _format_chatml(user_content)
+        return _format_chat(user_content, tokenizer=self.tokenizer)
 
     def generate_for_contrast_type(
         self,
@@ -350,7 +365,7 @@ For each variant, provide:
 Output as a JSON array. No markdown fences.
 """
 
-    prompt = _format_chatml(user_content)
+    prompt = _format_chat(user_content)
     outputs = llm.generate([prompt], sampling_params, use_tqdm=False)
     raw = outputs[0].outputs[0].text.strip()
 

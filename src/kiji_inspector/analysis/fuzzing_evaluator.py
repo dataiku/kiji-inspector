@@ -712,22 +712,21 @@ Which text would more strongly activate a feature described as "{label}"?
 Answer with a single letter: A or B."""
 
 
-def _build_judge_prompts(
+_JUDGE_SYSTEM = (
+    "You evaluate whether token highlights match feature descriptions. "
+    "Answer concisely with A or B as instructed."
+)
+
+
+def _build_judge_user_contents(
     examples: list[FuzzingExample],
     feature_descriptions: dict[str, dict],
 ) -> list[str]:
-    """Build ChatML judge prompts for all fuzzing examples.
+    """Build user-content strings for all fuzzing examples.
 
-    Note: These prompts target the generator/judge model (e.g. Qwen),
-    not the subject model. ChatML is used because the generator model
-    is assumed to be a Qwen model.
+    Returns raw user content; the caller applies the model's chat template.
     """
-    system = (
-        "You evaluate whether token highlights match feature descriptions. "
-        "Answer concisely with A or B as instructed."
-    )
-
-    prompts = []
+    user_contents = []
     for ex in examples:
         desc = feature_descriptions.get(str(ex.feature_id), {})
         label = desc.get("label", "unknown")
@@ -753,18 +752,13 @@ def _build_judge_prompts(
                 text_b=text_b,
             )
 
-        chatml = (
-            f"<|im_start|>system\n{system}<|im_end|>\n"
-            f"<|im_start|>user\n{user_content}<|im_end|>\n"
-            f"<|im_start|>assistant\n"
-        )
-        prompts.append(chatml)
+        user_contents.append(user_content)
 
-    return prompts
+    return user_contents
 
 
 def _run_judge_subprocess(
-    chatml_prompts: list[str],
+    user_contents: list[str],
     judging_model: str,
     tp_size: int,
     max_model_len: int,
@@ -797,8 +791,22 @@ def _run_judge_subprocess(
         max_tokens=20,
     )
 
-    print(f"  [subprocess] Judging {len(chatml_prompts)} examples...")
-    outputs = llm.generate(chatml_prompts, sampling_params)
+    # Format prompts using the model's own chat template
+    tokenizer = llm.get_tokenizer()
+    formatted_prompts = []
+    for user_content in user_contents:
+        messages = [
+            {"role": "system", "content": _JUDGE_SYSTEM},
+            {"role": "user", "content": user_content},
+        ]
+        formatted_prompts.append(
+            tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True,
+            )
+        )
+
+    print(f"  [subprocess] Judging {len(formatted_prompts)} examples...")
+    outputs = llm.generate(formatted_prompts, sampling_params)
 
     judgments: list[str] = []
     for output in outputs:
@@ -831,15 +839,15 @@ def evaluate_fuzzing(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    chatml_prompts = _build_judge_prompts(examples, feature_descriptions)
+    user_contents = _build_judge_user_contents(examples, feature_descriptions)
 
     ctx = mp.get_context("spawn")
 
     if dp_size > 1:
         # Data-parallel: split prompts across N GPUs
-        chunk_size = (len(chatml_prompts) + dp_size - 1) // dp_size
+        chunk_size = (len(user_contents) + dp_size - 1) // dp_size
         prompt_chunks = [
-            chatml_prompts[i : i + chunk_size] for i in range(0, len(chatml_prompts), chunk_size)
+            user_contents[i : i + chunk_size] for i in range(0, len(user_contents), chunk_size)
         ]
         output_paths = [
             str(output_dir / f"_judge_temp_rank{r}.json") for r in range(len(prompt_chunks))
@@ -871,7 +879,7 @@ def evaluate_fuzzing(
         judgments_path = str(output_dir / "_judge_temp.json")
         p = ctx.Process(
             target=_run_judge_subprocess,
-            args=(chatml_prompts, judging_model, tp_size, max_model_len, judgments_path),
+            args=(user_contents, judging_model, tp_size, max_model_len, judgments_path),
         )
         p.start()
         p.join()

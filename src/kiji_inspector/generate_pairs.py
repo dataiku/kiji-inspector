@@ -210,6 +210,9 @@ def _run_generation_subprocess(
     scenarios = [ScenarioConfig.from_dict(d) for d in scenario_dicts]
     pairs_per_scenario = math.ceil(num_samples / len(scenarios))
 
+    # Get tokenizer for model-agnostic chat formatting
+    tokenizer = llm.get_tokenizer() if hasattr(llm, "get_tokenizer") else None
+
     from tqdm import tqdm
 
     all_pairs: list = []
@@ -230,6 +233,7 @@ def _run_generation_subprocess(
             contrast_types=scenario.contrast_types,
             scenario_name=scenario.name,
             sampling_params=sampling_params,
+            tokenizer=tokenizer,
         )
 
         n_types = len(scenario.contrast_types)

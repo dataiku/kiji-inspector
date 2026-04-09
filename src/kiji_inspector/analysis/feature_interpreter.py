@@ -10,6 +10,7 @@ Feature interpretation pipeline (Step 5).
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -224,6 +225,45 @@ def _format_label_prompt(feat_idx: int, examples: dict) -> str:
     )
 
 
+def _try_parse_label_json(raw: str) -> dict | None:
+    """Try to extract a valid label dict from LLM output.
+
+    Returns {"label", "description", "confidence"} or None.
+    """
+    def _validate(parsed: dict) -> dict | None:
+        if not isinstance(parsed, dict):
+            return None
+        label = parsed.get("label", "")
+        # Reject template placeholders the model echoed back
+        if label in ("...", "", "high|medium|low"):
+            return None
+        return {
+            "label": label,
+            "description": parsed.get("description", ""),
+            "confidence": parsed.get("confidence", "low"),
+        }
+
+    # Fast path: entire string is valid JSON
+    try:
+        result = _validate(json.loads(raw))
+        if result:
+            return result
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Extract first JSON object from noisy output
+    match = re.search(r"\{[^{}]*\}", raw)
+    if match:
+        try:
+            result = _validate(json.loads(match.group()))
+            if result:
+                return result
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    return None
+
+
 def _run_labeling_subprocess(
     label_prompts: list[tuple[int, str]],
     judging_model: str,
@@ -258,39 +298,45 @@ def _run_labeling_subprocess(
         max_tokens=500,
     )
 
-    # Build ChatML prompts
+    # Build prompts using the model's own chat template
     system = (
         "You are an expert at interpreting neural network features. "
         "Output only valid JSON, no markdown fences."
     )
-    chatml_prompts = []
+    tokenizer = llm.get_tokenizer()
+    formatted_prompts = []
     for _feat_idx, user_content in label_prompts:
-        chatml_prompts.append(
-            f"<|im_start|>system\n{system}<|im_end|>\n"
-            f"<|im_start|>user\n{user_content}<|im_end|>\n"
-            f"<|im_start|>assistant\n"
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_content},
+        ]
+        formatted_prompts.append(
+            tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True,
+            )
         )
 
-    print(f"  [subprocess] Labeling {len(chatml_prompts)} features...")
-    outputs = llm.generate(chatml_prompts, sampling_params)
+    print(f"  [subprocess] Labeling {len(formatted_prompts)} features...")
+    outputs = llm.generate(formatted_prompts, sampling_params)
 
     labels: dict[str, dict] = {}
     for (feat_idx, _), output in zip(label_prompts, outputs, strict=True):
         raw = output.outputs[0].text.strip()
+        # Strip Qwen3 thinking blocks (<think>...</think>)
+        raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+        # Also handle unclosed thinking block (truncated output)
+        raw = re.sub(r"<think>.*", "", raw, flags=re.DOTALL).strip()
+        # Strip degenerate repetitive tokens (e.g. "thought000...000")
+        raw = re.sub(r"(?:thought|0{10,}|\.{10,})\S*", "", raw).strip()
         # Strip markdown fences
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
             raw = raw.rsplit("```", 1)[0].strip()
-        try:
-            parsed = json.loads(raw)
-            if not isinstance(parsed, dict):
-                raise ValueError("Expected JSON object")
-            labels[str(feat_idx)] = {
-                "label": parsed.get("label", "unknown"),
-                "description": parsed.get("description", ""),
-                "confidence": parsed.get("confidence", "low"),
-            }
-        except (json.JSONDecodeError, KeyError, ValueError, AttributeError):
+
+        parsed = _try_parse_label_json(raw)
+        if parsed:
+            labels[str(feat_idx)] = parsed
+        else:
             labels[str(feat_idx)] = {
                 "label": "parse_error",
                 "description": raw[:200],
