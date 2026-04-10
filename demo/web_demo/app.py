@@ -1213,18 +1213,20 @@ async def start_analysis(request: Request):
                 if len(research_context) > 4000:
                     research_context = research_context[-4000:]
 
-                # Synthesis: call HFEngine directly with a clean prompt
+                # Synthesis: call HFEngine directly with a clean prompt.
+                # We pre-fill the assistant response with "The agent recommends"
+                # so the model continues with the actual recommendation instead
+                # of starting a <think> block or meta-reasoning.
                 q.put({"type": "step", "label": "Synthesis", "status": "generating"})
                 synth_prompt = _engine._build_prompt(
-                    "You are a home repair advisor. Write 2-3 plain English "
-                    "sentences completing the recommendation below. "
-                    "Output NOTHING else.",
+                    "You are a home repair advisor.",
                     f"A {body.get('age', 'Unknown')}-old "
                     f"{body.get('appliance', 'appliance')} has this problem: "
                     f"{body.get('details', 'unknown issue')}.\n\n"
                     f"Key findings from research:\n{research_context}\n\n"
-                    "The agent recommends",
-                )
+                    "Based on the research data above, write a 2-3 sentence "
+                    "recommendation.",
+                ) + "The agent recommends"
                 print("\n" + "=" * 60)
                 print("  [DEBUG] Synthesis prompt:")
                 print("=" * 60)
@@ -1409,11 +1411,13 @@ def run_scripted_analysis(
         "The agent recommends"
     )
     final_prompt = engine._build_prompt(
-        "You are a home repair advisor. Write 2-3 plain English "
-        "sentences completing the recommendation below. "
-        "Output NOTHING else.",
-        final_msg,
-    )
+        "You are a home repair advisor.",
+        final_msg.replace(
+            "The agent recommends",
+            "Based on the research data above, write a 2-3 sentence "
+            "recommendation.",
+        ),
+    ) + "The agent recommends"
     print("\n" + "=" * 60)
     print("  [DEBUG] Scripted synthesis prompt:")
     print("=" * 60)
