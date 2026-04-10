@@ -499,24 +499,26 @@ def _nemotron_completion(model: str, messages: list[dict], **kwargs) -> dict:
     user_msg = "\n\n".join(user_parts) if user_parts else "Please analyze this."
     prompt = _engine._build_prompt(system_msg, user_msg)
 
-    # Determine step label from the system message (agent role), not user
-    # content. Each CrewAI agent has a unique role string we set, so matching
-    # on the system prompt is reliable.
+    # Determine step label by searching ALL message content for tool names.
+    # CrewAI may place tool info in system, user, or combined messages.
     _step_counter += 1
     step_label = f"step_{_step_counter}"
-    system_lower = system_msg.lower()
-    # Map agent role keywords (from our Agent definitions) -> tool name
-    _role_to_tool = {
-        "ManualCheck": "diagnostics",          # "Appliance Diagnostics Specialist"
-        "PartsSearch": "parts sourcing",       # "Parts & Pricing Researcher"
-        "TutorialSearch": "repair tutorials",  # "Tutorial Researcher"
-        "ProQuote": "professional service",    # "Professional Service Researcher"
-        "Synthesis": "home repair advisor",    # "Home Repair Advisor" (synthesis)
-    }
-    for tool_name, role_keyword in _role_to_tool.items():
-        if role_keyword in system_lower:
-            step_label = f"{tool_name}_{_step_counter}"
+    all_text = system_msg + "\n" + user_msg
+    # Match tool names case-insensitively (CrewAI may lowercase them)
+    _tool_names_ordered = [
+        ("Manual Check", ["manualcheck", "manual_check"]),
+        ("Parts Search", ["partssearch", "parts_search"]),
+        ("Tutorial Search", ["tutorialsearch", "tutorial_search"]),
+        ("Pro Quote", ["proquote", "pro_quote"]),
+    ]
+    all_lower = all_text.lower()
+    for tool_label, variants in _tool_names_ordered:
+        if any(v in all_lower for v in variants):
+            step_label = tool_label
             break
+    else:
+        if "synthesize" in all_lower or "recommendation" in all_lower:
+            step_label = "Synthesis"
 
     if _progress_queue:
         _progress_queue.put(
@@ -651,6 +653,27 @@ def create_crew(problem_info: dict) -> Crew:
         f"Problem: {problem_info.get('details', 'No details provided')}"
     )
 
+    # -- Custom prompt templates for local Nemotron model --
+    # CrewAI's default ReAct template confuses Nemotron.  We supply simple,
+    # explicit templates so the model knows exactly what to do.
+
+    # Template for tool-using agents: call the ONE tool, then summarize.
+    _tool_system = (
+        "You are {role}. {backstory}\n"
+        "Your personal goal is: {goal}\n\n"
+        "You have access to these tools:\n{tools}\n\n"
+        "INSTRUCTIONS: You MUST call the tool ONCE, then summarize the "
+        "result. Use EXACTLY this format:\n\n"
+        "Thought: I will call the tool to get the data.\n"
+        "Action: {tool_names}\n"
+        'Action Input: {{"query": "<your query>"}}\n'
+        "Observation: <the tool result will appear here>\n\n"
+        "After you see the Observation, write:\n"
+        "Thought: I now know the final answer\n"
+        "Final Answer: <your summary of the data>\n"
+    )
+    _tool_prompt = "{{ .Prompt }}"
+
     # -- Agent per research step (each has exactly ONE tool) --
     def _make_agent(role, goal, backstory, tool_list):
         return Agent(
@@ -661,6 +684,8 @@ def create_crew(problem_info: dict) -> Crew:
             llm=llm,
             verbose=True,
             max_iter=3,
+            system_template=_tool_system,
+            prompt_template=_tool_prompt,
         )
 
     diagnostics_agent = _make_agent(
@@ -691,19 +716,8 @@ def create_crew(problem_info: dict) -> Crew:
         tool_list=[quote_tool],
     )
 
-    synthesis_agent = Agent(
-        role="Home Repair Advisor",
-        goal="Synthesize all research into a clear DIY-or-professional recommendation.",
-        backstory=(
-            "You are a seasoned home repair expert with 20 years of experience. "
-            "You review diagnostics, parts, tutorials, and professional quotes "
-            "to give the homeowner a clear, safe, cost-effective recommendation."
-        ),
-        tools=[],
-        llm=llm,
-        verbose=True,
-        max_iter=2,
-    )
+    # NOTE: Synthesis is handled outside CrewAI (direct HFEngine call)
+    # to avoid Nemotron getting confused by CrewAI's ReAct prompt scaffolding.
 
     # -- One task per tool + final synthesis --
     common_ctx = f"The homeowner's problem:\n{user_desc}"
@@ -753,28 +767,9 @@ def create_crew(problem_info: dict) -> Crew:
         agent=quote_agent,
     )
 
-    task_synthesize = Task(
-        description=(
-            f"{common_ctx}\n\n"
-            "You have research from four sources (diagnostics, parts, tutorials, "
-            "professional quotes). Synthesize everything into a final recommendation:\n"
-            "1. VERDICT: DIY or hire a professional? Why?\n"
-            "2. COST: Estimated cost (DIY vs professional)\n"
-            "3. SAFETY: Key safety considerations\n"
-            "4. URGENCY: Fix now / schedule soon / can wait\n"
-            "5. PLAN: Step-by-step action plan"
-        ),
-        expected_output=(
-            "A structured recommendation with verdict (DIY/Professional), "
-            "cost comparison, safety warnings, urgency, and action plan."
-        ),
-        agent=synthesis_agent,
-        context=[task_manual, task_parts, task_tutorials, task_quotes],
-    )
-
     return Crew(
-        agents=[diagnostics_agent, parts_agent, tutorial_agent, quote_agent, synthesis_agent],
-        tasks=[task_manual, task_parts, task_tutorials, task_quotes, task_synthesize],
+        agents=[diagnostics_agent, parts_agent, tutorial_agent, quote_agent],
+        tasks=[task_manual, task_parts, task_tutorials, task_quotes],
         process=Process.sequential,
         verbose=True,
     )
@@ -982,10 +977,10 @@ def build_ui_results(
 
         # Determine display name from step label
         tool_display = {
-            "ManualCheck": {"name": "Repair Manual Lookup", "icon": "book"},
-            "PartsSearch": {"name": "Parts & Pricing Search", "icon": "wrench"},
-            "TutorialSearch": {"name": "Video Tutorial Search", "icon": "video"},
-            "ProQuote": {"name": "Professional Quote", "icon": "clipboard"},
+            "Manual Check": {"name": "Repair Manual Lookup", "icon": "book"},
+            "Parts Search": {"name": "Parts & Pricing Search", "icon": "wrench"},
+            "Tutorial Search": {"name": "Video Tutorial Search", "icon": "video"},
+            "Pro Quote": {"name": "Professional Quote", "icon": "clipboard"},
             "Synthesis": {"name": "Final Recommendation", "icon": "clipboard"},
         }
         display_name = step_label
@@ -1021,14 +1016,69 @@ def build_ui_results(
                     }
                 )
 
-            # Generate sentence
+            # Generate explanation tied to tool context and detected themes
             if features_list:
-                top2 = features_list[:2]
-                labels = [f["label"] for f in top2]
-                focus = " and ".join(labels)
-                sentence = (
-                    f"At this step, the AI focused most on {focus}."
+                top2_labels = [f["label"] for f in features_list[:2]]
+                focus = " and ".join(top2_labels)
+
+                # Get top active themes for this step
+                theme_acts = step_info.get("sae_features", {}).get(
+                    "theme_activations", {}
                 )
+                top_themes = sorted(
+                    theme_acts.items(),
+                    key=lambda x: x[1].get("total_score", 0),
+                    reverse=True,
+                )[:2]
+                theme_names = [
+                    t[0].replace("_", " ").replace(" vs ", " vs. ")
+                    for t in top_themes
+                ]
+
+                # Tool-specific framing
+                tool_context = {
+                    "Manual Check": (
+                        "When consulting the repair manual, the model's "
+                        "representations were dominated by {focus}."
+                    ),
+                    "Parts Search": (
+                        "While evaluating replacement parts and pricing, "
+                        "the model activated most strongly on {focus}."
+                    ),
+                    "Tutorial Search": (
+                        "When assessing available repair tutorials, the "
+                        "model's internal state highlighted {focus}."
+                    ),
+                    "Pro Quote": (
+                        "While reviewing professional service options, "
+                        "the model weighted {focus} most heavily."
+                    ),
+                    "Synthesis": (
+                        "In forming the final recommendation, the model "
+                        "drew most on {focus}."
+                    ),
+                }
+
+                # Find which tool this step belongs to
+                tool_key = "step"
+                for tn in tool_context:
+                    if tn.lower() in step_label.lower():
+                        tool_key = tn
+                        break
+
+                base = tool_context.get(tool_key, (
+                    "At this step, the model focused most on {focus}."
+                )).format(focus=focus)
+
+                # Tie to themes
+                if theme_names:
+                    theme_str = " and ".join(theme_names)
+                    sentence = (
+                        f"{base} This aligns with the {theme_str} "
+                        f"dimensions of the problem."
+                    )
+                else:
+                    sentence = base
 
         # Raw stats
         raw = {}
@@ -1113,11 +1163,41 @@ async def start_analysis(request: Request):
                 _engine.clear_log()
                 _reset_step_counter()
 
-                # Run CrewAI crew
+                # Run CrewAI crew (4 tool-research tasks)
                 q.put({"type": "status", "message": "Agent is analyzing your problem..."})
                 crew = create_crew(body)
                 crew_result = crew.kickoff()
-                crew_output = str(crew_result)
+
+                # Collect task outputs from crew
+                task_outputs = []
+                for task_out in crew_result.tasks_output:
+                    task_outputs.append(str(task_out))
+                research_context = "\n\n---\n\n".join(task_outputs)
+                # Truncate if too long for the model
+                if len(research_context) > 4000:
+                    research_context = research_context[-4000:]
+
+                # Synthesis: call HFEngine directly with a clean prompt
+                # (avoids CrewAI's ReAct scaffolding that confuses Nemotron)
+                q.put({"type": "step", "label": "Synthesis", "status": "generating"})
+                user_desc = (
+                    f"Appliance: {body.get('appliance', 'Unknown')}\n"
+                    f"Age: {body.get('age', 'Unknown')}\n"
+                    f"Problem: {body.get('details', '')}"
+                )
+                synth_prompt = _engine._build_prompt(
+                    "You are a home repair advisor. Respond with ONLY the "
+                    "recommendation text. No thinking, no actions, no tools, "
+                    "no formatting instructions. Just plain English sentences.",
+                    f"Problem: {user_desc}\n\n"
+                    f"Research data:\n{research_context}\n\n"
+                    "Complete this sentence in 2-3 sentences total:\n"
+                    "The agent recommends",
+                )
+                raw_output = _engine.generate(synth_prompt, "Synthesis", max_tokens=120)
+                # Ensure the output reads as a complete sentence
+                crew_output = "The agent recommends" + raw_output.split("\n\n")[0]
+                q.put({"type": "step", "label": "Synthesis", "status": "complete"})
 
                 q.put({"type": "status", "message": "Extracting activations..."})
                 layers = [20]
@@ -1265,16 +1345,21 @@ def run_scripted_analysis(
     )
     truncated = all_context[-4000:] if len(all_context) > 4000 else all_context
     final_msg = (
-        f"You analyzed a home repair problem. Summary:\n\n{truncated}\n\n"
-        "Provide your final recommendation:\n"
-        "1. DIY or hire a professional? Why?\n"
-        "2. Estimated cost (DIY vs professional)\n"
-        "3. Safety considerations\n"
-        "4. Urgency level\n"
-        "5. Step-by-step plan if DIY"
+        f"Problem: {problem_info.get('appliance', '')} "
+        f"({problem_info.get('age', '')} old) - "
+        f"{problem_info.get('details', '')}\n\n"
+        f"Research data:\n{truncated}\n\n"
+        "Complete this sentence in 2-3 sentences total:\n"
+        "The agent recommends"
     )
-    final_prompt = engine._build_prompt(_SYSTEM_PROMPT, final_msg)
-    final_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=500)
+    final_prompt = engine._build_prompt(
+        "You are a home repair advisor. Respond with ONLY the "
+        "recommendation text. No thinking, no actions, no tools, "
+        "no formatting instructions. Just plain English sentences.",
+        final_msg,
+    )
+    raw_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=120)
+    final_rec = "The agent recommends" + raw_rec.split("\n\n")[0]
     progress_queue.put(
         {"type": "step", "label": "final_recommendation", "status": "complete"}
     )
