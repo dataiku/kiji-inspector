@@ -76,6 +76,8 @@ def _clean_model_output(text: str) -> str:
     text = _THINK_RE.sub("", text)
     # Remove unclosed <think> (model hit max tokens mid-thought)
     text = _THINK_OPEN_RE.sub("", text)
+    # Remove orphaned </think> (pre-fill skips <think> but model emits closing tag)
+    text = text.replace("</think>", "")
     return text.strip()
 
 
