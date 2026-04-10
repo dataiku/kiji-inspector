@@ -1180,18 +1180,14 @@ async def start_analysis(request: Request):
                 # Synthesis: call HFEngine directly with a clean prompt
                 # (avoids CrewAI's ReAct scaffolding that confuses Nemotron)
                 q.put({"type": "step", "label": "Synthesis", "status": "generating"})
-                user_desc = (
-                    f"Appliance: {body.get('appliance', 'Unknown')}\n"
-                    f"Age: {body.get('age', 'Unknown')}\n"
-                    f"Problem: {body.get('details', '')}"
-                )
                 synth_prompt = _engine._build_prompt(
-                    "You are a home repair advisor. Respond with ONLY the "
-                    "recommendation text. No thinking, no actions, no tools, "
-                    "no formatting instructions. Just plain English sentences.",
-                    f"Problem: {user_desc}\n\n"
-                    f"Research data:\n{research_context}\n\n"
-                    "Complete this sentence in 2-3 sentences total:\n"
+                    "You are a home repair advisor. Write 2-3 plain English "
+                    "sentences completing the recommendation below. "
+                    "Output NOTHING else.",
+                    f"A {body.get('age', 'Unknown')}-old "
+                    f"{body.get('appliance', 'appliance')} has this problem: "
+                    f"{body.get('details', 'unknown issue')}.\n\n"
+                    f"Key findings from research:\n{research_context}\n\n"
                     "The agent recommends",
                 )
                 print("\n" + "=" * 60)
@@ -1363,17 +1359,16 @@ def run_scripted_analysis(
     )
     truncated = all_context[-4000:] if len(all_context) > 4000 else all_context
     final_msg = (
-        f"Problem: {problem_info.get('appliance', '')} "
-        f"({problem_info.get('age', '')} old) - "
-        f"{problem_info.get('details', '')}\n\n"
-        f"Research data:\n{truncated}\n\n"
-        "Complete this sentence in 2-3 sentences total:\n"
+        f"A {problem_info.get('age', 'Unknown')}-old "
+        f"{problem_info.get('appliance', 'appliance')} has this problem: "
+        f"{problem_info.get('details', 'unknown issue')}.\n\n"
+        f"Key findings from research:\n{truncated}\n\n"
         "The agent recommends"
     )
     final_prompt = engine._build_prompt(
-        "You are a home repair advisor. Respond with ONLY the "
-        "recommendation text. No thinking, no actions, no tools, "
-        "no formatting instructions. Just plain English sentences.",
+        "You are a home repair advisor. Write 2-3 plain English "
+        "sentences completing the recommendation below. "
+        "Output NOTHING else.",
         final_msg,
     )
     print("\n" + "=" * 60)
