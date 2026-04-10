@@ -1199,11 +1199,16 @@ async def start_analysis(request: Request):
                 crew = create_crew(body)
                 crew_result = crew.kickoff()
 
-                # Collect task outputs from crew, extracting only findings
-                task_outputs = []
-                for task_out in crew_result.tasks_output:
-                    task_outputs.append(_strip_scaffolding(str(task_out)))
-                research_context = "\n\n---\n\n".join(task_outputs)
+                # Build research context from raw tool data (not CrewAI
+                # output, which is polluted with ReAct scaffolding).
+                pid = _match_problem(body.get("details", ""))
+                research_sections = []
+                for tool_name, data_store in _TOOL_SOURCES.items():
+                    data = data_store.get(pid, list(data_store.values())[0])
+                    research_sections.append(
+                        f"{tool_name}:\n{json.dumps(data, indent=2)}"
+                    )
+                research_context = "\n\n".join(research_sections)
                 # Truncate if too long for the model
                 if len(research_context) > 4000:
                     research_context = research_context[-4000:]
@@ -1383,12 +1388,19 @@ def run_scripted_analysis(
             {"type": "step", "label": step_label, "status": "complete"}
         )
 
-    # Final recommendation
+    # Final recommendation — use raw tool data (not model analysis output,
+    # which may contain scaffolding the model echoes at synthesis time).
     progress_queue.put(
         {"type": "step", "label": "final_recommendation", "status": "generating"}
     )
-    cleaned = _strip_scaffolding(all_context)
-    truncated = cleaned[-4000:] if len(cleaned) > 4000 else cleaned
+    research_sections = []
+    for tool_name, (_, source) in tools.items():
+        data = source.get(problem_id, list(source.values())[0])
+        research_sections.append(
+            f"{tool_name}:\n{json.dumps(data, indent=2)}"
+        )
+    raw_research = "\n\n".join(research_sections)
+    truncated = raw_research[-4000:] if len(raw_research) > 4000 else raw_research
     final_msg = (
         f"A {problem_info.get('age', 'Unknown')}-old "
         f"{problem_info.get('appliance', 'appliance')} has this problem: "
