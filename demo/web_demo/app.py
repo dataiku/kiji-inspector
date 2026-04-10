@@ -1194,9 +1194,27 @@ async def start_analysis(request: Request):
                     "Complete this sentence in 2-3 sentences total:\n"
                     "The agent recommends",
                 )
+                print("\n" + "=" * 60)
+                print("  [DEBUG] Synthesis prompt:")
+                print("=" * 60)
+                print(synth_prompt)
+                print("=" * 60)
+
                 raw_output = _engine.generate(synth_prompt, "Synthesis", max_tokens=120)
+
+                print("\n" + "-" * 60)
+                print("  [DEBUG] Synthesis raw output:")
+                print("-" * 60)
+                print(repr(raw_output))
+                print("-" * 60)
+
                 # Ensure the output reads as a complete sentence
                 crew_output = "The agent recommends" + raw_output.split("\n\n")[0]
+
+                print("  [DEBUG] Final recommendation:")
+                print(crew_output)
+                print("=" * 60 + "\n")
+
                 q.put({"type": "step", "label": "Synthesis", "status": "complete"})
 
                 q.put({"type": "status", "message": "Extracting activations..."})
@@ -1358,8 +1376,25 @@ def run_scripted_analysis(
         "no formatting instructions. Just plain English sentences.",
         final_msg,
     )
+    print("\n" + "=" * 60)
+    print("  [DEBUG] Scripted synthesis prompt:")
+    print("=" * 60)
+    print(final_prompt)
+    print("=" * 60)
+
     raw_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=120)
+
+    print("\n" + "-" * 60)
+    print("  [DEBUG] Scripted synthesis raw output:")
+    print("-" * 60)
+    print(repr(raw_rec))
+    print("-" * 60)
+
     final_rec = "The agent recommends" + raw_rec.split("\n\n")[0]
+
+    print("  [DEBUG] Final recommendation:")
+    print(final_rec)
+    print("=" * 60 + "\n")
     progress_queue.put(
         {"type": "step", "label": "final_recommendation", "status": "complete"}
     )
