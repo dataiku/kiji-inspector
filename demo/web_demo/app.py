@@ -66,6 +66,19 @@ _FINAL_ANSWER_RE = re.compile(
 )
 
 
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+_THINK_OPEN_RE = re.compile(r"<think>.*", re.DOTALL)
+
+
+def _clean_model_output(text: str) -> str:
+    """Strip <think> blocks and trailing junk from model output."""
+    # Remove closed <think>...</think> blocks
+    text = _THINK_RE.sub("", text)
+    # Remove unclosed <think> (model hit max tokens mid-thought)
+    text = _THINK_OPEN_RE.sub("", text)
+    return text.strip()
+
+
 def _strip_scaffolding(text: str) -> str:
     """Extract only the Final Answer content from CrewAI task output.
 
@@ -1233,7 +1246,7 @@ async def start_analysis(request: Request):
                 print(synth_prompt)
                 print("=" * 60)
 
-                raw_output = _engine.generate(synth_prompt, "Synthesis", max_tokens=120)
+                raw_output = _engine.generate(synth_prompt, "Synthesis", max_tokens=256)
 
                 print("\n" + "-" * 60)
                 print("  [DEBUG] Synthesis raw output:")
@@ -1241,8 +1254,9 @@ async def start_analysis(request: Request):
                 print(repr(raw_output))
                 print("-" * 60)
 
-                # Ensure the output reads as a complete sentence
-                crew_output = "The agent recommends" + raw_output.split("\n\n")[0]
+                cleaned = _clean_model_output(raw_output)
+                # Take the first paragraph as the recommendation
+                crew_output = "The agent recommends" + cleaned.split("\n\n")[0]
 
                 print("  [DEBUG] Final recommendation:")
                 print(crew_output)
@@ -1424,7 +1438,7 @@ def run_scripted_analysis(
     print(final_prompt)
     print("=" * 60)
 
-    raw_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=120)
+    raw_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=256)
 
     print("\n" + "-" * 60)
     print("  [DEBUG] Scripted synthesis raw output:")
@@ -1432,7 +1446,8 @@ def run_scripted_analysis(
     print(repr(raw_rec))
     print("-" * 60)
 
-    final_rec = "The agent recommends" + raw_rec.split("\n\n")[0]
+    cleaned = _clean_model_output(raw_rec)
+    final_rec = "The agent recommends" + cleaned.split("\n\n")[0]
 
     print("  [DEBUG] Final recommendation:")
     print(final_rec)
