@@ -59,19 +59,32 @@ _SAE_REPO_ID = (
 )
 _SAE_LAYER = 20
 
-# Regex to strip ReAct / CrewAI scaffolding that confuses the model at
-# synthesis time.  Matches lines like "Thought:", "Action:", "Action Input:",
-# "Observation:", "Final Answer:", and common variants.
-_REACT_SCAFFOLD_RE = re.compile(
-    r"^(Thought|Action|Action Input|Observation|Final Answer)\s*:.*$",
-    re.MULTILINE,
+# Regex to extract the content after "Final Answer:" from CrewAI task outputs.
+_FINAL_ANSWER_RE = re.compile(
+    r"Final Answer\s*:\s*(.+)",
+    re.DOTALL,
 )
 
 
 def _strip_scaffolding(text: str) -> str:
-    """Remove ReAct/CrewAI scaffolding lines from research context."""
-    cleaned = _REACT_SCAFFOLD_RE.sub("", text)
-    # Collapse runs of blank lines left behind
+    """Extract only the Final Answer content from CrewAI task output.
+
+    CrewAI task output strings embed descriptions, tool instructions, and
+    ReAct scaffolding.  The model confuses these with real instructions at
+    synthesis time.  This extracts only the actual findings (the text after
+    "Final Answer:").  If no Final Answer is found, falls back to removing
+    known scaffolding lines.
+    """
+    # Try to extract just the Final Answer portion
+    match = _FINAL_ANSWER_RE.search(text)
+    if match:
+        return match.group(1).strip()
+    # Fallback: strip known scaffolding lines
+    scaffolding_re = re.compile(
+        r"^(Thought|Action|Action Input|Observation|Final Answer)\s*:.*$",
+        re.MULTILINE,
+    )
+    cleaned = scaffolding_re.sub("", text)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 
@@ -1186,12 +1199,11 @@ async def start_analysis(request: Request):
                 crew = create_crew(body)
                 crew_result = crew.kickoff()
 
-                # Collect task outputs from crew
+                # Collect task outputs from crew, extracting only findings
                 task_outputs = []
                 for task_out in crew_result.tasks_output:
-                    task_outputs.append(str(task_out))
+                    task_outputs.append(_strip_scaffolding(str(task_out)))
                 research_context = "\n\n---\n\n".join(task_outputs)
-                research_context = _strip_scaffolding(research_context)
                 # Truncate if too long for the model
                 if len(research_context) > 4000:
                     research_context = research_context[-4000:]
