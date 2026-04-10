@@ -24,6 +24,7 @@ import asyncio
 import gc
 import json
 import queue
+import re
 import threading
 import uuid
 from pathlib import Path
@@ -57,6 +58,23 @@ _SAE_REPO_ID = (
     "davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-Home-scenarios"
 )
 _SAE_LAYER = 20
+
+# Regex to strip ReAct / CrewAI scaffolding that confuses the model at
+# synthesis time.  Matches lines like "Thought:", "Action:", "Action Input:",
+# "Observation:", "Final Answer:", and common variants.
+_REACT_SCAFFOLD_RE = re.compile(
+    r"^(Thought|Action|Action Input|Observation|Final Answer)\s*:.*$",
+    re.MULTILINE,
+)
+
+
+def _strip_scaffolding(text: str) -> str:
+    """Remove ReAct/CrewAI scaffolding lines from research context."""
+    cleaned = _REACT_SCAFFOLD_RE.sub("", text)
+    # Collapse runs of blank lines left behind
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
 
 _SYSTEM_PROMPT = (
     "You are an experienced home repair advisor. You help homeowners diagnose "
@@ -1173,12 +1191,12 @@ async def start_analysis(request: Request):
                 for task_out in crew_result.tasks_output:
                     task_outputs.append(str(task_out))
                 research_context = "\n\n---\n\n".join(task_outputs)
+                research_context = _strip_scaffolding(research_context)
                 # Truncate if too long for the model
                 if len(research_context) > 4000:
                     research_context = research_context[-4000:]
 
                 # Synthesis: call HFEngine directly with a clean prompt
-                # (avoids CrewAI's ReAct scaffolding that confuses Nemotron)
                 q.put({"type": "step", "label": "Synthesis", "status": "generating"})
                 synth_prompt = _engine._build_prompt(
                     "You are a home repair advisor. Write 2-3 plain English "
@@ -1357,7 +1375,8 @@ def run_scripted_analysis(
     progress_queue.put(
         {"type": "step", "label": "final_recommendation", "status": "generating"}
     )
-    truncated = all_context[-4000:] if len(all_context) > 4000 else all_context
+    cleaned = _strip_scaffolding(all_context)
+    truncated = cleaned[-4000:] if len(cleaned) > 4000 else cleaned
     final_msg = (
         f"A {problem_info.get('age', 'Unknown')}-old "
         f"{problem_info.get('appliance', 'appliance')} has this problem: "
