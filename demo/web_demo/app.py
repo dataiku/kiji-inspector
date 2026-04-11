@@ -1229,7 +1229,7 @@ async def start_analysis(request: Request):
                     research_context = research_context[-4000:]
 
                 # Synthesis: call HFEngine directly with a clean prompt.
-                # We pre-fill the assistant response with "The agent recommends"
+                # We pre-fill the assistant response with "The agent recommends "
                 # so the model continues with the actual recommendation instead
                 # of starting a <think> block or meta-reasoning.
                 q.put({"type": "step", "label": "Synthesis", "status": "generating"})
@@ -1241,7 +1241,7 @@ async def start_analysis(request: Request):
                     f"Key findings from research:\n{research_context}\n\n"
                     "Based on the research data above, write a 2-3 sentence "
                     "recommendation.",
-                ) + "The agent recommends"
+                ) + "The agent recommends "
                 print("\n" + "=" * 60)
                 print("  [DEBUG] Synthesis prompt:")
                 print("=" * 60)
@@ -1258,7 +1258,7 @@ async def start_analysis(request: Request):
 
                 cleaned = _clean_model_output(raw_output)
                 # Take the first paragraph as the recommendation
-                crew_output = "The agent recommends" + cleaned.split("\n\n")[0]
+                crew_output = "The agent recommends " + cleaned.split("\n\n")[0]
 
                 print("  [DEBUG] Final recommendation:")
                 print(crew_output)
@@ -1424,16 +1424,16 @@ def run_scripted_analysis(
         f"{problem_info.get('appliance', 'appliance')} has this problem: "
         f"{problem_info.get('details', 'unknown issue')}.\n\n"
         f"Key findings from research:\n{truncated}\n\n"
-        "The agent recommends"
+        "The agent recommends "
     )
     final_prompt = engine._build_prompt(
         "You are a home repair advisor.",
         final_msg.replace(
-            "The agent recommends",
+            "The agent recommends ",
             "Based on the research data above, write a 2-3 sentence "
             "recommendation.",
         ),
-    ) + "The agent recommends"
+    ) + "The agent recommends "
     print("\n" + "=" * 60)
     print("  [DEBUG] Scripted synthesis prompt:")
     print("=" * 60)
@@ -1449,7 +1449,7 @@ def run_scripted_analysis(
     print("-" * 60)
 
     cleaned = _clean_model_output(raw_rec)
-    final_rec = "The agent recommends" + cleaned.split("\n\n")[0]
+    final_rec = "The agent recommends " + cleaned.split("\n\n")[0]
 
     print("  [DEBUG] Final recommendation:")
     print(final_rec)
