@@ -248,7 +248,7 @@ def _run_labeling_subprocess(
         trust_remote_code=True,
         gpu_memory_utilization=0.80,
         enforce_eager=True,
-        enable_expert_parallel=True,
+        enable_expert_parallel=False,
         disable_log_stats=True,
     )
 
