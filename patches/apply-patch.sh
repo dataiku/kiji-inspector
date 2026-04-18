@@ -24,12 +24,29 @@ if [[ ! -d "$VLLM_DIR" ]]; then
   exit 1
 fi
 
-mapfile -t PATCH_FILES < <(find "$PATCH_SRC_DIR" -maxdepth 1 -type f -name '*.patch' | sort)
+mapfile -t CURRENT_PATCH_FILES < <(
+  find "$PATCH_SRC_DIR" -maxdepth 1 -type f -name 'vllm-0.19*.patch' | sort
+)
+
+if [[ "${#CURRENT_PATCH_FILES[@]}" -gt 0 ]]; then
+  PATCH_FILES=("${CURRENT_PATCH_FILES[@]}")
+  echo "Using current-version patch set."
+else
+  mapfile -t PATCH_FILES < <(
+    find "$PATCH_SRC_DIR" -maxdepth 1 -type f -name '[0-9][0-9]_*.patch' | sort
+  )
+  echo "No current-version patch found; falling back to legacy numbered patches."
+fi
 
 if [[ "${#PATCH_FILES[@]}" -eq 0 ]]; then
   echo "Error: no patch files found in $PATCH_SRC_DIR" >&2
   exit 1
 fi
+
+echo "Selected patch files:"
+for patch_file in "${PATCH_FILES[@]}"; do
+  echo "  - $(basename "$patch_file")"
+done
 
 rm -rf "$PATCH_DST_DIR"
 cp -r "$PATCH_SRC_DIR" "$PATCH_DST_DIR"

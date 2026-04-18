@@ -1,0 +1,623 @@
+diff --git a/config/model.py b/config/model.py
+index 2b767b2..f75b7b4 100644
+--- a/config/model.py
++++ b/config/model.py
+@@ -213,6 +213,12 @@ class ModelConfig:
+     flexibility."""
+     enable_return_routed_experts: bool = False
+     """Whether to return routed experts."""
++    extract_activation_layers: list[int] = Field(default_factory=list)
++    """Prompt decoder layers whose activations should be captured and returned.
++
++    These layers are configured before model compilation so the compiled graph
++    is traced with the requested activation captures already in place.
++    """
+     max_logprobs: int = 20
+     """Maximum number of log probabilities to return when `logprobs` is
+     specified in `SamplingParams`. The default value comes the default for the
+@@ -713,6 +719,33 @@ class ModelConfig:
+             return value.lower()
+         return value
+ 
++    @field_validator("extract_activation_layers", mode="before")
++    @classmethod
++    def validate_extract_activation_layers_before(cls, value: Any) -> Any:
++        if value is None:
++            return []
++        if not isinstance(value, list):
++            raise TypeError(
++                "extract_activation_layers must be provided as a list of "
++                "non-negative integers."
++            )
++
++        layers: list[int] = []
++        seen_layers: set[int] = set()
++        for layer in value:
++            layer_index = int(layer)
++            if layer_index < 0:
++                raise ValueError(
++                    "extract_activation_layers must only contain non-negative "
++                    "integers."
++                )
++            if layer_index not in seen_layers:
++                layers.append(layer_index)
++                seen_layers.add(layer_index)
++
++        layers.sort()
++        return layers
++
+     @model_validator(mode="after")
+     def validate_model_config_after(self: "ModelConfig") -> "ModelConfig":
+         """Called after __post_init__"""
+diff --git a/engine/arg_utils.py b/engine/arg_utils.py
+index 7028b12..71df5cc 100644
+--- a/engine/arg_utils.py
++++ b/engine/arg_utils.py
+@@ -8,7 +8,7 @@ import functools
+ import json
+ import sys
+ from collections.abc import Callable
+-from dataclasses import MISSING, asdict, dataclass, fields, is_dataclass
++from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass
+ from itertools import permutations
+ from types import UnionType
+ from typing import (
+@@ -378,6 +378,7 @@ class EngineArgs:
+ 
+     model: str = ModelConfig.model
+     enable_return_routed_experts: bool = ModelConfig.enable_return_routed_experts
++    extract_activation_layers: list[int] = field(default_factory=list)
+     model_weights: str = ModelConfig.model_weights
+     served_model_name: str | list[str] | None = ModelConfig.served_model_name
+     tokenizer: str | None = ModelConfig.tokenizer
+@@ -748,6 +749,10 @@ class EngineArgs:
+             "--enable-return-routed-experts",
+             **model_kwargs["enable_return_routed_experts"],
+         )
++        model_group.add_argument(
++            "--extract-activation-layers",
++            **model_kwargs["extract_activation_layers"],
++        )
+         model_group.add_argument("--max-logprobs", **model_kwargs["max_logprobs"])
+         model_group.add_argument("--logprobs-mode", **model_kwargs["logprobs_mode"])
+         model_group.add_argument(
+@@ -1469,6 +1474,7 @@ class EngineArgs:
+             allow_deprecated_quantization=self.allow_deprecated_quantization,
+             enforce_eager=self.enforce_eager,
+             enable_return_routed_experts=self.enable_return_routed_experts,
++            extract_activation_layers=self.extract_activation_layers,
+             max_logprobs=self.max_logprobs,
+             logprobs_mode=self.logprobs_mode,
+             disable_sliding_window=self.disable_sliding_window,
+diff --git a/entrypoints/llm.py b/entrypoints/llm.py
+index d135a9e..acf1ae6 100644
+--- a/entrypoints/llm.py
++++ b/entrypoints/llm.py
+@@ -180,6 +180,9 @@ class LLM:
+             disable CUDA graph and always execute the model in eager mode.
+             If False, we will use CUDA graph and eager execution in hybrid.
+         enable_return_routed_experts: Whether to return routed experts.
++        extract_activation_layers: Exact list of prompt decoder layer indices
++            whose activations should be captured and returned in completion
++            outputs.
+         disable_custom_all_reduce: See
+             [ParallelConfig][vllm.config.ParallelConfig].
+         hf_token: The token to use as HTTP bearer authorization for remote files
+@@ -236,6 +239,7 @@ class LLM:
+         offload_params: set[str] | None = None,
+         enforce_eager: bool = False,
+         enable_return_routed_experts: bool = False,
++        extract_activation_layers: list[int] | None = None,
+         disable_custom_all_reduce: bool = False,
+         hf_token: bool | str | None = None,
+         hf_overrides: HfOverrides | None = None,
+@@ -362,6 +366,7 @@ class LLM:
+             offload_params=offload_params or set(),
+             enforce_eager=enforce_eager,
+             enable_return_routed_experts=enable_return_routed_experts,
++            extract_activation_layers=list(extract_activation_layers or []),
+             disable_custom_all_reduce=disable_custom_all_reduce,
+             hf_token=hf_token,
+             hf_overrides=hf_overrides,
+diff --git a/model_executor/models/gemma4.py b/model_executor/models/gemma4.py
+index 0618954..ab77e04 100644
+--- a/model_executor/models/gemma4.py
++++ b/model_executor/models/gemma4.py
+@@ -91,6 +91,19 @@ def _get_text_config(config):
+     return config
+ 
+ 
++def _maybe_add_requested_hidden_state(
++    aux_hidden_state_layers: tuple[int, ...],
++    aux_hidden_states: list[torch.Tensor],
++    layer_idx: int,
++    hidden_states: torch.Tensor,
++    residual: torch.Tensor | None,
++) -> list[torch.Tensor]:
++    if layer_idx in aux_hidden_state_layers:
++        value = hidden_states + residual if residual is not None else hidden_states
++        aux_hidden_states.append(value)
++    return aux_hidden_states
++
++
+ class Gemma4MLP(nn.Module):
+     def __init__(
+         self,
+@@ -652,10 +665,12 @@ def _run_decoder_layers(
+     positions: torch.Tensor,
+     hidden_states: torch.Tensor,
+     per_layer_inputs: torch.Tensor | None = None,
++    aux_hidden_state_layers: tuple[int, ...] = (),
+     **kwargs,
+-) -> torch.Tensor:
++) -> tuple[torch.Tensor, list[torch.Tensor]]:
+     """Run a slice of decoder layers with PLE extraction."""
+     residual = None
++    aux_hidden_states: list[torch.Tensor] = []
+     for idx, layer in enumerate(decoder_layers):
+         layer_idx = idx + layer_idx_start
+         layer_per_input = (
+@@ -668,7 +683,14 @@ def _run_decoder_layers(
+             per_layer_input=layer_per_input,
+             **kwargs,
+         )
+-    return hidden_states
++        _maybe_add_requested_hidden_state(
++            aux_hidden_state_layers,
++            aux_hidden_states,
++            layer_idx,
++            hidden_states,
++            residual,
++        )
++    return hidden_states, aux_hidden_states
+ 
+ 
+ @support_torch_compile(
+@@ -720,6 +742,7 @@ class Gemma4SelfDecoderLayers(nn.Module):
+         self.per_layer_projection_norm = per_layer_projection_norm
+         self.per_layer_input_scale = per_layer_input_scale
+         self.per_layer_projection_scale = per_layer_projection_scale
++        self.aux_hidden_state_layers: tuple[int, ...] = ()
+ 
+     def embed_input_ids(self, input_ids: torch.Tensor) -> torch.Tensor:
+         return self.embed_tokens(input_ids) * self.normalizer
+@@ -783,7 +806,7 @@ class Gemma4SelfDecoderLayers(nn.Module):
+         inputs_embeds: torch.Tensor | None = None,
+         per_layer_inputs: torch.Tensor | None = None,
+         **kwargs,
+-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
++    ) -> tuple[torch.Tensor, torch.Tensor | None, list[torch.Tensor]]:
+         if inputs_embeds is not None:
+             hidden_states = inputs_embeds
+             per_layer_inputs = self.project_per_layer_inputs(
+@@ -796,15 +819,16 @@ class Gemma4SelfDecoderLayers(nn.Module):
+                 hidden_states, per_layer_embeds
+             )
+ 
+-        hidden_states = _run_decoder_layers(
++        hidden_states, aux_hidden_states = _run_decoder_layers(
+             self.decoder_layers,
+             self.layer_idx_start,
+             positions,
+             hidden_states,
+             per_layer_inputs,
++            aux_hidden_state_layers=self.aux_hidden_state_layers,
+             **kwargs,
+         )
+-        return hidden_states, per_layer_inputs
++        return hidden_states, per_layer_inputs, aux_hidden_states
+ 
+ 
+ @support_torch_compile(
+@@ -824,6 +848,7 @@ class Gemma4CrossDecoderLayers(nn.Module):
+         super().__init__()
+         self.decoder_layers = decoder_layers
+         self.layer_idx_start = layer_idx_start
++        self.aux_hidden_state_layers: tuple[int, ...] = ()
+ 
+     def forward(
+         self,
+@@ -831,13 +856,14 @@ class Gemma4CrossDecoderLayers(nn.Module):
+         hidden_states: torch.Tensor,
+         per_layer_inputs: torch.Tensor | None = None,
+         **kwargs,
+-    ) -> torch.Tensor:
++    ) -> tuple[torch.Tensor, list[torch.Tensor]]:
+         return _run_decoder_layers(
+             self.decoder_layers,
+             self.layer_idx_start,
+             positions,
+             hidden_states,
+             per_layer_inputs,
++            aux_hidden_state_layers=self.aux_hidden_state_layers,
+             **kwargs,
+         )
+ 
+@@ -988,6 +1014,7 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+             )
+ 
+         self.fast_prefill_enabled = cache_config.kv_sharing_fast_prefill
++        self.fast_prefill_prompt_activation_capture = False
+ 
+         if self.fast_prefill_enabled:
+             # Allocate static buffers for CUDAGraph
+@@ -1082,6 +1109,72 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+             inputs_embeds, per_layer_inputs
+         )
+ 
++    def _set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:
++        super()._set_aux_hidden_state_layers(layers)
++        self.self_decoder.aux_hidden_state_layers = layers
++        self.cross_decoder.aux_hidden_state_layers = layers
++
++    def set_fast_prefill_prompt_activation_capture(self, enabled: bool) -> None:
++        self.fast_prefill_prompt_activation_capture = enabled
++
++    def _merge_fast_prefill_aux_hidden_states(
++        self,
++        batch_size: int,
++        logits_indices_padded: torch.Tensor,
++        num_logits_indices: int | None,
++        self_aux_hidden_states: list[torch.Tensor],
++        cross_aux_hidden_states: list[torch.Tensor],
++    ) -> list[torch.Tensor]:
++        if not self.aux_hidden_state_layers:
++            return []
++
++        split_layer_idx = self.cross_decoder.layer_idx_start
++        self_layer_indices = tuple(
++            layer_idx
++            for layer_idx in self.aux_hidden_state_layers
++            if layer_idx < split_layer_idx
++        )
++        cross_layer_indices = tuple(
++            layer_idx
++            for layer_idx in self.aux_hidden_state_layers
++            if layer_idx >= split_layer_idx
++        )
++
++        aux_hidden_states_by_layer: dict[int, torch.Tensor] = {}
++        for layer_idx, layer_hidden_states in zip(
++            self_layer_indices, self_aux_hidden_states, strict=True
++        ):
++            aux_hidden_states_by_layer[layer_idx] = layer_hidden_states
++
++        if num_logits_indices is None:
++            cross_indices = logits_indices_padded
++        else:
++            cross_indices = logits_indices_padded[:num_logits_indices]
++
++        for layer_idx, layer_hidden_states in zip(
++            cross_layer_indices, cross_aux_hidden_states, strict=True
++        ):
++            if num_logits_indices is None:
++                aux_hidden_states_by_layer[layer_idx] = layer_hidden_states
++                continue
++
++            full_hidden_states = torch.zeros(
++                (batch_size, layer_hidden_states.shape[-1]),
++                dtype=layer_hidden_states.dtype,
++                device=layer_hidden_states.device,
++            )
++            full_hidden_states.index_copy_(
++                0,
++                cross_indices,
++                layer_hidden_states[:num_logits_indices],
++            )
++            aux_hidden_states_by_layer[layer_idx] = full_hidden_states
++
++        return [
++            aux_hidden_states_by_layer[layer_idx]
++            for layer_idx in self.aux_hidden_state_layers
++        ]
++
+     def fast_prefill_forward(
+         self,
+         input_ids: torch.Tensor | None,
+@@ -1089,7 +1182,7 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+         inputs_embeds: torch.Tensor | None = None,
+         per_layer_inputs: torch.Tensor | None = None,
+         **kwargs,
+-    ) -> torch.Tensor:
++    ) -> torch.Tensor | tuple[torch.Tensor, list[torch.Tensor]]:
+         logits_indices_padded, num_logits_indices = None, None
+         attn_metadata = get_forward_context().attn_metadata
+ 
+@@ -1104,12 +1197,14 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+ 
+         batch_size = positions.size(0)
+         self.positions[:batch_size].copy_(positions)
+-        self_decoder_hidden_states, per_layer_inputs = self.self_decoder(
+-            input_ids=input_ids,
+-            positions=self.positions[:batch_size],
+-            inputs_embeds=inputs_embeds,
+-            per_layer_inputs=per_layer_inputs,
+-            **kwargs,
++        self_decoder_hidden_states, per_layer_inputs, self_aux_hidden_states = (
++            self.self_decoder(
++                input_ids=input_ids,
++                positions=self.positions[:batch_size],
++                inputs_embeds=inputs_embeds,
++                per_layer_inputs=per_layer_inputs,
++                **kwargs,
++            )
+         )
+ 
+         if logits_indices_padded is None:
+@@ -1147,7 +1242,7 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+             if self.per_layer_inputs is not None
+             else None
+         )
+-        cross_hidden_states = self.cross_decoder(
++        cross_hidden_states, cross_aux_hidden_states = self.cross_decoder(
+             self.positions[:num_padded],
+             self.hidden_states[:num_padded],
+             cross_per_layer,
+@@ -1165,6 +1260,16 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+         else:
+             hidden_states = cross_hidden_states
+ 
++        if self.aux_hidden_state_layers:
++            aux_hidden_states = self._merge_fast_prefill_aux_hidden_states(
++                batch_size=batch_size,
++                logits_indices_padded=logits_indices_padded,
++                num_logits_indices=num_logits_indices,
++                self_aux_hidden_states=self_aux_hidden_states,
++                cross_aux_hidden_states=cross_aux_hidden_states,
++            )
++            return hidden_states, aux_hidden_states
++
+         return hidden_states
+ 
+     def forward(
+@@ -1177,14 +1282,28 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+         **kwargs,
+     ) -> torch.Tensor | IntermediateTensors | tuple[torch.Tensor, list[torch.Tensor]]:
+         if self.fast_prefill_enabled:
+-            hidden_states = self.fast_prefill_forward(
++            if (
++                self.aux_hidden_state_layers
++                and not self.fast_prefill_prompt_activation_capture
++            ):
++                raise RuntimeError(
++                    "Gemma4 activation extraction is not supported with fast "
++                    "prefill enabled for generic auxiliary hidden-state "
++                    "outputs. Use eager / non-fast-prefill execution."
++                )
++            model_output = self.fast_prefill_forward(
+                 input_ids,
+                 positions,
+                 inputs_embeds,
+                 per_layer_inputs,
+                 **kwargs,
+             )
+-            hidden_states = self.norm(hidden_states)
++            if self.aux_hidden_state_layers:
++                hidden_states, aux_hidden_states = model_output
++                hidden_states = self.norm(hidden_states)
++                return hidden_states, aux_hidden_states
++
++            hidden_states = self.norm(model_output)
+             return hidden_states
+ 
+         # Normal (non-fast-prefill) path with PP support
+@@ -1211,7 +1330,7 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+             residual = intermediate_tensors["residual"]
+             per_layer_inputs = intermediate_tensors.get("per_layer_inputs")
+ 
+-        aux_hidden_states = self._maybe_add_hidden_state([], 0, hidden_states, residual)
++        aux_hidden_states: list[torch.Tensor] = []
+         for layer_idx, layer in enumerate(
+             islice(self.layers, self.start_layer, self.end_layer)
+         ):
+@@ -1231,7 +1350,10 @@ class Gemma4Model(nn.Module, EagleModelMixin):
+                 **kwargs,
+             )
+             self._maybe_add_hidden_state(
+-                aux_hidden_states, layer_idx + 1, hidden_states, residual
++                aux_hidden_states,
++                self.start_layer + layer_idx,
++                hidden_states,
++                residual,
+             )
+         if not get_pp_group().is_last_rank:
+             return IntermediateTensors(
+@@ -1488,6 +1610,9 @@ class Gemma4ForCausalLM(
+     def embed_input_ids(self, input_ids: torch.Tensor) -> torch.Tensor:
+         return self.model.embed_input_ids(input_ids)
+ 
++    def set_fast_prefill_prompt_activation_capture(self, enabled: bool) -> None:
++        self.model.set_fast_prefill_prompt_activation_capture(enabled)
++
+     def forward(
+         self,
+         input_ids: torch.Tensor,
+diff --git a/v1/worker/gpu_model_runner.py b/v1/worker/gpu_model_runner.py
+index 1e05d68..6e703c8 100644
+--- a/v1/worker/gpu_model_runner.py
++++ b/v1/worker/gpu_model_runner.py
+@@ -156,6 +156,7 @@ from vllm.v1.outputs import (
+     LogprobsTensors,
+     ModelRunnerOutput,
+     PoolerOutput,
++    PromptActivations,
+     SamplerOutput,
+     make_empty_encoder_model_runner_output,
+ )
+@@ -410,6 +411,7 @@ class GPUModelRunner(
+         self.scheduler_config = vllm_config.scheduler_config
+         self.speculative_config = vllm_config.speculative_config
+         self.observability_config = vllm_config.observability_config
++        self.extract_activation_layers = self.model_config.extract_activation_layers
+ 
+         model_config = self.model_config
+         cache_config = self.cache_config
+@@ -510,6 +512,8 @@ class GPUModelRunner(
+         self.encoder_cudagraph_manager: EncoderCudaGraphManager | None = None
+ 
+         self.use_aux_hidden_state_outputs = False
++        if self.extract_activation_layers:
++            self.use_aux_hidden_state_outputs = True
+         # Set up speculative decoding.
+         # NOTE(Jiayi): currently we put the entire draft model on
+         # the last PP rank. This is not ideal if there are many
+@@ -3344,6 +3348,7 @@ class GPUModelRunner(
+         sampler_output: SamplerOutput,
+         logits: torch.Tensor | None,
+         hidden_states: torch.Tensor,
++        aux_hidden_states: list[torch.Tensor] | None,
+         num_scheduled_tokens: int,
+         spec_decode_metadata: SpecDecodeMetadata | None,
+     ) -> tuple[
+@@ -3351,6 +3356,7 @@ class GPUModelRunner(
+         LogprobsLists | None,
+         list[list[int]],
+         dict[str, LogprobsTensors | None],
++        dict[str, PromptActivations | None],
+         list[str],
+         dict[str, int],
+         list[int],
+@@ -3454,12 +3460,17 @@ class GPUModelRunner(
+             hidden_states[:num_scheduled_tokens],
+             scheduler_output.num_scheduled_tokens,
+         )
++        prompt_activations_dict = self._get_prompt_activations_dict(
++            aux_hidden_states,
++            scheduler_output.num_scheduled_tokens,
++        )
+ 
+         return (
+             num_nans_in_logits,
+             logprobs_lists,
+             valid_sampled_token_ids,
+             prompt_logprobs_dict,
++            prompt_activations_dict,
+             req_ids_output_copy,
+             req_id_to_index_output_copy,
+             invalid_req_indices,
+@@ -4282,6 +4293,7 @@ class GPUModelRunner(
+                 logprobs_lists,
+                 valid_sampled_token_ids,
+                 prompt_logprobs_dict,
++                prompt_activations_dict,
+                 req_ids_output_copy,
+                 req_id_to_index_output_copy,
+                 invalid_req_indices,
+@@ -4290,6 +4302,7 @@ class GPUModelRunner(
+                 sampler_output,
+                 logits,
+                 hidden_states,
++                aux_hidden_states,
+                 scheduler_output.total_num_scheduled_tokens,
+                 spec_decode_metadata,
+             )
+@@ -4326,6 +4339,7 @@ class GPUModelRunner(
+                 sampled_token_ids=valid_sampled_token_ids,
+                 logprobs=logprobs_lists,
+                 prompt_logprobs_dict=prompt_logprobs_dict,
++                prompt_activations_dict=prompt_activations_dict,
+                 kv_connector_output=kv_connector_output,
+                 ec_connector_output=ec_connector_output
+                 if self.supports_mm_inputs
+@@ -4807,10 +4821,20 @@ class GPUModelRunner(
+                             "aux_hidden_state_outputs was requested"
+                         )
+ 
+-                    # Try to get auxiliary layers from speculative config,
+-                    # otherwise use model's default layers
+-                    aux_layers = self._get_eagle3_aux_layers_from_config()
++                    requested_activation_layers = tuple(self.extract_activation_layers)
++                    aux_layers = requested_activation_layers
++                    config_aux_layers = self._get_eagle3_aux_layers_from_config()
+                     if aux_layers:
++                        if config_aux_layers and aux_layers != config_aux_layers:
++                            raise ValueError(
++                                "extract_activation_layers conflicts with the "
++                                "auxiliary layers requested by speculative decoding."
++                            )
++                        logger.info(
++                            "Using requested activation layers: %s", aux_layers
++                        )
++                    elif config_aux_layers:
++                        aux_layers = config_aux_layers
+                         logger.info(
+                             "Using auxiliary layers from speculative config: %s",
+                             aux_layers,
+@@ -4821,6 +4845,20 @@ class GPUModelRunner(
+                         )
+ 
+                     self.model.set_aux_hidden_state_layers(aux_layers)
++                    raw_model = self.get_model()
++                    fast_prefill_capture_owner = raw_model
++                    if not hasattr(
++                        fast_prefill_capture_owner,
++                        "set_fast_prefill_prompt_activation_capture",
++                    ) and hasattr(raw_model, "model"):
++                        fast_prefill_capture_owner = raw_model.model
++                    if hasattr(
++                        fast_prefill_capture_owner,
++                        "set_fast_prefill_prompt_activation_capture",
++                    ):
++                        fast_prefill_capture_owner.set_fast_prefill_prompt_activation_capture(
++                            bool(requested_activation_layers) and not config_aux_layers
++                        )
+                 time_after_load = time.perf_counter()
+             self.model_memory_usage = m.consumed_memory
+         except torch.cuda.OutOfMemoryError as e:
+@@ -5118,6 +5156,56 @@ class GPUModelRunner(
+ 
+         return prompt_logprobs_dict
+ 
++    def _get_prompt_activations_dict(
++        self,
++        aux_hidden_states: list[torch.Tensor] | None,
++        num_scheduled_tokens: dict[str, int],
++    ) -> dict[str, PromptActivations | None]:
++        if not self.extract_activation_layers:
++            return {}
++        if not self.use_aux_hidden_state_outputs or aux_hidden_states is None:
++            raise ValueError(
++                "Auxiliary hidden states are required when extract_activation_layers "
++                "is configured."
++            )
++        if len(aux_hidden_states) != len(self.extract_activation_layers):
++            raise RuntimeError(
++                "Captured auxiliary hidden state count does not match the requested "
++                "extract_activation_layers."
++            )
++
++        prompt_activations_dict: dict[str, PromptActivations | None] = {}
++
++        for req_id, num_tokens in num_scheduled_tokens.items():
++            request = self.requests[req_id]
++            num_prompt_tokens = (
++                len(request.prompt_token_ids)
++                if request.prompt_token_ids is not None
++                else request.num_prompt_tokens
++            )
++
++            start_idx = request.num_computed_tokens
++            if start_idx >= num_prompt_tokens:
++                continue
++
++            num_remaining_tokens = num_prompt_tokens - start_idx
++            if num_tokens < num_remaining_tokens:
++                continue
++
++            req_idx = self.input_batch.req_id_to_index[req_id]
++            offset = self.query_start_loc.np[req_idx].item()
++            last_prompt_token_idx = offset + num_remaining_tokens - 1
++            prompt_activations_dict[req_id] = {
++                layer_idx: layer_hidden_states[last_prompt_token_idx].to(
++                    device="cpu", dtype=torch.float32
++                )
++                for layer_idx, layer_hidden_states in zip(
++                    self.extract_activation_layers, aux_hidden_states, strict=True
++                )
++            }
++
++        return prompt_activations_dict
++
+     def _get_nans_in_logits(
+         self,
+         logits: torch.Tensor | None,
