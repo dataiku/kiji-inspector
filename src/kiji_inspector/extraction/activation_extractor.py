@@ -138,11 +138,18 @@ class ActivationExtractor:
         """Get the transformer body, skipping lm_head to avoid allocating logits.
 
         Walks common inner-model attribute paths used by various architectures:
+        - model.language_model (Gemma4 multimodal: skip vision/audio towers)
         - language_model       (multimodal wrappers: Gemma3, LLaVA, etc.)
         - model                (standard: Llama, Qwen, Mistral, Gemma, etc.)
         - backbone             (NemotronH)
         - transformer          (GPT-NeoX, GPT-2)
         """
+        # Gemma4ForConditionalGeneration.model is Gemma4Model, which holds
+        # vision_tower/audio_tower alongside language_model. Recurse into
+        # language_model to bypass multimodal processing for text-only input.
+        if hasattr(self.model, "model"):
+            if hasattr(self.model.model, "language_model"):
+                return self.model.model.language_model
         for attr in ("language_model", "model", "backbone", "transformer"):
             if hasattr(self.model, attr):
                 return getattr(self.model, attr)
@@ -156,6 +163,7 @@ class ActivationExtractor:
         """
         # Try common embedding attribute names
         for attr_path in (
+            "model.language_model.embed_tokens",
             "language_model.model.embed_tokens",
             "language_model.embed_tokens",
             "model.embed_tokens",
@@ -178,6 +186,12 @@ class ActivationExtractor:
 
     def _get_model_layers(self):
         """Get the layer list, handling different model architectures."""
+        # Gemma4 multimodal (Gemma4ForConditionalGeneration): model.language_model.layers
+        if hasattr(self.model, "model"):
+            if hasattr(self.model.model, "language_model"):
+                lm = self.model.model.language_model
+                if hasattr(lm, "layers"):
+                    return lm.layers
         # Gemma3 multimodal (Gemma3ForConditionalGeneration): language_model.model.layers
         if hasattr(self.model, "language_model"):
             lm = self.model.language_model
