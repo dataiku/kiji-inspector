@@ -119,6 +119,144 @@ index d135a9e..acf1ae6 100644
              disable_custom_all_reduce=disable_custom_all_reduce,
              hf_token=hf_token,
              hf_overrides=hf_overrides,
+diff --git a/entrypoints/openai/chat_completion/protocol.py b/entrypoints/openai/chat_completion/protocol.py
+index aacac38..8d30a65 100644
+--- a/entrypoints/openai/chat_completion/protocol.py
++++ b/entrypoints/openai/chat_completion/protocol.py
+@@ -92,6 +92,7 @@ class ChatCompletionResponseChoice(OpenAIBaseModel):
+     # not part of the OpenAI spec but is useful for tracing the tokens
+     # in agent scenarios
+     token_ids: list[int] | None = None
++    activations: dict[int, Any] | None = None
+ 
+ 
+ class ChatCompletionResponse(OpenAIBaseModel):
+@@ -120,6 +121,7 @@ class ChatCompletionResponseStreamChoice(OpenAIBaseModel):
+     stop_reason: int | str | None = None
+     # not part of the OpenAI spec but for tracing the tokens
+     token_ids: list[int] | None = None
++    activations: dict[int, Any] | None = None
+ 
+ 
+ class ChatCompletionStreamResponse(OpenAIBaseModel):
+diff --git a/entrypoints/openai/chat_completion/serving.py b/entrypoints/openai/chat_completion/serving.py
+index 4a56c63..a79c6c3 100644
+--- a/entrypoints/openai/chat_completion/serving.py
++++ b/entrypoints/openai/chat_completion/serving.py
+@@ -54,6 +54,7 @@ from vllm.entrypoints.openai.engine.serving import (
+     GenerationError,
+     OpenAIServing,
+     clamp_prompt_logprobs,
++    serialize_activations,
+ )
+ from vllm.entrypoints.openai.models.serving import OpenAIServingModels
+ from vllm.entrypoints.openai.parser.harmony_utils import (
+@@ -1063,6 +1064,7 @@ class OpenAIServingChat(OpenAIServing):
+                             delta=delta_message,
+                             logprobs=logprobs,
+                             finish_reason=None,
++                            activations=serialize_activations(output.activations),
+                             token_ids=(
+                                 as_list(output.token_ids)
+                                 if request.return_token_ids
+@@ -1163,6 +1165,7 @@ class OpenAIServingChat(OpenAIServing):
+                             logprobs=logprobs,
+                             finish_reason=finish_reason_,
+                             stop_reason=output.stop_reason,
++                            activations=serialize_activations(output.activations),
+                             token_ids=(
+                                 as_list(output.token_ids)
+                                 if request.return_token_ids
+@@ -1355,6 +1358,7 @@ class OpenAIServingChat(OpenAIServing):
+                         else "stop"
+                     ),
+                     stop_reason=output.stop_reason,
++                    activations=serialize_activations(output.activations),
+                     token_ids=(
+                         as_list(output.token_ids) if request.return_token_ids else None
+                     ),
+@@ -1571,6 +1575,7 @@ class OpenAIServingChat(OpenAIServing):
+                 if output.finish_reason
+                 else "stop",
+                 stop_reason=output.stop_reason,
++                activations=serialize_activations(output.activations),
+                 token_ids=(
+                     as_list(output.token_ids) if request.return_token_ids else None
+                 ),
+diff --git a/entrypoints/openai/completion/protocol.py b/entrypoints/openai/completion/protocol.py
+index c785d25..b80b8f1 100644
+--- a/entrypoints/openai/completion/protocol.py
++++ b/entrypoints/openai/completion/protocol.py
+@@ -468,6 +468,7 @@ class CompletionResponseChoice(OpenAIBaseModel):
+     token_ids: list[int] | None = None  # For response
+     prompt_logprobs: list[dict[int, Logprob] | None] | None = None
+     prompt_token_ids: list[int] | None = None  # For prompt
++    activations: dict[int, Any] | None = None
+ 
+ 
+ class CompletionResponse(OpenAIBaseModel):
+@@ -503,6 +504,7 @@ class CompletionResponseStreamChoice(OpenAIBaseModel):
+     # prompt tokens is put into choice to align with CompletionResponseChoice
+     prompt_token_ids: list[int] | None = None
+     token_ids: list[int] | None = None
++    activations: dict[int, Any] | None = None
+ 
+ 
+ class CompletionStreamResponse(OpenAIBaseModel):
+diff --git a/entrypoints/openai/completion/serving.py b/entrypoints/openai/completion/serving.py
+index fb7f253..968e2bc 100644
+--- a/entrypoints/openai/completion/serving.py
++++ b/entrypoints/openai/completion/serving.py
+@@ -29,6 +29,7 @@ from vllm.entrypoints.openai.engine.serving import (
+     GenerationError,
+     OpenAIServing,
+     clamp_prompt_logprobs,
++    serialize_activations,
+ )
+ from vllm.entrypoints.openai.models.serving import OpenAIServingModels
+ from vllm.entrypoints.utils import get_max_tokens, should_include_usage
+@@ -393,6 +394,7 @@ class OpenAIServingCompletion(OpenAIServing):
+                                 finish_reason=finish_reason,
+                                 stop_reason=stop_reason,
+                                 prompt_token_ids=prompt_token_ids_to_return,
++                                activations=serialize_activations(output.activations),
+                                 token_ids=(
+                                     as_list(output.token_ids)
+                                     if request.return_token_ids
+@@ -528,6 +530,7 @@ class OpenAIServingCompletion(OpenAIServing):
+                     prompt_token_ids=(
+                         prompt_token_ids if request.return_token_ids else None
+                     ),
++                    activations=serialize_activations(output.activations),
+                     token_ids=(
+                         as_list(output.token_ids) if request.return_token_ids else None
+                     ),
+diff --git a/entrypoints/openai/engine/serving.py b/entrypoints/openai/engine/serving.py
+index ab33008..0f82862 100644
+--- a/entrypoints/openai/engine/serving.py
++++ b/entrypoints/openai/engine/serving.py
+@@ -759,3 +759,21 @@ def clamp_prompt_logprobs(
+             if logprob_values.logprob == float("-inf"):
+                 logprob_values.logprob = -9999.0
+     return prompt_logprobs
++
++
++def serialize_activations(
++    activations: Mapping[int, Any] | None,
++) -> dict[int, Any] | None:
++    if not activations:
++        return None
++
++    serialized: dict[int, Any] = {}
++    for layer_idx, activation in activations.items():
++        if hasattr(activation, "detach"):
++            activation = activation.detach()
++        if hasattr(activation, "cpu"):
++            activation = activation.cpu()
++        serialized[layer_idx] = (
++            activation.tolist() if hasattr(activation, "tolist") else activation
++        )
++    return serialized
 diff --git a/model_executor/models/gemma4.py b/model_executor/models/gemma4.py
 index 0618954..ab77e04 100644
 --- a/model_executor/models/gemma4.py
@@ -432,6 +570,234 @@ index 0618954..ab77e04 100644
      def forward(
          self,
          input_ids: torch.Tensor,
+diff --git a/outputs.py b/outputs.py
+index 2c71d2a..e1ba3da 100644
+--- a/outputs.py
++++ b/outputs.py
+@@ -43,6 +43,7 @@ class CompletionOutput:
+     cumulative_logprob: float | None
+     logprobs: SampleLogprobs | None
+     routed_experts: np.ndarray | None = None  # [seq_len,layer_num,topk]
++    activations: dict[int, torch.Tensor] | None = None
+     finish_reason: str | None = None
+     stop_reason: int | str | None = None
+     lora_request: LoRARequest | None = None
+@@ -56,6 +57,8 @@ class CompletionOutput:
+             f"text={self.text!r}, "
+             f"token_ids={self.token_ids}, "
+             f"routed_experts={self.routed_experts}, "
++            f"activation_layers="
++            f"{sorted(self.activations) if self.activations else None}, "
+             f"cumulative_logprob={self.cumulative_logprob}, "
+             f"logprobs={self.logprobs}, "
+             f"finish_reason={self.finish_reason}, "
+@@ -163,10 +166,17 @@ class RequestOutput:
+                         completion.cumulative_logprob = (
+                             next_completion.cumulative_logprob
+                         )
++                        if next_completion.activations is not None:
++                            completion.activations = next_completion.activations
+                         completion.finish_reason = next_completion.finish_reason
+                         completion.stop_reason = next_completion.stop_reason
+                     else:
+                         # Replace the output with the new one
++                        if (
++                            next_completion.activations is None
++                            and completion.activations is not None
++                        ):
++                            next_completion.activations = completion.activations
+                         self.outputs[i] = next_completion
+                     break
+             else:
+diff --git a/v1/core/sched/scheduler.py b/v1/core/sched/scheduler.py
+index 40b5899..d146b03 100644
+--- a/v1/core/sched/scheduler.py
++++ b/v1/core/sched/scheduler.py
+@@ -1304,6 +1304,7 @@ class Scheduler(SchedulerInterface):
+         sampled_token_ids = model_runner_output.sampled_token_ids
+         logprobs = model_runner_output.logprobs
+         prompt_logprobs_dict = model_runner_output.prompt_logprobs_dict
++        prompt_activations_dict = model_runner_output.prompt_activations_dict
+         num_scheduled_tokens = scheduler_output.num_scheduled_tokens
+         pooler_outputs = model_runner_output.pooler_output
+         num_nans_in_logits = model_runner_output.num_nans_in_logits
+@@ -1454,11 +1455,13 @@ class Scheduler(SchedulerInterface):
+ 
+             # Get prompt logprobs for this request.
+             prompt_logprobs_tensors = prompt_logprobs_dict.get(req_id)
++            activations = prompt_activations_dict.get(req_id)
+             if (
+                 new_token_ids
+                 or pooler_output is not None
+                 or kv_transfer_params
+                 or stopped
++                or activations is not None
+             ):
+                 # Add EngineCoreOutput for this Request.
+                 outputs[request.client_index].append(
+@@ -1468,6 +1471,7 @@ class Scheduler(SchedulerInterface):
+                         finish_reason=finish_reason,
+                         new_logprobs=new_logprobs,
+                         new_prompt_logprobs_tensors=prompt_logprobs_tensors,
++                        activations=activations,
+                         pooling_output=pooler_output,
+                         stop_reason=request.stop_reason,
+                         events=request.take_events(),
+@@ -1481,6 +1485,7 @@ class Scheduler(SchedulerInterface):
+             else:
+                 # Invariant: EngineCore returns no partial prefill outputs.
+                 assert not prompt_logprobs_tensors
++                assert activations is None
+ 
+         # Remove the stopped requests from the running and waiting queues.
+         if stopped_running_reqs:
+diff --git a/v1/engine/__init__.py b/v1/engine/__init__.py
+index d5c5dba..d90f113 100644
+--- a/v1/engine/__init__.py
++++ b/v1/engine/__init__.py
+@@ -16,7 +16,7 @@ from vllm.multimodal.inputs import MultiModalFeatureSpec
+ from vllm.pooling_params import PoolingParams
+ from vllm.sampling_params import SamplingParams
+ from vllm.v1.metrics.stats import PrefillStats, SchedulerStats
+-from vllm.v1.outputs import LogprobsLists, LogprobsTensors
++from vllm.v1.outputs import LogprobsLists, LogprobsTensors, PromptActivations
+ from vllm.v1.serial_utils import UtilityResult
+ 
+ # Type for pause_generation mode parameter.
+@@ -162,6 +162,7 @@ class EngineCoreOutput(
+ 
+     new_logprobs: LogprobsLists | None = None
+     new_prompt_logprobs_tensors: LogprobsTensors | None = None
++    activations: PromptActivations | None = None
+ 
+     pooling_output: torch.Tensor | None = None
+ 
+diff --git a/v1/engine/output_processor.py b/v1/engine/output_processor.py
+index 1ae89ae..5ed7c26 100644
+--- a/v1/engine/output_processor.py
++++ b/v1/engine/output_processor.py
+@@ -172,6 +172,7 @@ class RequestState:
+         self.is_prefilling = True
+         self.queue = queue
+         self.num_cached_tokens = 0
++        self.activations: dict[int, torch.Tensor] | None = None
+ 
+         self.stats = RequestStateStats(arrival_time=arrival_time) if log_stats else None
+ 
+@@ -203,6 +204,7 @@ class RequestState:
+         if self.stats is not None:
+             self.stats.arrival_time = update.arrival_time
+         self.is_prefilling = True
++        self.activations = None
+ 
+     @classmethod
+     def from_new_request(
+@@ -272,9 +274,11 @@ class RequestState:
+         pooling_output: torch.Tensor | None,
+         finish_reason: FinishReason | None,
+         stop_reason: int | str | None,
++        activations: dict[int, torch.Tensor] | None = None,
+         kv_transfer_params: dict[str, Any] | None = None,
+         routed_experts: np.ndarray | None = None,
+     ) -> RequestOutput | PoolingRequestOutput | None:
++        self._update_activations(activations)
+         finished = finish_reason is not None
+         final_only = self.output_kind == RequestOutputKind.FINAL_ONLY
+ 
+@@ -392,14 +396,17 @@ class RequestState:
+ 
+         # Prepare logprobs, based on delta mode
+         logprobs = self.logprobs_processor.logprobs
+-        if delta and logprobs:
++        if delta and logprobs and token_ids:
+             logprobs = logprobs[-len(token_ids) :]
++        elif delta and not token_ids:
++            logprobs = None
+ 
+         return CompletionOutput(
+             index=self.request_index,
+             text=text,
+             token_ids=token_ids,
+             routed_experts=routed_experts,
++            activations=self.activations,
+             logprobs=logprobs,
+             cumulative_logprob=self.logprobs_processor.cumulative_logprob,
+             finish_reason=str(finish_reason) if finished else None,
+@@ -409,6 +416,16 @@ class RequestState:
+     def _new_pooling_output(self, pooling_output: torch.Tensor) -> PoolingOutput:
+         return PoolingOutput(data=pooling_output)
+ 
++    def _update_activations(
++        self, activations: dict[int, torch.Tensor] | None
++    ) -> None:
++        if activations is None:
++            return
++        if self.activations is None:
++            self.activations = dict(activations)
++        else:
++            self.activations.update(activations)
++
+ 
+ class OutputProcessor:
+     """Process EngineCoreOutputs into RequestOutputs."""
+@@ -615,6 +632,7 @@ class OutputProcessor:
+             pooling_output = engine_core_output.pooling_output
+             finish_reason = engine_core_output.finish_reason
+             stop_reason = engine_core_output.stop_reason
++            activations = engine_core_output.activations
+             kv_transfer_params = engine_core_output.kv_transfer_params
+             routed_experts = engine_core_output.routed_experts
+ 
+@@ -646,6 +664,7 @@ class OutputProcessor:
+                 pooling_output,
+                 finish_reason,
+                 stop_reason,
++                activations,
+                 kv_transfer_params,
+                 routed_experts,
+             ):
+diff --git a/v1/outputs.py b/v1/outputs.py
+index 1f102ec..69c060f 100644
+--- a/v1/outputs.py
++++ b/v1/outputs.py
+@@ -112,6 +112,7 @@ class LogprobsTensors(NamedTuple):
+ # [num_reqs, <dynamic>]
+ # The shape of each element depends on the pooler used
+ PoolerOutput: TypeAlias = torch.Tensor | list[torch.Tensor] | list[torch.Tensor | None]
++PromptActivations: TypeAlias = dict[int, torch.Tensor]
+ 
+ 
+ @dataclass
+@@ -187,6 +188,9 @@ class ModelRunnerOutput:
+     prompt_logprobs_dict: dict[str, LogprobsTensors | None] = field(
+         default_factory=dict
+     )
++    prompt_activations_dict: dict[str, PromptActivations | None] = field(
++        default_factory=dict
++    )
+ 
+     # [num_reqs, hidden_size]
+     pooler_output: list[torch.Tensor | None] | None = None
+diff --git a/v1/worker/gpu_input_batch.py b/v1/worker/gpu_input_batch.py
+index 89e63f3..1b0c0d4 100644
+--- a/v1/worker/gpu_input_batch.py
++++ b/v1/worker/gpu_input_batch.py
+@@ -241,6 +241,7 @@ class InputBatch:
+ 
+         # To accumulate prompt logprobs tensor chunks across prefill steps.
+         self.in_progress_prompt_logprobs_cpu: dict[str, LogprobsTensors] = {}
++        self.in_progress_prompt_activations_cpu: dict[str, dict[int, torch.Tensor]] = {}
+ 
+         # Internal representation of per-step batch state changes, used for
+         # reordering persistent batch and generating logitsprocs batch state
+@@ -532,6 +533,7 @@ class InputBatch:
+         self.num_logprobs.pop(req_id, None)
+         self.logprob_token_ids.pop(req_id, None)
+         self.in_progress_prompt_logprobs_cpu.pop(req_id, None)
++        self.in_progress_prompt_activations_cpu.pop(req_id, None)
+         if self.prev_req_id_to_index is not None:
+             self.prev_req_id_to_index.pop(req_id, None)
+ 
 diff --git a/v1/worker/gpu_model_runner.py b/v1/worker/gpu_model_runner.py
 index 1e05d68..6e703c8 100644
 --- a/v1/worker/gpu_model_runner.py
