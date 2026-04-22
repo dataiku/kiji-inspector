@@ -31,19 +31,35 @@ COLORS = {
     "border": "#e2e8f0",
 }
 
+BW_COLORS = {
+    "primary": "#000000",
+    "primary_light": "#000000",
+    "accent": "#000000",
+    "accent_light": "#000000",
+    "text": "#000000",
+    "text_light": "#555555",
+    "border": "#999999",
+}
+
 DEFAULT_DPI = 200
 dpi = DEFAULT_DPI
+bw_mode = False
+
+
+def C(key: str) -> str:
+    """Return the active palette color for *key*."""
+    return (BW_COLORS if bw_mode else COLORS)[key]
 
 
 def style_ax(ax: plt.Axes) -> None:
     """Apply shared axis styling."""
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_color(COLORS["border"])
-    ax.spines["bottom"].set_color(COLORS["border"])
-    ax.tick_params(colors=COLORS["text"], labelsize=11)
-    ax.yaxis.label.set_color(COLORS["text"])
-    ax.xaxis.label.set_color(COLORS["text"])
+    ax.spines["left"].set_color(C("border"))
+    ax.spines["bottom"].set_color(C("border"))
+    ax.tick_params(colors=C("text"), labelsize=11)
+    ax.yaxis.label.set_color(C("text"))
+    ax.xaxis.label.set_color(C("text"))
 
 
 # ---------------------------------------------------------------------------
@@ -66,38 +82,26 @@ def chart_ablation(outdir: Path) -> None:
     x = np.arange(len(labels))
     w = 0.24
 
-    bar_groups = [
-        ax.bar(
-            x - w,
-            contrastive,
-            w,
-            label="Contrastive ablation",
-            color=COLORS["accent"],
-            edgecolor="white",
-            linewidth=0.5,
-            zorder=3,
-        ),
-        ax.bar(
-            x,
-            directed,
-            w,
-            label="Directed flips",
-            color=COLORS["primary"],
-            edgecolor="white",
-            linewidth=0.5,
-            zorder=3,
-        ),
-        ax.bar(
-            x + w,
-            random_rec,
-            w,
-            label="Random / Recon.",
-            color=COLORS["text_light"],
-            edgecolor="white",
-            linewidth=0.5,
-            zorder=3,
-        ),
-    ]
+    if bw_mode:
+        bar_groups = [
+            ax.bar(x - w, contrastive, w, label="Contrastive ablation",
+                   color="black", edgecolor="black", linewidth=0.5, zorder=3),
+            ax.bar(x, directed, w, label="Directed flips",
+                   color="white", edgecolor="black", linewidth=0.5, zorder=3,
+                   hatch="///"),
+            ax.bar(x + w, random_rec, w, label="Random / Recon.",
+                   color="white", edgecolor="black", linewidth=0.5, zorder=3,
+                   hatch="..."),
+        ]
+    else:
+        bar_groups = [
+            ax.bar(x - w, contrastive, w, label="Contrastive ablation",
+                   color=COLORS["accent"], edgecolor="white", linewidth=0.5, zorder=3),
+            ax.bar(x, directed, w, label="Directed flips",
+                   color=COLORS["primary"], edgecolor="white", linewidth=0.5, zorder=3),
+            ax.bar(x + w, random_rec, w, label="Random / Recon.",
+                   color=COLORS["text_light"], edgecolor="white", linewidth=0.5, zorder=3),
+        ]
 
     ax.set_ylabel("Prediction flip rate (%)", fontsize=13, fontweight="bold")
     ax.set_xticks(x)
@@ -105,13 +109,13 @@ def chart_ablation(outdir: Path) -> None:
     ax.set_ylim(0, 85)
     ax.yaxis.set_major_formatter(mticker.PercentFormatter())
     ax.legend(
-        fontsize=11, frameon=True, fancybox=True, edgecolor=COLORS["border"], loc="upper right"
+        fontsize=11, frameon=True, fancybox=True, edgecolor=C("border"), loc="upper right"
     )
     ax.set_title(
         "Feature Ablation: Causal Evidence",
         fontsize=16,
         fontweight="bold",
-        color=COLORS["primary"],
+        color=C("primary"),
         pad=14,
     )
 
@@ -125,7 +129,7 @@ def chart_ablation(outdir: Path) -> None:
                 xy=(x[i] - w, ymax + 1.5),
                 fontsize=16,
                 fontweight="bold",
-                color=COLORS["accent"],
+                color=C("accent"),
                 ha="center",
                 va="bottom",
             )
@@ -142,11 +146,11 @@ def chart_ablation(outdir: Path) -> None:
                     ha="center",
                     va="bottom",
                     fontsize=9,
-                    color=COLORS["text"],
+                    color=C("text"),
                 )
 
-    ax.axhline(y=0, color=COLORS["border"], linewidth=0.8)
-    ax.grid(axis="y", alpha=0.3, color=COLORS["border"], zorder=0)
+    ax.axhline(y=0, color=C("border"), linewidth=0.8)
+    ax.grid(axis="y", alpha=0.3, color=C("border"), zorder=0)
     style_ax(ax)
 
     fig.tight_layout()
@@ -168,29 +172,41 @@ def chart_layer_sweep(outdir: Path) -> None:
 
     ax2 = ax1.twinx()
 
-    bar_colors = [COLORS["accent"] if l == 20 else COLORS["primary_light"] for l in layers]
-    ax1.bar(
+    if bw_mode:
+        bar_colors = ["black" if l == 20 else "#666666" for l in layers]
+        bar_hatches = ["///" if l == 20 else "" for l in layers]
+        edge = "black"
+    else:
+        bar_colors = [COLORS["accent"] if l == 20 else COLORS["primary_light"] for l in layers]
+        bar_hatches = [""] * len(layers)
+        edge = "white"
+    bars = ax1.bar(
         range(len(layers)),
         alive,
         0.5,
         color=bar_colors,
-        edgecolor="white",
+        edgecolor=edge,
         linewidth=0.5,
         zorder=3,
         alpha=0.85,
     )
-    ax1.set_ylabel("Alive features (%)", fontsize=13, fontweight="bold", color=COLORS["primary"])
+    for bar, h in zip(bars, bar_hatches):
+        if h:
+            bar.set_hatch(h)
+    ax1.set_ylabel("Alive features (%)", fontsize=13, fontweight="bold", color=C("primary"))
     ax1.set_ylim(0, 100)
     ax1.set_xticks(range(len(layers)))
     ax1.set_xticklabels([str(l) for l in layers], fontsize=12)
     ax1.set_xlabel("Transformer Layer", fontsize=13, fontweight="bold")
 
     # MSE line (log scale)
+    mse_style = {"color": "black", "marker": "s"} if bw_mode else {"color": COLORS["accent"], "marker": "o"}
     ax2.plot(
-        range(len(layers)), mse, "o-", color=COLORS["accent"], linewidth=2.5, markersize=9, zorder=4
+        range(len(layers)), mse, "-", linewidth=2.5, markersize=9, zorder=4, **mse_style
     )
+    mse_label_color = "black" if bw_mode else COLORS["accent"]
     ax2.set_ylabel(
-        "Reconstruction MSE (log scale)", fontsize=13, fontweight="bold", color=COLORS["accent"]
+        "Reconstruction MSE (log scale)", fontsize=13, fontweight="bold", color=mse_label_color
     )
     ax2.set_yscale("log")
     ax2.set_ylim(0.01, 5000)
@@ -203,7 +219,7 @@ def chart_layer_sweep(outdir: Path) -> None:
             label,
             xy=(i, m),
             fontsize=9,
-            color=COLORS["accent"],
+            color=mse_label_color,
             ha="center",
             fontweight="bold",
             xytext=(0, offset),
@@ -229,7 +245,7 @@ def chart_layer_sweep(outdir: Path) -> None:
         xy=(2, alive[2] + 1),
         fontsize=11,
         fontweight="bold",
-        color=COLORS["accent"],
+        color=C("accent"),
         ha="center",
         va="bottom",
         xytext=(0, 8),
@@ -240,14 +256,14 @@ def chart_layer_sweep(outdir: Path) -> None:
         "Layer Sweep: Alive Features vs. Reconstruction Error",
         fontsize=15,
         fontweight="bold",
-        color=COLORS["primary"],
+        color=C("primary"),
         pad=14,
     )
-    ax1.grid(axis="y", alpha=0.2, color=COLORS["border"], zorder=0)
+    ax1.grid(axis="y", alpha=0.2, color=C("border"), zorder=0)
     style_ax(ax1)
     ax2.spines["top"].set_visible(False)
-    ax2.spines["right"].set_color(COLORS["accent"])
-    ax2.tick_params(axis="y", colors=COLORS["accent"], labelsize=10)
+    ax2.spines["right"].set_color(mse_label_color)
+    ax2.tick_params(axis="y", colors=mse_label_color, labelsize=10)
 
     fig.tight_layout()
     fig.savefig(outdir / "chart_layer_sweep.png", dpi=dpi, bbox_inches="tight", facecolor="white")
@@ -267,7 +283,12 @@ def chart_fuzzing_tiers(outdir: Path) -> None:
         "Good (0.6-0.8)\n38 features",
         "Poor (<0.6)\n25 features",
     ]
-    colors = [COLORS["primary"], COLORS["primary_light"], COLORS["text_light"]]
+    if bw_mode:
+        colors = ["black", "#888888", "white"]
+        wedge_props = dict(width=0.45, edgecolor="black", linewidth=2)
+    else:
+        colors = [COLORS["primary"], COLORS["primary_light"], COLORS["text_light"]]
+        wedge_props = dict(width=0.45, edgecolor="white", linewidth=2)
     explode = (0.03, 0.03, 0.03)
 
     _, texts, autotexts = ax.pie(
@@ -278,15 +299,19 @@ def chart_fuzzing_tiers(outdir: Path) -> None:
         colors=colors,
         explode=explode,
         pctdistance=0.78,
-        wedgeprops=dict(width=0.45, edgecolor="white", linewidth=2),
+        wedgeprops=wedge_props,
     )
     for t in texts:
         t.set_fontsize(11)
-        t.set_color(COLORS["text"])
-    for t in autotexts:
+        t.set_color(C("text"))
+    for i, t in enumerate(autotexts):
         t.set_fontsize(11)
         t.set_fontweight("bold")
-        t.set_color("white")
+        # In BW mode, use contrasting text for each wedge
+        if bw_mode:
+            t.set_color("white" if i < 2 else "black")
+        else:
+            t.set_color("white")
 
     ax.text(
         0,
@@ -296,13 +321,13 @@ def chart_fuzzing_tiers(outdir: Path) -> None:
         va="center",
         fontsize=16,
         fontweight="bold",
-        color=COLORS["primary"],
+        color=C("primary"),
     )
     ax.set_title(
         "Feature Label Quality (Token-Level Fuzzing)",
         fontsize=14,
         fontweight="bold",
-        color=COLORS["primary"],
+        color=C("primary"),
         pad=16,
     )
 
@@ -326,16 +351,26 @@ def chart_baselines(outdir: Path) -> None:
         "PCA+k-means\n(ARI)",
     ]
     values = [0.912, 0.796, 0.765, 0.225, 0.068]
-    bar_colors = [
-        COLORS["accent"],
-        COLORS["primary"],
-        COLORS["primary"],
-        COLORS["text_light"],
-        COLORS["text_light"],
-    ]
+    if bw_mode:
+        bar_colors = ["black", "#666666", "#666666", "white", "white"]
+        hatches = ["///", "", "", "...", "..."]
+        edge = "black"
+    else:
+        bar_colors = [
+            COLORS["accent"],
+            COLORS["primary"],
+            COLORS["primary"],
+            COLORS["text_light"],
+            COLORS["text_light"],
+        ]
+        hatches = [""] * 5
+        edge = "white"
 
     y = np.arange(len(methods))
-    bars = ax.barh(y, values, 0.55, color=bar_colors, edgecolor="white", linewidth=0.5, zorder=3)
+    bars = ax.barh(y, values, 0.55, color=bar_colors, edgecolor=edge, linewidth=0.5, zorder=3)
+    for bar, h in zip(bars, hatches):
+        if h:
+            bar.set_hatch(h)
 
     ax.set_xlabel("Score", fontsize=13, fontweight="bold")
     ax.set_xlim(0, 1.08)
@@ -352,7 +387,7 @@ def chart_baselines(outdir: Path) -> None:
             va="center",
             fontsize=12,
             fontweight="bold",
-            color=COLORS["text"],
+            color=C("text"),
         )
 
     # Interpretability annotations (spaced away from bars)
@@ -360,7 +395,7 @@ def chart_baselines(outdir: Path) -> None:
         "interpretable",
         xy=(0.70, 0.5),
         fontsize=9,
-        color=COLORS["accent"],
+        color=C("accent"),
         fontweight="bold",
         ha="right",
         annotation_clip=False,
@@ -369,7 +404,7 @@ def chart_baselines(outdir: Path) -> None:
         "not interpretable",
         xy=(0.73, 1.55),
         fontsize=9,
-        color=COLORS["primary_light"],
+        color=C("primary_light"),
         fontweight="bold",
         ha="right",
     )
@@ -378,20 +413,20 @@ def chart_baselines(outdir: Path) -> None:
         "Method Comparison: Accuracy vs. Interpretability",
         fontsize=15,
         fontweight="bold",
-        color=COLORS["primary"],
+        color=C("primary"),
         pad=14,
     )
-    ax.grid(axis="x", alpha=0.3, color=COLORS["border"], zorder=0)
+    ax.grid(axis="x", alpha=0.3, color=C("border"), zorder=0)
     ax.axvline(
         x=0.5,
-        color=COLORS["accent_light"],
+        color=C("accent_light"),
         linestyle="--",
         linewidth=1,
         alpha=0.5,
         label="Random baseline",
     )
     ax.legend(
-        fontsize=10, loc="lower right", frameon=True, fancybox=True, edgecolor=COLORS["border"]
+        fontsize=10, loc="lower right", frameon=True, fancybox=True, edgecolor=C("border")
     )
     style_ax(ax)
 
@@ -434,10 +469,17 @@ def main() -> None:
         default=DEFAULT_DPI,
         help=f"Output resolution (default: {DEFAULT_DPI})",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["color", "bw"],
+        default="color",
+        help="color = themed palette; bw = black & white with hatching (default: color)",
+    )
     args = parser.parse_args()
 
-    global dpi
+    global dpi, bw_mode
     dpi = args.dpi
+    bw_mode = args.mode == "bw"
 
     args.outdir.mkdir(parents=True, exist_ok=True)
     targets = args.only or list(CHARTS.keys())

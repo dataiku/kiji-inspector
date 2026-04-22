@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 540" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#e8563a"/>
@@ -31,7 +31,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="1100" height="540" fill="#ffffff" rx="8"/>
+  <rect width="1100" height="560" fill="#ffffff" rx="8"/>
   <!-- Top accent bar -->
   <rect width="1100" height="4" fill="url(#grad-topbar)" rx="2"/>
 
@@ -69,7 +69,7 @@
 
   <!-- Step 3: Subject Model -->
   <g filter="url(#shadow)">
-    <rect x="465" y="45" width="185" height="105" rx="10" fill="url(#grad-primary)"/>
+    <rect x="465" y="45" width="185" height="115" rx="10" fill="url(#grad-primary)"/>
   </g>
   <text x="557" y="70" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="700">Subject Model</text>
   <text x="557" y="87" text-anchor="middle" font-size="10" fill="#cbd5e0">Nemotron-3 Nano 30B</text>
@@ -91,7 +91,7 @@
     <rect x="705" y="55" width="155" height="85" rx="10" fill="#f7fafc" stroke="#e8563a" stroke-width="1.5"/>
   </g>
   <text x="782" y="80" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">HIDDEN STATE</text>
-  <text x="782" y="99" text-anchor="middle" font-size="13" fill="#1a2744" font-weight="700">4,096-dim</text>
+  <text x="782" y="99" text-anchor="middle" font-size="13" fill="#1a2744" font-weight="700">2,688-dim</text>
   <text x="782" y="116" text-anchor="middle" font-size="9.5" fill="#718096">at decision token</text>
   <text x="782" y="130" text-anchor="middle" font-size="9" fill="#718096">1M vectors total</text>
   <circle cx="782" cy="42" r="11" fill="#e8563a"/>
@@ -110,7 +110,7 @@
   </g>
   <text x="782" y="228" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="700">JumpReLU SAE Training</text>
   <text x="782" y="248" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.9">Unsupervised dictionary learning</text>
-  <text x="782" y="266" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.85">16,384 features (4x expansion)</text>
+  <text x="782" y="266" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.85">10,752 features (4x expansion)</text>
   <text x="782" y="282" text-anchor="middle" font-size="10" fill="#ffffff" fill-opacity="0.85">tanh sparsity + pseudo-gradients</text>
   <text x="782" y="298" text-anchor="middle" font-size="9" fill="#ffffff" fill-opacity="0.7">L0 penalty, dead feature resampling</text>
   <circle cx="782" cy="195" r="11" fill="#e8563a"/>
@@ -128,7 +128,7 @@
     <rect x="680" y="365" width="205" height="65" rx="10" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
   </g>
   <text x="782" y="386" text-anchor="middle" font-size="11" fill="#718096" font-weight="600" letter-spacing="0.5">SPARSE FEATURES</text>
-  <text x="782" y="404" text-anchor="middle" font-size="12" fill="#1a2744" font-weight="700">16,384 dims, ~4% active</text>
+  <text x="782" y="404" text-anchor="middle" font-size="12" fill="#1a2744" font-weight="700">10,752 dims, ~6% active</text>
   <text x="782" y="420" text-anchor="middle" font-size="9.5" fill="#718096">81.2% alive, 0.19% dead, MSE 0.574</text>
   <circle cx="782" cy="358" r="11" fill="#e8563a"/>
   <text x="782" y="362" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">6</text>
@@ -141,7 +141,7 @@
   <path d="M 680 397 L 530 397 L 530 440 L 530 455" stroke="#1a2744" stroke-width="2" fill="none" marker-end="url(#arrow-navy)"/>
 
   <!-- Arrow right to Feature Interpretation -->
-  <path d="M 885 397 L 1000 397 L 1000 455" stroke="#2c7a7b" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+  <path d="M 885 397 L 982 397 L 982 455" stroke="#2c7a7b" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
 
   <!-- ============================================================ -->
   <!-- ROW 4 LEFT: Contrastive Analysis -->
@@ -171,17 +171,17 @@
   <!-- LEFT SIDEBAR: Generation Model label -->
   <!-- ============================================================ -->
   <g filter="url(#shadow)">
-    <rect x="30" y="202" width="155" height="65" rx="8" fill="#f7fafc" stroke="#38b2ac" stroke-width="1.2"/>
+    <rect x="40" y="202" width="155" height="65" rx="8" fill="#f7fafc" stroke="#38b2ac" stroke-width="1.2"/>
   </g>
-  <text x="107" y="224" text-anchor="middle" font-size="10" fill="#718096" font-weight="600" letter-spacing="0.5">GENERATION MODEL</text>
-  <text x="107" y="242" text-anchor="middle" font-size="11" fill="#2c7a7b" font-weight="700">Qwen3 235B</text>
-  <text x="107" y="257" text-anchor="middle" font-size="9" fill="#718096">pairs + labels + judge</text>
+  <text x="117" y="224" text-anchor="middle" font-size="10" fill="#718096" font-weight="600" letter-spacing="0.5">GENERATION MODEL</text>
+  <text x="117" y="242" text-anchor="middle" font-size="11" fill="#ff7b5f" font-weight="700">Qwen3 235B</text>
+  <text x="117" y="257" text-anchor="middle" font-size="9" fill="#718096">pairs + labels + judge</text>
 
-  <!-- Dashed line from gen model to step 1 -->
-  <path d="M 107 202 L 107 155 L 117 155 L 117 145" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#arrow-teal)"/>
-  <!-- Dashed line from gen model to step 8 -->
-  <path d="M 185 234 L 250 234 L 250 375 L 380 375 L 380 494 L 420 494" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
-  <path d="M 185 234 L 250 234 L 250 375 L 920 375 L 920 462" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+  <!-- Dashed line from gen model up to step 1 (straight, aligned at x=117) -->
+  <path d="M 117 202 L 117 145" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#arrow-teal)"/>
+  <!-- Dashed lines from gen model routed along bottom edge to steps 7 and 8 -->
+  <path d="M 117 267 L 117 548 L 530 548 L 530 527" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#arrow-teal)"/>
+  <path d="M 530 548 L 982 548 L 982 527" stroke="#38b2ac" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#arrow-teal)"/>
 
   <!-- ============================================================ -->
   <!-- Step legend at bottom-left -->
