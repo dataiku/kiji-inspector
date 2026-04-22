@@ -526,7 +526,12 @@ def _load_pairs(pairs_dir: str) -> list:
         sys.exit(1)
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
     pairs = dataset.pairs
+    total = len(pairs)
+    pairs = [p for p in pairs if p.anchor_tool != p.contrast_tool]
+    excluded = total - len(pairs)
     print(f"  Loaded {len(pairs)} pairs from {pairs_dir}")
+    if excluded:
+        print(f"  Excluded {excluded} pairs where anchor_tool == contrast_tool")
     return pairs
 
 
@@ -689,16 +694,14 @@ def _run_step4(args, sae_checkpoints: dict[str, str] | None = None) -> None:
 
         print(f"\n  --- Layer {layer} ---")
 
-        # Determine which features to analyze from contrastive_features.json
-        with open(contrastive_path) as f:
-            contrastive = json.load(f)
+        # Label all SAE features (not just contrastive ones) so downstream
+        # consumers (e.g. the demo) can look up any feature that fires.
+        from kiji_inspector.core.sae_core import JumpReLUSAE
 
-        feature_indices_set: set[int] = set()
-        for ct_info in contrastive.values():
-            for feat in ct_info.get("top_features", []):
-                feature_indices_set.add(feat["feature_index"])
-        feature_indices = sorted(feature_indices_set)
-        print(f"  {len(feature_indices)} unique features to interpret")
+        _sae_tmp = JumpReLUSAE.from_pretrained(checkpoint, device="cpu")
+        feature_indices = list(range(_sae_tmp.d_sae))
+        del _sae_tmp
+        print(f"  {len(feature_indices)} total SAE features to interpret")
 
         # 4a: Load activations from Step 1 numpy shards
         print(f"\n  [Layer {layer}] 4a: Loading activations from numpy shards...")
