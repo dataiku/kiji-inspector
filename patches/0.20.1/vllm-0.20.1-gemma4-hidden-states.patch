@@ -120,27 +120,51 @@ index c834526..39256c1 100644
              hf_token=hf_token,
              hf_overrides=hf_overrides,
 diff --git a/entrypoints/openai/chat_completion/protocol.py b/entrypoints/openai/chat_completion/protocol.py
-index aacac38..8d30a65 100644
+index aacac38..ce81741 100644
 --- a/entrypoints/openai/chat_completion/protocol.py
 +++ b/entrypoints/openai/chat_completion/protocol.py
-@@ -92,6 +92,7 @@ class ChatCompletionResponseChoice(OpenAIBaseModel):
+@@ -92,6 +92,8 @@ class ChatCompletionResponseChoice(OpenAIBaseModel):
      # not part of the OpenAI spec but is useful for tracing the tokens
      # in agent scenarios
      token_ids: list[int] | None = None
 +    activations: dict[int, Any] | None = None
++    explanations: dict[int, Any] | None = None
  
  
  class ChatCompletionResponse(OpenAIBaseModel):
-@@ -120,6 +121,7 @@ class ChatCompletionResponseStreamChoice(OpenAIBaseModel):
+@@ -120,6 +122,8 @@ class ChatCompletionResponseStreamChoice(OpenAIBaseModel):
      stop_reason: int | str | None = None
      # not part of the OpenAI spec but for tracing the tokens
      token_ids: list[int] | None = None
 +    activations: dict[int, Any] | None = None
++    explanations: dict[int, Any] | None = None
  
  
  class ChatCompletionStreamResponse(OpenAIBaseModel):
+@@ -319,6 +323,21 @@ class ChatCompletionRequest(OpenAIBaseModel):
+             "need to map generated text back to input tokens."
+         ),
+     )
++    return_activations: bool | None = Field(
++        default=False,
++        description=(
++            "If specified, the result will include raw activation vectors "
++            "captured by the server's configured activation layers."
++        ),
++    )
++    return_explanations: bool | None = Field(
++        default=False,
++        description=(
++            "If specified, captured activations will be sent to the configured "
++            "activation processor and the result will be returned as "
++            "explanations."
++        ),
++    )
+ 
+     cache_salt: str | None = Field(
+         default=None,
 diff --git a/entrypoints/openai/chat_completion/serving.py b/entrypoints/openai/chat_completion/serving.py
-index 6a48a1b..7f88cf1 100644
+index 6a48a1b..afa35dc 100644
 --- a/entrypoints/openai/chat_completion/serving.py
 +++ b/entrypoints/openai/chat_completion/serving.py
 @@ -54,6 +54,7 @@ from vllm.entrypoints.openai.engine.serving import (
@@ -151,63 +175,234 @@ index 6a48a1b..7f88cf1 100644
  )
  from vllm.entrypoints.openai.models.serving import OpenAIServingModels
  from vllm.entrypoints.openai.parser.harmony_utils import (
-@@ -1083,6 +1084,7 @@ class OpenAIServingChat(OpenAIServing):
+@@ -105,12 +106,16 @@ class OpenAIServingChat(OpenAIServing):
+         enable_log_outputs: bool = False,
+         enable_log_deltas: bool = True,
+         default_chat_template_kwargs: dict[str, Any] | None = None,
++        activation_processor_socket: str | None = None,
++        activation_processor_timeout_seconds: float = 30.0,
+     ) -> None:
+         super().__init__(
+             engine_client=engine_client,
+             models=models,
+             request_logger=request_logger,
+             return_tokens_as_token_ids=return_tokens_as_token_ids,
++            activation_processor_socket=activation_processor_socket,
++            activation_processor_timeout_seconds=activation_processor_timeout_seconds,
+         )
+ 
+         self.openai_serving_render = openai_serving_render
+@@ -265,6 +270,12 @@ class OpenAIServingChat(OpenAIServing):
+         lora_request = self._maybe_get_adapters(request, supports_default_mm_loras=True)
+ 
+         model_name = self.models.model_name(lora_request)
++        validation_error = self._validate_activation_processing_request(
++            return_explanations=request.return_explanations,
++            return_activations=request.return_activations,
++        )
++        if validation_error is not None:
++            return validation_error
+ 
+         # Extract data_parallel_rank from header (router can inject it)
+         data_parallel_rank = self._get_data_parallel_rank(raw_request)
+@@ -360,6 +371,34 @@ class OpenAIServingChat(OpenAIServing):
+         (result_generator,) = generators
+ 
+         if request.stream:
++            if request.return_explanations:
++                try:
++                    buffered_results = [res async for res in result_generator]
++                    for res in buffered_results:
++                        for output in res.outputs:
++                            self._raise_if_error(output.finish_reason, request_id)
++                    await self._add_activation_explanations(
++                        buffered_results,
++                        request_id=request_id,
++                        model_name=model_name,
++                        first_output_per_choice_only=True,
++                    )
++                except asyncio.CancelledError:
++                    return self.create_error_response("Client disconnected")
++                except Exception as e:
++                    logger.exception("Error while creating activation explanations.")
++                    return self.create_error_response(
++                        e,
++                        err_type="InternalServerError",
++                        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
++                    )
++
++                async def replay_results() -> AsyncIterator[RequestOutput]:
++                    for res in buffered_results:
++                        yield res
++
++                result_generator = replay_results()
++
+             return self.chat_completion_stream_generator(
+                 request,
+                 result_generator,
+@@ -1083,6 +1122,16 @@ class OpenAIServingChat(OpenAIServing):
                              delta=delta_message,
                              logprobs=logprobs,
                              finish_reason=None,
-+                            activations=serialize_activations(output.activations),
++                            activations=(
++                                serialize_activations(output.activations)
++                                if request.return_activations
++                                else None
++                            ),
++                            explanations=(
++                                output.explanations
++                                if request.return_explanations
++                                else None
++                            ),
                              token_ids=(
                                  as_list(output.token_ids)
                                  if request.return_token_ids
-@@ -1183,6 +1185,7 @@ class OpenAIServingChat(OpenAIServing):
+@@ -1183,6 +1232,16 @@ class OpenAIServingChat(OpenAIServing):
                              logprobs=logprobs,
                              finish_reason=finish_reason_,
                              stop_reason=output.stop_reason,
-+                            activations=serialize_activations(output.activations),
++                            activations=(
++                                serialize_activations(output.activations)
++                                if request.return_activations
++                                else None
++                            ),
++                            explanations=(
++                                output.explanations
++                                if request.return_explanations
++                                else None
++                            ),
                              token_ids=(
                                  as_list(output.token_ids)
                                  if request.return_token_ids
-@@ -1373,6 +1376,7 @@ class OpenAIServingChat(OpenAIServing):
+@@ -1302,6 +1361,25 @@ class OpenAIServingChat(OpenAIServing):
+                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+             )
+ 
++        for output in final_res.outputs:
++            self._raise_if_error(output.finish_reason, request_id)
++
++        if request.return_explanations:
++            try:
++                await self._add_activation_explanations(
++                    [final_res],
++                    request_id=request_id,
++                    model_name=model_name,
++                    first_output_per_choice_only=False,
++                )
++            except Exception as e:
++                logger.exception("Error while creating activation explanations.")
++                return self.create_error_response(
++                    e,
++                    err_type="InternalServerError",
++                    status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
++                )
++
+         choices: list[ChatCompletionResponseChoice] = []
+         if self.tool_call_id_type == "kimi_k2":
+             history_tool_call_cnt = get_history_tool_calls_cnt(conversation)
+@@ -1373,6 +1451,14 @@ class OpenAIServingChat(OpenAIServing):
                          else "stop"
                      ),
                      stop_reason=output.stop_reason,
-+                    activations=serialize_activations(output.activations),
++                    activations=(
++                        serialize_activations(output.activations)
++                        if request.return_activations
++                        else None
++                    ),
++                    explanations=(
++                        output.explanations if request.return_explanations else None
++                    ),
                      token_ids=(
                          as_list(output.token_ids) if request.return_token_ids else None
                      ),
-@@ -1594,6 +1598,7 @@ class OpenAIServingChat(OpenAIServing):
+@@ -1594,6 +1680,14 @@ class OpenAIServingChat(OpenAIServing):
                  if output.finish_reason
                  else "stop",
                  stop_reason=output.stop_reason,
-+                activations=serialize_activations(output.activations),
++                activations=(
++                    serialize_activations(output.activations)
++                    if request.return_activations
++                    else None
++                ),
++                explanations=(
++                    output.explanations if request.return_explanations else None
++                ),
                  token_ids=(
                      as_list(output.token_ids) if request.return_token_ids else None
                  ),
+diff --git a/entrypoints/openai/cli_args.py b/entrypoints/openai/cli_args.py
+index 898e62f..e5c1320 100644
+--- a/entrypoints/openai/cli_args.py
++++ b/entrypoints/openai/cli_args.py
+@@ -149,6 +149,11 @@ class BaseFrontendArgs:
+     """If set to False, output deltas will not be logged. Relevant only if 
+     --enable-log-outputs is set.
+     """
++    activation_processor_socket: str | None = None
++    """Unix domain socket path for the activation processor sidecar. Required
++    for requests with `return_explanations=true`."""
++    activation_processor_timeout_seconds: float = 30.0
++    """Timeout, in seconds, for activation processor sidecar requests."""
+     log_error_stack: bool = envs.VLLM_SERVER_DEV_MODE
+     """If set to True, log the stack trace of error responses"""
+     tokens_only: bool = False
 diff --git a/entrypoints/openai/completion/protocol.py b/entrypoints/openai/completion/protocol.py
-index c785d25..b80b8f1 100644
+index c785d25..c2888f3 100644
 --- a/entrypoints/openai/completion/protocol.py
 +++ b/entrypoints/openai/completion/protocol.py
-@@ -468,6 +468,7 @@ class CompletionResponseChoice(OpenAIBaseModel):
+@@ -141,6 +141,21 @@ class CompletionRequest(OpenAIBaseModel):
+             "need to map generated text back to input tokens."
+         ),
+     )
++    return_activations: bool | None = Field(
++        default=False,
++        description=(
++            "If specified, the result will include raw activation vectors "
++            "captured by the server's configured activation layers."
++        ),
++    )
++    return_explanations: bool | None = Field(
++        default=False,
++        description=(
++            "If specified, captured activations will be sent to the configured "
++            "activation processor and the result will be returned as "
++            "explanations."
++        ),
++    )
+ 
+     cache_salt: str | None = Field(
+         default=None,
+@@ -468,6 +483,8 @@ class CompletionResponseChoice(OpenAIBaseModel):
      token_ids: list[int] | None = None  # For response
      prompt_logprobs: list[dict[int, Logprob] | None] | None = None
      prompt_token_ids: list[int] | None = None  # For prompt
 +    activations: dict[int, Any] | None = None
++    explanations: dict[int, Any] | None = None
  
  
  class CompletionResponse(OpenAIBaseModel):
-@@ -503,6 +504,7 @@ class CompletionResponseStreamChoice(OpenAIBaseModel):
+@@ -503,6 +520,8 @@ class CompletionResponseStreamChoice(OpenAIBaseModel):
      # prompt tokens is put into choice to align with CompletionResponseChoice
      prompt_token_ids: list[int] | None = None
      token_ids: list[int] | None = None
 +    activations: dict[int, Any] | None = None
++    explanations: dict[int, Any] | None = None
  
  
  class CompletionStreamResponse(OpenAIBaseModel):
 diff --git a/entrypoints/openai/completion/serving.py b/entrypoints/openai/completion/serving.py
-index fb7f253..968e2bc 100644
+index fb7f253..8f26612 100644
 --- a/entrypoints/openai/completion/serving.py
 +++ b/entrypoints/openai/completion/serving.py
-@@ -29,6 +29,7 @@ from vllm.entrypoints.openai.engine.serving import (
+@@ -5,6 +5,7 @@ import asyncio
+ import time
+ from collections.abc import AsyncGenerator, AsyncIterator
+ from collections.abc import Sequence as GenericSequence
++from http import HTTPStatus
+ from typing import TYPE_CHECKING, cast
+ 
+ from fastapi import Request
+@@ -29,6 +30,7 @@ from vllm.entrypoints.openai.engine.serving import (
      GenerationError,
      OpenAIServing,
      clamp_prompt_logprobs,
@@ -215,27 +410,289 @@ index fb7f253..968e2bc 100644
  )
  from vllm.entrypoints.openai.models.serving import OpenAIServingModels
  from vllm.entrypoints.utils import get_max_tokens, should_include_usage
-@@ -393,6 +394,7 @@ class OpenAIServingCompletion(OpenAIServing):
+@@ -59,12 +61,16 @@ class OpenAIServingCompletion(OpenAIServing):
+         return_tokens_as_token_ids: bool = False,
+         enable_prompt_tokens_details: bool = False,
+         enable_force_include_usage: bool = False,
++        activation_processor_socket: str | None = None,
++        activation_processor_timeout_seconds: float = 30.0,
+     ):
+         super().__init__(
+             engine_client=engine_client,
+             models=models,
+             request_logger=request_logger,
+             return_tokens_as_token_ids=return_tokens_as_token_ids,
++            activation_processor_socket=activation_processor_socket,
++            activation_processor_timeout_seconds=activation_processor_timeout_seconds,
+         )
+ 
+         self.openai_serving_render = openai_serving_render
+@@ -137,6 +143,13 @@ class OpenAIServingCompletion(OpenAIServing):
+             raw_request.state.request_metadata = request_metadata
+ 
+         lora_request = self._maybe_get_adapters(request)
++        model_name = self.models.model_name(lora_request)
++        validation_error = self._validate_activation_processing_request(
++            return_explanations=request.return_explanations,
++            return_activations=request.return_activations,
++        )
++        if validation_error is not None:
++            return validation_error
+ 
+         # Extract data_parallel_rank from header (router can inject it)
+         data_parallel_rank = self._get_data_parallel_rank(raw_request)
+@@ -202,13 +215,52 @@ class OpenAIServingCompletion(OpenAIServing):
+ 
+         result_generator = merge_async_iterators(*generators)
+ 
+-        model_name = self.models.model_name(lora_request)
+         num_prompts = len(engine_inputs)
++        num_choices = 1 if request.n is None else request.n
+ 
+         # Streaming response
+         tokenizer = self.renderer.tokenizer
+ 
+         if request.stream:
++            if request.return_explanations:
++                try:
++                    buffered_results = [
++                        item async for item in result_generator
++                    ]
++                    explained_choices: set[tuple[int, int]] = set()
++                    for prompt_idx, res in buffered_results:
++                        for output in res.outputs:
++                            self._raise_if_error(output.finish_reason, request_id)
++                            key = (prompt_idx, output.index)
++                            if key in explained_choices:
++                                continue
++                            output.explanations = (
++                                await self._create_activation_explanations(
++                                    request_id=request_id,
++                                    model_name=model_name,
++                                    choice_index=(
++                                        output.index + prompt_idx * num_choices
++                                    ),
++                                    activations=output.activations,
++                                )
++                            )
++                            explained_choices.add(key)
++                except asyncio.CancelledError:
++                    return self.create_error_response("Client disconnected")
++                except Exception as e:
++                    logger.exception("Error while creating activation explanations.")
++                    return self.create_error_response(
++                        e,
++                        err_type="InternalServerError",
++                        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
++                    )
++
++                async def replay_results() -> AsyncIterator[tuple[int, RequestOutput]]:
++                    for item in buffered_results:
++                        yield item
++
++                result_generator = replay_results()
++
+             return self.completion_stream_generator(
+                 request,
+                 engine_inputs,
+@@ -237,6 +289,16 @@ class OpenAIServingCompletion(OpenAIServing):
+                     final_res.prompt = self._extract_prompt_text(engine_inputs[i])
+ 
+             final_res_batch_checked = cast(list[RequestOutput], final_res_batch)
++            if request.return_explanations:
++                for final_res in final_res_batch_checked:
++                    for output in final_res.outputs:
++                        self._raise_if_error(output.finish_reason, request_id)
++                await self._add_activation_explanations(
++                    final_res_batch_checked,
++                    request_id=request_id,
++                    model_name=model_name,
++                    first_output_per_choice_only=False,
++                )
+ 
+             response = self.request_output_to_completion_response(
+                 final_res_batch_checked,
+@@ -249,6 +311,13 @@ class OpenAIServingCompletion(OpenAIServing):
+             )
+         except asyncio.CancelledError:
+             return self.create_error_response("Client disconnected")
++        except Exception as e:
++            logger.exception("Error while creating completion response.")
++            return self.create_error_response(
++                e,
++                err_type="InternalServerError",
++                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
++            )
+ 
+         # When user requests streaming but we don't stream, we still need to
+         # return a streaming response with a single event.
+@@ -393,6 +462,16 @@ class OpenAIServingCompletion(OpenAIServing):
                                  finish_reason=finish_reason,
                                  stop_reason=stop_reason,
                                  prompt_token_ids=prompt_token_ids_to_return,
-+                                activations=serialize_activations(output.activations),
++                                activations=(
++                                    serialize_activations(output.activations)
++                                    if request.return_activations
++                                    else None
++                                ),
++                                explanations=(
++                                    output.explanations
++                                    if request.return_explanations
++                                    else None
++                                ),
                                  token_ids=(
                                      as_list(output.token_ids)
                                      if request.return_token_ids
-@@ -528,6 +530,7 @@ class OpenAIServingCompletion(OpenAIServing):
+@@ -528,6 +607,14 @@ class OpenAIServingCompletion(OpenAIServing):
                      prompt_token_ids=(
                          prompt_token_ids if request.return_token_ids else None
                      ),
-+                    activations=serialize_activations(output.activations),
++                    activations=(
++                        serialize_activations(output.activations)
++                        if request.return_activations
++                        else None
++                    ),
++                    explanations=(
++                        output.explanations if request.return_explanations else None
++                    ),
                      token_ids=(
                          as_list(output.token_ids) if request.return_token_ids else None
                      ),
 diff --git a/entrypoints/openai/engine/serving.py b/entrypoints/openai/engine/serving.py
-index d5fb5e1..76aa6f3 100644
+index d5fb5e1..20dcbf5 100644
 --- a/entrypoints/openai/engine/serving.py
 +++ b/entrypoints/openai/engine/serving.py
-@@ -758,3 +758,21 @@ def clamp_prompt_logprobs(
+@@ -10,6 +10,7 @@ from http import HTTPStatus
+ from typing import Any, ClassVar, Generic, Protocol, TypeAlias, TypeVar
+ 
+ import numpy as np
++import httpx
+ from fastapi import Request
+ from openai.types.responses import ToolChoiceFunction
+ from pydantic import ConfigDict, TypeAdapter, ValidationError
+@@ -144,6 +145,8 @@ class OpenAIServing:
+         *,
+         request_logger: RequestLogger | None,
+         return_tokens_as_token_ids: bool = False,
++        activation_processor_socket: str | None = None,
++        activation_processor_timeout_seconds: float = 30.0,
+     ):
+         super().__init__()
+ 
+@@ -152,6 +155,8 @@ class OpenAIServing:
+ 
+         self.request_logger = request_logger
+         self.return_tokens_as_token_ids = return_tokens_as_token_ids
++        self.activation_processor_socket = activation_processor_socket
++        self.activation_processor_timeout_seconds = activation_processor_timeout_seconds
+ 
+         self.model_config = engine_client.model_config
+         self.renderer = engine_client.renderer
+@@ -401,6 +406,103 @@ class OpenAIServing:
+             status_code=e.status_code,
+         )
+ 
++    def _validate_activation_processing_request(
++        self,
++        *,
++        return_explanations: bool | None,
++        return_activations: bool | None,
++    ) -> ErrorResponse | None:
++        if return_explanations:
++            if not self.model_config.extract_activation_layers:
++                return self.create_error_response(
++                    "`return_explanations` requires the server to be started "
++                    "with `--extract-activation-layers`.",
++                    param="return_explanations",
++                )
++            if not self.activation_processor_socket:
++                return self.create_error_response(
++                    "`return_explanations` requires the server to be started "
++                    "with `--activation-processor-socket`.",
++                    param="return_explanations",
++                )
++
++        if return_activations and not self.model_config.extract_activation_layers:
++            return self.create_error_response(
++                "`return_activations` requires the server to be started with "
++                "`--extract-activation-layers`.",
++                param="return_activations",
++            )
++
++        return None
++
++    async def _create_activation_explanations(
++        self,
++        *,
++        request_id: str,
++        model_name: str,
++        choice_index: int,
++        activations: Mapping[int, Any] | None,
++    ) -> dict[int, Any]:
++        serialized = serialize_activations(activations)
++        if not serialized:
++            raise ValueError(
++                "No activations were captured for `return_explanations`."
++            )
++        if not self.activation_processor_socket:
++            raise ValueError("Activation processor socket is not configured.")
++
++        transport = httpx.AsyncHTTPTransport(
++            uds=self.activation_processor_socket,
++        )
++        timeout = httpx.Timeout(self.activation_processor_timeout_seconds)
++        async with httpx.AsyncClient(
++            transport=transport,
++            timeout=timeout,
++        ) as client:
++            response = await client.post(
++                "http://activation-processor/v1/activation_explanations",
++                json={
++                    "request_id": request_id,
++                    "model": model_name,
++                    "choice_index": choice_index,
++                    "activations": serialized,
++                },
++            )
++            response.raise_for_status()
++
++        payload = response.json()
++        explanations = payload.get("explanations")
++        if not isinstance(explanations, dict):
++            raise ValueError(
++                "Activation processor response must include an "
++                "`explanations` object."
++            )
++        return {int(layer_idx): value for layer_idx, value in explanations.items()}
++
++    async def _add_activation_explanations(
++        self,
++        request_outputs: list[RequestOutput],
++        *,
++        request_id: str,
++        model_name: str,
++        first_output_per_choice_only: bool,
++    ) -> None:
++        explained_choices: set[int] = set()
++        for request_output in request_outputs:
++            for output in request_output.outputs:
++                if (
++                    first_output_per_choice_only
++                    and output.index in explained_choices
++                ):
++                    continue
++                output.explanations = await self._create_activation_explanations(
++                    request_id=request_id,
++                    model_name=model_name,
++                    choice_index=output.index,
++                    activations=output.activations,
++                )
++                explained_choices.add(output.index)
++
+     async def _check_model(
+         self,
+         request: AnyRequest,
+@@ -758,3 +860,21 @@ def clamp_prompt_logprobs(
              if logprob_values.logprob == float("-inf"):
                  logprob_values.logprob = -9999.0
      return prompt_logprobs
@@ -257,6 +714,32 @@ index d5fb5e1..76aa6f3 100644
 +            activation.tolist() if hasattr(activation, "tolist") else activation
 +        )
 +    return serialized
+diff --git a/entrypoints/openai/generate/api_router.py b/entrypoints/openai/generate/api_router.py
+index 9a64db9..842ef89 100644
+--- a/entrypoints/openai/generate/api_router.py
++++ b/entrypoints/openai/generate/api_router.py
+@@ -118,6 +118,10 @@ async def init_generate_state(
+         enable_force_include_usage=args.enable_force_include_usage,
+         enable_log_outputs=args.enable_log_outputs,
+         enable_log_deltas=args.enable_log_deltas,
++        activation_processor_socket=args.activation_processor_socket,
++        activation_processor_timeout_seconds=(
++            args.activation_processor_timeout_seconds
++        ),
+     )
+     state.openai_serving_chat = (
+         OpenAIServingChat(**_chat_kwargs) if "generate" in supported_tasks else None
+@@ -138,6 +142,10 @@ async def init_generate_state(
+             return_tokens_as_token_ids=args.return_tokens_as_token_ids,
+             enable_prompt_tokens_details=args.enable_prompt_tokens_details,
+             enable_force_include_usage=args.enable_force_include_usage,
++            activation_processor_socket=args.activation_processor_socket,
++            activation_processor_timeout_seconds=(
++                args.activation_processor_timeout_seconds
++            ),
+         )
+         if "generate" in supported_tasks
+         else None
 diff --git a/model_executor/models/gemma4.py b/model_executor/models/gemma4.py
 index bb91fd6..ccb4739 100644
 --- a/model_executor/models/gemma4.py
@@ -571,18 +1054,19 @@ index bb91fd6..ccb4739 100644
          self,
          input_ids: torch.Tensor,
 diff --git a/outputs.py b/outputs.py
-index 2c71d2a..e1ba3da 100644
+index 2c71d2a..9016187 100644
 --- a/outputs.py
 +++ b/outputs.py
-@@ -43,6 +43,7 @@ class CompletionOutput:
+@@ -43,6 +43,8 @@ class CompletionOutput:
      cumulative_logprob: float | None
      logprobs: SampleLogprobs | None
      routed_experts: np.ndarray | None = None  # [seq_len,layer_num,topk]
 +    activations: dict[int, torch.Tensor] | None = None
++    explanations: dict[int, Any] | None = None
      finish_reason: str | None = None
      stop_reason: int | str | None = None
      lora_request: LoRARequest | None = None
-@@ -56,6 +57,8 @@ class CompletionOutput:
+@@ -56,6 +58,8 @@ class CompletionOutput:
              f"text={self.text!r}, "
              f"token_ids={self.token_ids}, "
              f"routed_experts={self.routed_experts}, "
@@ -591,12 +1075,14 @@ index 2c71d2a..e1ba3da 100644
              f"cumulative_logprob={self.cumulative_logprob}, "
              f"logprobs={self.logprobs}, "
              f"finish_reason={self.finish_reason}, "
-@@ -163,10 +166,17 @@ class RequestOutput:
+@@ -163,10 +167,24 @@ class RequestOutput:
                          completion.cumulative_logprob = (
                              next_completion.cumulative_logprob
                          )
 +                        if next_completion.activations is not None:
 +                            completion.activations = next_completion.activations
++                        if next_completion.explanations is not None:
++                            completion.explanations = next_completion.explanations
                          completion.finish_reason = next_completion.finish_reason
                          completion.stop_reason = next_completion.stop_reason
                      else:
@@ -606,6 +1092,11 @@ index 2c71d2a..e1ba3da 100644
 +                            and completion.activations is not None
 +                        ):
 +                            next_completion.activations = completion.activations
++                        if (
++                            next_completion.explanations is None
++                            and completion.explanations is not None
++                        ):
++                            next_completion.explanations = completion.explanations
                          self.outputs[i] = next_completion
                      break
              else:
