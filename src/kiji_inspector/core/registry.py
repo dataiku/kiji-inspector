@@ -9,6 +9,7 @@ MODEL_REGISTRY: dict[str, str] = {
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8": "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8",
     # EXPERIMENTAL
     "google/gemma-3-27b-it": "575-lab/kiji-inspector-google-gemma-3-27b-it",
+    "google/gemma-4-E4B-it": "davidnet/kiji-inspector-google-gemma-4-E4B-it",
 }
 
 
