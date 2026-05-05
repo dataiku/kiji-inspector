@@ -1,0 +1,33 @@
+[project]
+name = "vllm-extras-activations"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "numpy>=1.26.0",
+    "tqdm>=4.66.0",
+    "datasets>=3.0.0",
+    "huggingface-hub>=1.13.0",
+    "transformers>=5.0.0",
+    "accelerate>=1.13.0",
+    "vllm==0.20.1"
+
+]
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchaudio = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
