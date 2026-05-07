@@ -9,7 +9,7 @@ Thank you to everyone who has contributed to Kiji Privacy Proxy!
 
 ## Contributors
 
-- this could be you!
+- **Carlos Huisa** ([@carloshuisa](https://github.com/carloshuisa))
 
 ---
 

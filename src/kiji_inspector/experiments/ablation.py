@@ -72,31 +72,38 @@ def get_tool_prediction(
     prompt: str,
     input_device: torch.device,
     token_to_tool: dict[int, str],
+    contrast_tool: str | None = None,   # NEW
     top_k: int = 10,
-) -> tuple[str, int]:
-    """Run the full model and return the predicted tool name and token ID.
-
-    Checks the top-k tokens for a matching tool name (not just argmax).
-    This handles cases where the model's top prediction is a formatting
-    token but the tool name is the second or third choice.
-
-    Returns:
-        (tool_name_or_"unknown", token_id)
-    """
+) -> tuple[str, int, float]:
+    """Run the full model and return (tool_name, token_id, prob_contrast_tool)."""
     inputs = tokenizer(prompt, return_tensors="pt").to(input_device)
     with torch.no_grad():
         outputs = model(**inputs)
-    logits = outputs.logits[:, -1, :]  # (1, vocab_size)
+    logits = outputs.logits[:, -1, :]
 
-    # Check top-k tokens for a matching tool
+    probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+
+    # Find predicted tool (unchanged logic)
     topk_ids = logits.topk(top_k, dim=-1).indices[0].tolist()
+
+    predicted_tool = "unknown"
+    predicted_tid = topk_ids[0]
     for tid in topk_ids:
         if tid in token_to_tool:
-            return token_to_tool[tid], tid
+            predicted_tool = token_to_tool[tid]
+            predicted_tid = tid
+            break
 
-    # Fall back to argmax
-    token_id = topk_ids[0]
-    return "unknown", token_id
+    # NEW: probability of the contrast tool
+    prob_contrast = 0.0
+    if contrast_tool is not None:
+        for tid, name in token_to_tool.items():
+            if name == contrast_tool:
+                prob_contrast = float(probs[tid])
+                break
+    
+
+    return predicted_tool, predicted_tid, prob_contrast
 
 
 # ---------------------------------------------------------------------------
@@ -180,16 +187,38 @@ def make_ablation_hook(
 # ---------------------------------------------------------------------------
 # Metrics
 # ---------------------------------------------------------------------------
-
+# ---------------------------------------------------------------------------
+# Metrics (Enhanced with Causal Inference + Wilcoxon + Aggregate Stats)
+# ---------------------------------------------------------------------------
 
 def compute_ablation_metrics(
     per_contrast: dict[str, dict],
 ) -> dict:
-    """Compute aggregate metrics across contrast types."""
-    from scipy.stats import fisher_exact
+    """Compute aggregate metrics across contrast types, including causal ATE,
+    bootstrap CIs, and Wilcoxon signed-rank test statistics (both per contrast
+    type and in aggregate).
+    """
+    from scipy.stats import fisher_exact, wilcoxon
+    import numpy as np
 
-    for _ct, info in per_contrast.items():
-        n = info["n_tested"]
+    def bootstrap_ci(data: list[float], n_boot: int = 5000, alpha: float = 0.05):
+        """Non-parametric bootstrap 95% CI for the mean."""
+        if not data:
+            return 0.0, 0.0, 0.0
+        data = np.array(data)
+        boot_means = np.array([
+            np.mean(np.random.choice(data, size=len(data), replace=True))
+            for _ in range(n_boot)
+        ])
+        lower = np.percentile(boot_means, 100 * alpha / 2)
+        upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
+        mean = float(np.mean(boot_means))
+        return mean, lower, upper
+
+    wilcoxon_p_values = []   # for aggregate statistics
+
+    for ct_key, info in per_contrast.items():
+        n = info.get("n_tested", 0)
         if n == 0:
             continue
 
@@ -198,6 +227,7 @@ def compute_ablation_metrics(
         r_flips = info["random_flips"]
         recon_flips = info.get("reconstruction_flips", 0)
 
+        # === Existing flip-rate metrics (backward compatible) ===
         info["contrastive_ablation"] = {
             "features_ablated": info["contrastive_feature_indices"],
             "n_features": len(info["contrastive_feature_indices"]),
@@ -216,27 +246,57 @@ def compute_ablation_metrics(
             "flip_rate_ci_95": [round(v, 4) for v in _clopper_pearson_ci(recon_flips, n)],
         }
 
-        # Fisher's exact test: contrastive vs random
-        table = [
-            [c_flips, n - c_flips],
-            [r_flips, n - r_flips],
-        ]
+        # Fisher's exact test
+        table = [[c_flips, n - c_flips], [r_flips, n - r_flips]]
         _, p_value = fisher_exact(table, alternative="greater")
         info["fisher_exact_p_value"] = round(float(p_value), 6)
 
-        # Clean up intermediate keys
+        # === Causal metrics using probability deltas ===
+        deltas = info.get("prob_deltas", {})
+        contrastive_deltas = deltas.get("contrastive", [])
+
+        if contrastive_deltas:
+            ate, ci_lower, ci_upper = bootstrap_ci(contrastive_deltas)
+            info["contrastive_ablation"].update({
+                "ATE": round(ate, 4),
+                "ATE_ci_95_lower": round(ci_lower, 4),
+                "ATE_ci_95_upper": round(ci_upper, 4),
+            })
+
+            # Wilcoxon signed-rank test (per contrast type)
+            if len(contrastive_deltas) >= 10:
+                try:
+                    _, wilcoxon_p = wilcoxon(contrastive_deltas, alternative="two-sided")
+                    wilcoxon_p = float(wilcoxon_p)
+                except ValueError:
+                    wilcoxon_p = None
+            else:
+                wilcoxon_p = None
+
+            info["contrastive_ablation"]["wilcoxon_p_value"] = round(wilcoxon_p, 6) if wilcoxon_p is not None else None
+
+            # Collect for aggregate
+            if wilcoxon_p is not None:
+                wilcoxon_p_values.append(wilcoxon_p)
+
+        # Optional ATE for random / reconstruction
+        if deltas.get("random"):
+            random_ate, _, _ = bootstrap_ci(deltas["random"])
+            info["random_ablation"]["ATE"] = round(random_ate, 4)
+        if deltas.get("reconstruction"):
+            recon_ate, _, _ = bootstrap_ci(deltas["reconstruction"])
+            info["reconstruction_baseline"]["ATE"] = round(recon_ate, 4)
+
+        # Clean up
         for key in (
-            "contrastive_flips",
-            "contrastive_directed_flips",
-            "random_flips",
-            "reconstruction_flips",
-            "contrastive_feature_indices",
+            "contrastive_flips", "contrastive_directed_flips", "random_flips",
+            "reconstruction_flips", "contrastive_feature_indices",
             "n_random_features",
         ):
             info.pop(key, None)
 
-    # Aggregate
-    tested = [v for v in per_contrast.values() if v["n_tested"] > 0]
+    # === Aggregate across all contrast types ===
+    tested = [v for v in per_contrast.values() if v.get("n_tested", 0) > 0]
     if tested:
         agg = {
             "n_contrast_types": len(tested),
@@ -252,12 +312,26 @@ def compute_ablation_metrics(
             "mean_reconstruction_flip_rate": round(
                 np.mean([v["reconstruction_baseline"]["flip_rate"] for v in tested]), 4
             ),
+            "mean_contrastive_ATE": round(
+                np.mean([v["contrastive_ablation"].get("ATE", 0) for v in tested]), 4
+            ),
         }
+
+        # === NEW: Wilcoxon aggregate statistics ===
+        if wilcoxon_p_values:
+            agg["mean_wilcoxon_p_value"] = round(np.mean(wilcoxon_p_values), 6)
+            significant_count = sum(1 for p in wilcoxon_p_values if p < 0.05)
+            agg["wilcoxon_significant_count"] = significant_count
+            agg["wilcoxon_significant_rate"] = round(significant_count / len(wilcoxon_p_values), 4)
+        else:
+            agg["mean_wilcoxon_p_value"] = None
+            agg["wilcoxon_significant_count"] = 0
+            agg["wilcoxon_significant_rate"] = 0.0
+
     else:
         agg = {}
 
     return {"per_contrast_type": per_contrast, "aggregate": agg}
-
 
 # ---------------------------------------------------------------------------
 # Main experiment
@@ -399,6 +473,13 @@ def run_ablation_experiment(
             f"ablating features {contrastive_indices[:3]}..."
         )
 
+        # === NEW: collect probability deltas for causal metrics ===
+        prob_deltas = {
+            "contrastive": [],
+            "random": [],
+            "reconstruction": [],
+        }
+
         n_tested = 0
         n_baseline_mismatches = 0
         n_unknown_baseline = 0
@@ -414,7 +495,6 @@ def run_ablation_experiment(
                 build_tool_token_map(tokenizer, sc.tools),
             )
 
-            # Build prompt for anchor side
             prompt = build_agent_prompt(
                 system_prompt=sc.system_prompt,
                 tools=sc.tools,
@@ -422,16 +502,15 @@ def run_ablation_experiment(
                 tokenizer=tokenizer,
             )
 
-            # Normalize tool labels (handle compound labels)
             expected_tool = pair.anchor_tool.split(",")[0].strip()
             contrast_tool = pair.contrast_tool.split(",")[0].strip()
 
-            # Baseline prediction (no ablation)
-            baseline_tool, baseline_tid = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool
+            # Baseline (no ablation)
+            baseline_tool, baseline_tid, baseline_prob_contrast = get_tool_prediction(
+                model, tokenizer, prompt, input_device, token_to_tool,
+                contrast_tool=contrast_tool
             )
 
-            # Track why prompts are filtered out
             if baseline_tool == "unknown":
                 n_unknown_baseline += 1
                 continue
@@ -441,44 +520,50 @@ def run_ablation_experiment(
 
             n_tested += 1
 
-            # --- Reconstruction-only baseline (SAE round-trip, no features zeroed) ---
+            # Reconstruction-only baseline
             hook_handle = target_layer.register_forward_hook(
                 make_ablation_hook(sae, feature_indices=None)
             )
-            recon_tool, recon_tid = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool
+            recon_tool, recon_tid, recon_prob_contrast = get_tool_prediction(
+                model, tokenizer, prompt, input_device, token_to_tool,
+                contrast_tool=contrast_tool
             )
             hook_handle.remove()
-
             if recon_tid != baseline_tid:
                 reconstruction_flips += 1
 
-            # --- Contrastive ablation ---
+            # Contrastive ablation
             hook_handle = target_layer.register_forward_hook(
                 make_ablation_hook(sae, contrastive_indices)
             )
-            ablated_tool, ablated_tid = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool
+            ablated_tool, ablated_tid, ablated_prob_contrast = get_tool_prediction(
+                model, tokenizer, prompt, input_device, token_to_tool,
+                contrast_tool=contrast_tool
             )
             hook_handle.remove()
-
             if ablated_tid != baseline_tid:
                 contrastive_flips += 1
                 if ablated_tool == contrast_tool:
                     contrastive_directed_flips += 1
 
-            # --- Random ablation (control) ---
+            # Random ablation
             hook_handle = target_layer.register_forward_hook(
                 make_ablation_hook(sae, random_indices)
             )
-            rand_tool, rand_tid = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool
+            rand_tool, rand_tid, rand_prob_contrast = get_tool_prediction(
+                model, tokenizer, prompt, input_device, token_to_tool,
+                contrast_tool=contrast_tool
             )
             hook_handle.remove()
-
             if rand_tid != baseline_tid:
                 random_flips += 1
 
+            # === NEW: store probability shifts ===
+            prob_deltas["contrastive"].append(ablated_prob_contrast - baseline_prob_contrast)
+            prob_deltas["random"].append(rand_prob_contrast - baseline_prob_contrast)
+            prob_deltas["reconstruction"].append(recon_prob_contrast - baseline_prob_contrast)
+
+        # Store results (including new deltas)
         per_contrast[ct_key] = {
             "n_pairs_available": len(ct_pairs),
             "n_tested": n_tested,
@@ -488,7 +573,10 @@ def run_ablation_experiment(
             "reconstruction_flips": reconstruction_flips,
             "contrastive_feature_indices": contrastive_indices,
             "n_random_features": len(random_indices),
+            "prob_deltas": prob_deltas,          # ← this is the key new data
         }
+
+        # ... (the rest of the diagnostics print remains unchanged)
 
         # Diagnostics
         total_tried = n_tested + n_baseline_mismatches + n_unknown_baseline
