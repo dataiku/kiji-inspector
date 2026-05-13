@@ -1,0 +1,388 @@
+% Opening the Black Box: Mechanistic Interpretability of Agent Tool Selection
+% with Sparse Autoencoders --- Conference poster
+% Built on the gemini beamerposter template (https://github.com/anishathalye/gemini)
+
+\documentclass[final]{beamer}
+
+% ====================
+% Packages
+% ====================
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[size=custom,width=118.9,height=84.1,scale=1.0]{beamerposter}
+\usetheme{gemini}
+\usecolortheme{dart}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.14}
+\usepackage{anyfontsize}
+\usepackage{qrcode}
+\usepackage{xcolor}
+
+% Boost header contrast: white title on dart green
+\setbeamercolor{headline}{fg=white}
+\setbeamercolor{headline title}{fg=white}
+\setbeamercolor{headline author}{fg=white}
+\setbeamercolor{headline institute}{fg=white!85}
+
+% ====================
+% Lengths
+% ====================
+
+\newlength{\sepwidth}
+\newlength{\colwidth}
+\setlength{\sepwidth}{0.025\paperwidth}
+\setlength{\colwidth}{0.3\paperwidth}
+
+\newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
+
+% ====================
+% Title
+% ====================
+
+\title{Opening the Black Box: Mechanistic Interpretability of Agent Tool Selection with Sparse Autoencoders}
+
+\author{Hannes Hapke \inst{1} \and David Cardozo \inst{1}}
+
+\institute[Dataiku 575 Lab]{\inst{1} 575 Lab, Dataiku Inc.\ --- Portland, OR \& Toronto, ON}
+
+% ====================
+% Logos
+% ====================
+
+\logoright{\includegraphics[height=4cm]{images/575lab_white_condensed.png}}
+
+% ====================
+% Footer
+% ====================
+
+\footercontent{
+  \href{https://github.com/dataiku/kiji-inspector}{github.com/dataiku/kiji-inspector} \hfill
+  Mechanistic Interpretability for AI Agents \hfill
+  \href{mailto:hannes.hapke@dataiku.com}{hannes.hapke@dataiku.com} \,$\cdot$\,
+  \href{mailto:david.cardozo@dataiku.com}{david.cardozo@dataiku.com}}
+
+% ====================
+% Body
+% ====================
+
+\begin{document}
+
+\begin{frame}[t]
+\begin{columns}[t]
+\separatorcolumn
+
+% ============================================================
+% COLUMN 1 --- Hero result + motivation + pipeline
+% ============================================================
+\begin{column}{\colwidth}
+
+  \begin{alertblock}{Key Result --- Causal, Not Just Correlated}
+    \begin{center}
+      \vspace{-0.1em}
+      {\fontsize{180}{195}\selectfont\textbf{10.1\,\%}}\\[0.2em]
+      {\LARGE of agent tool choices \textbf{reverse}}\\[0.1em]
+      {\LARGE when 10 SAE features are ablated.}\\[0.5em]
+      {\large \emph{Removing a handful of features
+                    \textbf{causally changes} the agent's tool choice.}}\\[0.5em]
+      {\large random ablation: \textbf{0\,\%} \quad$\cdot$\quad
+              SAE round-trip: \textbf{0\,\%} \quad$\cdot$\quad
+              $p = 0.002$}\\[0.3em]
+      {\normalsize \emph{up to 17.1\,\% on other contrast types.}}\\[0.4em]
+      {\footnotesize \emph{fundamental vs.\ technical analysis} (finance
+       domain, 1 of 23 contrast types tested) ---
+       Nemotron-3-Nano-30B, layer 20.}
+      \vspace{-0.1em}
+    \end{center}
+  \end{alertblock}
+
+  \begin{block}{The Tool-Selection Black Box}
+
+    \large
+    Modern AI agents autonomously pick among databases, code, web search, and
+    sub-agents. When the agent chooses, \emph{why} it chose remains opaque.
+
+    \begin{itemize}
+      \item \textbf{Prompt engineering:} correlational, not causal.
+      \item \textbf{Behavioural testing:} input/output only.
+      \item \textbf{Chain-of-thought:} plausible, often confabulated.
+    \end{itemize}
+
+    We open the black box at the token where the model commits to a tool and
+    decompose its hidden state into human-readable features.
+
+  \end{block}
+
+  \begin{block}{Pipeline}
+
+    \begin{figure}
+      \centering
+      \begin{tikzpicture}[
+        every node/.style={align=center, font=\normalsize},
+        main/.style={rectangle, draw=black!70, rounded corners=5pt,
+                     line width=1.2pt, minimum height=2.6cm,
+                     inner xsep=0.4cm, inner ysep=0.3cm},
+        arrow/.style={->, line width=1.8pt, >=stealth, draw=black!70},
+        sidebox/.style={rectangle, draw=orange!85, rounded corners=5pt,
+                        line width=1.2pt, fill=orange!20,
+                        minimum height=3.0cm, minimum width=7cm,
+                        inner sep=0.3cm},
+        branchArrow/.style={->, line width=1.8pt, >=stealth,
+                            draw=orange!85, dashed},
+      ]
+        % Main top-row pipeline (purely unsupervised up to "SAE features")
+        \node[main, fill=blue!8,    minimum width=4.0cm] (a) at (0,0)
+              {\textbf{Activations}\\\small 1\,M @ layer 20};
+        \node[main, fill=green!10,  minimum width=5.0cm] (t) at (6.5,0)
+              {\textbf{SAE training}\\\small \emph{unsupervised}\\\small 10{,}752 feats};
+        \node[main, fill=green!10,  minimum width=4.0cm] (s) at (12.5,0)
+              {\textbf{SAE features}};
+        \node[main, fill=orange!15, minimum width=4.0cm] (p) at (17.5,0)
+              {\textbf{Probe}\\\small Cohen's $d$};
+        \node[main, fill=orange!15, minimum width=4.2cm] (v) at (22.5,0)
+              {\textbf{Fuzzing}\\\small token-level A/B};
+        \draw[arrow] (a) -- (t);
+        \draw[arrow] (t) -- (s);
+        \draw[arrow] (s) -- (p);
+        \draw[arrow] (p) -- (v);
+
+        % Contrastive pairs branch joins ONLY at the Probe step.
+        % "Enters here, not at training" lives INSIDE the side box so it
+        % doesn't run into the Fuzzing box.
+        \node[sidebox] (c) at (17.5,-5.0)
+              {\textbf{Contrastive pairs}\\\small 500K $\cdot$ 5 domains\\[0.2em]
+               \small\itshape\textcolor{orange!90!black}{enters here, not at training}};
+        \draw[branchArrow] (c) -- (p);
+      \end{tikzpicture}
+      \caption{\textbf{The SAE is trained without contrastive pairs.}
+        Pairs enter only at the probe step to surface which pre-existing
+        features carry decision-relevant signal --- never as a training
+        signal.}
+    \end{figure}
+
+  \end{block}
+
+  \begin{block}{Pick the Right Layer (Not the MoE Ones)}
+
+    \begin{figure}
+      \centering
+      \includegraphics[height=8cm,keepaspectratio]{images/chart_layer_sweep.png}
+      \caption{\textbf{A single SAE cannot decompose MoE layers.}
+        Reconstruction MSE explodes by $>$500$\times$ at layers 32 and 44
+        (sparse expert routing); layer~20 sits just before the MoE stack
+        and gives 81.2\,\% alive features. \emph{Don't probe MoE layers
+        with one SAE.}}
+    \end{figure}
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+
+% ============================================================
+% COLUMN 2 --- Methodology + Production hook
+% ============================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{JumpReLU Sparse Autoencoder}
+
+    \begin{figure}
+      \centering
+      \includegraphics[height=8cm,keepaspectratio]{images/sae_architecture.png}
+      \caption{\textbf{An overcomplete dictionary that decomposes hidden states
+        into monosemantic features.} JumpReLU thresholds $\theta_i$ produce
+        \emph{exact} zeros (true sparsity), trained with a smooth $\tanh$
+        surrogate~[3].}
+    \end{figure}
+
+    \begin{table}
+      \centering
+      \large
+      \begin{tabular}{ll}
+        \toprule
+        \textbf{Dictionary $M$}         & 10{,}752 ($4\times$ hidden dim) \\
+        \textbf{Activations trained on} & 1{,}000{,}000 \\
+        \textbf{Reconstruction MSE}     & 0.574 \\
+        \textbf{Alive features}         & 81.2\,\% \\
+        \textbf{Active per input}       & $668 \pm 26$ (6.2\,\%) \\
+        \bottomrule
+      \end{tabular}
+    \end{table}
+
+  \end{block}
+
+  \begin{block}{Inside a Feature --- What an SAE Actually Finds}
+
+    \begin{center}
+      {\Large\textbf{Feature label:}}\\[0.2em]
+      {\LARGE\textbf{\emph{``data modification intent''}}}
+    \end{center}
+
+    \vspace{0.4em}
+    {\Large\textcolor{green!50!black}{\textbf{$\blacktriangle$ Activates on}}}\\[0.15em]
+    {\large\texttt{set\,$\cdot$\,update\,$\cdot$\,modify\,$\cdot$\,create\,$\cdot$\,delete\,$\cdot$\,write}}
+
+    \vspace{0.5em}
+    {\Large\textcolor{red!70!black}{\textbf{$\blacktriangledown$ Suppressed by}}}\\[0.15em]
+    {\large\texttt{what\,$\cdot$\,list\,$\cdot$\,show\,$\cdot$\,describe\,$\cdot$\,find\,$\cdot$\,latest}}
+
+    \vspace{0.7em}
+    \heading{\Large Behaviour under ablation}
+
+    \large
+    \begin{tabular}{@{}r@{\,\,}c@{\,\,}l@{}}
+      Write request, feature \emph{intact}    & $\Rightarrow$ & agent picks \texttt{[file\_write]}\\[0.15em]
+      Write request, feature \emph{ablated}   & $\Rightarrow$ & agent drifts to \texttt{[file\_read]}\\
+    \end{tabular}
+
+    \vspace{0.5em}
+    {\small Features like this emerge \emph{without} contrastive supervision
+    --- the SAE learns them from raw activations alone.}
+
+  \end{block}
+
+  \begin{block}{Scope \& Limitations}
+    \begin{itemize}
+      \item One model (Nemotron-3-Nano-30B), one layer, one decision-token
+            convention.
+      \item Top-10 ablation is conservative; distributed decisions need
+            larger sets.
+      \item Feature labels rely on Qwen3-VL-235B --- judge errors propagate
+            to rationales.
+    \end{itemize}
+  \end{block}
+
+  \begin{exampleblock}{Why This Matters in Production}
+
+    \begin{figure}
+      \centering
+      \includegraphics[height=4.5cm,keepaspectratio]{images/inference_pipeline.png}
+      \caption{\textbf{Every tool call ships with a rationale.}
+        At inference, the top-$K$ active features at the decision token
+        map to pre-computed labels --- a human-readable explanation
+        alongside the tool choice, with no extra LLM call.}
+    \end{figure}
+
+    \large
+    Most SAE work stops at finding features. Here the features
+    \textbf{ship to inference}: every tool call carries a top-$K$ feature
+    rationale alongside it --- a \textbf{debugging surface} for deployed
+    agents, and a foundation for \textbf{future anomaly detection} when
+    activations deviate from a tool's normal fingerprint.
+
+  \end{exampleblock}
+
+\end{column}
+
+\separatorcolumn
+
+% ============================================================
+% COLUMN 3 --- Results + Scope + References
+% ============================================================
+\begin{column}{\colwidth}
+
+  \begin{block}{Feature Label Quality (Token-Level Fuzzing)}
+
+    \begin{figure}
+      \centering
+      \begin{tikzpicture}
+        \definecolor{tierExcellent}{HTML}{2E7D32}
+        \definecolor{tierGood}{HTML}{F9A825}
+        \definecolor{tierPoor}{HTML}{C62828}
+        % Stacked bar 20cm x 4.2cm
+        \fill[tierExcellent] (0,0)       rectangle (16.860,4.2); % 84.3 of 20
+        \fill[tierGood]      (16.860,0)  rectangle (18.740,4.2); %  9.4
+        \fill[tierPoor]      (18.740,0)  rectangle (20.000,4.2); %  6.2
+        \draw[line width=0.6pt] (0,0) rectangle (20,4.2);
+        % Hero label inside Excellent (well-separated rows)
+        \node[white,font=\fontsize{56}{60}\selectfont\bfseries]
+              at (8.43,2.8) {84.3\,\%};
+        \node[white,font=\LARGE]
+              at (8.43,0.9) {Excellent ($>0.8$)};
+        % Leader lines + callouts below for Good / Poor
+        \draw[line width=0.6pt] (17.800,0) -- (17.800,-0.6);
+        \draw[line width=0.6pt] (19.370,0) -- (19.370,-0.6);
+        \node[font=\small,anchor=north east] at (17.800,-0.6) {Good 9.4\,\% ~};
+        \node[font=\small,anchor=north west] at (19.370,-0.6) {~ Poor 6.2\,\%};
+      \end{tikzpicture}
+      \caption{\textbf{84\,\% of feature labels are excellent under
+        token-level fuzzing.} 402 features, 4{,}422 A/B examples; combined
+        score weights token-level $0.7$ vs.\ prompt-level $0.3$.}
+    \end{figure}
+
+    \begin{itemize}
+      \item \textbf{Combined score:} $0.912 \pm 0.008$ ($p<10^{-4}$ vs.\ 0.5).
+      \item \textbf{Token-level accuracy:} $0.906 \pm 0.007$.
+      \item Token-level evaluation catches labels right for the
+            \emph{wrong} reasons; prompt-level alone overestimates.
+    \end{itemize}
+
+  \end{block}
+
+  \begin{alertblock}{Causal Ablation}
+
+    \begin{figure}
+      \centering
+      \includegraphics[height=7cm,keepaspectratio]{images/chart_ablation.png}
+      \caption{\textbf{Ablating SAE features changes tool decisions ---
+        random features do not.} Top-10 contrastive features vs.\ random
+        features vs.\ SAE round-trip baseline.}
+    \end{figure}
+
+    \large
+    \heading{Where it works (and where it doesn't)}
+
+    \begin{itemize}
+      \item \textbf{Works:} \emph{fundamental} vs.\ \emph{technical} ---
+            10.1\,\% flip, controls 0\,\% ($p=0.002$).
+      \item \textbf{Works:} \emph{single} vs.\ \emph{multi-tool} ---
+            17.1\,\% vs.\ 2.4\,\% ($p=0.029$).
+      \item \textbf{Null: 9 of 23 contrast types show zero flip
+            rate.}\\ Those decisions are encoded \emph{distributively}
+            across many features, not localized in a sparse circuit.
+            A known boundary --- and a checklist item for replications.
+    \end{itemize}
+
+    \heading{Why the effect is real}
+    Random-ablation flip rate \emph{equals} SAE round-trip distortion across
+    all 23 contrast types. The contrastive flip is \textbf{above} this noise
+    floor --- it must come from the specific features removed, not from
+    encode/decode artefacts.
+
+  \end{alertblock}
+
+  \begin{block}{Code \& Paper}
+
+    \begin{minipage}{0.45\linewidth}
+      \centering
+      \qrcode[height=9cm]{https://github.com/dataiku/kiji-inspector}\\[0.3em]
+      {\small\textbf{Scan for paper + code}}
+    \end{minipage}\hfill
+    \begin{minipage}{0.52\linewidth}
+      \footnotesize\texttt{github.com/dataiku/}\\\texttt{kiji-inspector}
+
+      \vspace{0.6em}
+      \footnotesize
+      Nemotron-3-Nano-30B (subject)\\
+      Qwen3-VL-235B (judge)\\
+      Compute by NVIDIA
+
+      \vspace{0.4em}
+      \scriptsize Prior work: Bricken'23 $\cdot$
+      Rajamanoharan'24 (JumpReLU) $\cdot$
+      Juang'24 (autointerp).
+    \end{minipage}
+
+  \end{block}
+
+\end{column}
+
+\separatorcolumn
+\end{columns}
+\end{frame}
+
+\end{document}
