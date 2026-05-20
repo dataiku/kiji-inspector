@@ -14,6 +14,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/python-%3E%3D3.10-3776AB?logo=python&logoColor=white" alt="Python Version">
+    <a href="https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/Kiji_Colab_Notebook.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
   </p>
 
   <p>
