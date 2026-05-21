@@ -31,7 +31,7 @@ In the meantime, join our [Slack Community](https://join.slack.com/t/dataiku-ope
 
 Learn more about our approach and early results:
 
-* [Paper](paper/Opening%20the%20Black%20Box%20Mechanistic%20Interpretability%20of%20Agent%20Tool%20Selection%20with%20Sparse%20Autoencoders.pdf)
+* [Paper](paper/Opening%20the%20Black%20Box%20Mechanistic%20Interpretability%20of%20Agent%20Tool%20Selection%20with%20Sparse%20Autoencoders%20(color).pdf)
 * [Presentation](presentation/Opening%20the%20Black%20Box%20Mechanistic%20Interpretability%20of%20Agent%20Tool%20Selection%20with%20Sparse%20Autoencoders.pdf)
 
 ---
