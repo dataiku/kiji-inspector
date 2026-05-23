@@ -17,7 +17,8 @@ compile_pdf() {
     bibtex "$base" > /dev/null 2>&1 || true
     pdflatex -interaction=nonstopmode "$tex" > /dev/null
     pdflatex -interaction=nonstopmode "$tex" > /dev/null
-    rm -f "$base".{aux,bbl,blg,log,out,toc,lof,lot,nav,snm,vrb,fls,fdb_latexmk,synctex.gz}
+    # Keep .bbl so the short-paper submission zip can include it; cleaned at end.
+    rm -f "$base".{aux,blg,log,out,toc,lof,lot,nav,snm,vrb,fls,fdb_latexmk,synctex.gz}
 }
 
 # ── 1. Render color PNGs from SVGs, generate color charts, compile color PDF ─
@@ -52,9 +53,27 @@ echo "==> Compiling short (B&W) PDF..."
 compile_pdf "$TEX_SHORT"
 echo "    ✓ $BASE_SHORT.pdf"
 
-# ── 4. Restore color PNGs as the default working state ──────────────────────
+# ── 4. Package short paper submission zip ───────────────────────────────────
+echo "==> Packaging short paper submission zip..."
+ZIP="kiji_inspector_short_submission.zip"
+rm -f "$ZIP"
+zip -q "$ZIP" \
+    "$TEX_SHORT" \
+    "$BASE_SHORT.pdf" \
+    "$BASE_SHORT.bbl" \
+    references.bib \
+    llncs.cls \
+    splncs04.bst
+for name in "${SHORT_BW_IMAGES[@]}"; do
+    zip -q "$ZIP" "images/${name}_bw.png"
+done
+echo "    ✓ $ZIP"
+
+# ── 5. Restore color PNGs, clean lingering .bbl files ──────────────────────
 echo "==> Restoring color images..."
 uv run --no-project --with playwright --with Pillow python3 render_svgs.py --mode color > /dev/null
 uv run --no-project --with matplotlib --with numpy python3 generate_charts.py --mode color > /dev/null
+
+rm -f "$BASE.bbl" "$BASE_SHORT.bbl"
 
 echo "Done."
