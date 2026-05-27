@@ -10,6 +10,7 @@ MODEL_REGISTRY: dict[str, str] = {
     # EXPERIMENTAL
     "google/gemma-3-27b-it": "575-lab/kiji-inspector-google-gemma-3-27b-it",
     "google/gemma-4-E4B-it": "575-lab/kiji-inspector-google-gemma-4-E4B-it",
+    "google/gemma-4-31B-it": "575-lab/kiji-inspector-google-gemma-4-31B-it",
 }
 
 
