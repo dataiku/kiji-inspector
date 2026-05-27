@@ -188,7 +188,16 @@ def parse_args() -> argparse.Namespace:
         "--max-model-len",
         type=int,
         default=16384,
-        help="Max sequence length for vLLM generation model (default: 16384).",
+        help="Max sequence length for vLLM models — applied to both the "
+        "generation/judging model and the subject extraction model (default: 16384).",
+    )
+    p.add_argument(
+        "--extraction-gpu-memory-utilization",
+        type=float,
+        default=0.90,
+        help="GPU memory fraction reserved for the subject extraction model "
+        "(default: 0.90). Lower if vLLM OOMs on KV cache; raise to allow longer "
+        "max-model-len at the risk of OOM elsewhere.",
     )
     # -- Subject model (Step 1) --
     p.add_argument(
@@ -393,6 +402,8 @@ def extract_activations(
     backend: str = "vllm",
     dp_size: int = 1,
     tp_size: int = 1,
+    max_model_len: int = 8192,
+    gpu_memory_utilization: float = 0.90,
 ) -> dict[str, Path]:
     """Load subject model, extract raw activations for all layers, save as numpy shards.
 
@@ -426,9 +437,9 @@ def extract_activations(
                 self.model_name = subject_model
                 self.layers = layers
                 self.token_positions = "decision"
-                self.gpu_memory_utilization = 0.90
+                self.gpu_memory_utilization = gpu_memory_utilization
                 self.tensor_parallel_size = tp_size
-                self.max_model_len = 8192
+                self.max_model_len = max_model_len
                 self.trust_remote_code = True
 
         class _ExtractorStub:
@@ -445,6 +456,8 @@ def extract_activations(
             layers=layers,
             token_positions="decision",
             tensor_parallel_size=tp_size,
+            max_model_len=max_model_len,
+            gpu_memory_utilization=gpu_memory_utilization,
         )
 
     raw_extractor = RawActivationExtractor(
@@ -556,6 +569,8 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
         backend=args.backend,
         dp_size=args.extraction_dp_size,
         tp_size=args.extraction_tp_size,
+        max_model_len=args.max_model_len,
+        gpu_memory_utilization=args.extraction_gpu_memory_utilization,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
