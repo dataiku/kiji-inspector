@@ -464,7 +464,7 @@ section.closing p {
 <div class="cols">
 
 <div>
-    <p><strong>ML Engineering Leader</strong> at Dataiku, 575 Lab <br>
+    <p><strong>Director, Engineering</strong> at Dataiku, 575 Lab <br>
     <strong>Google Developer Expert</strong> -- Machine Learning</p>
 
 Focus areas:
@@ -483,6 +483,48 @@ Co-author of four O'Reilly & Manning books, including:
 - hanneshapke.com 
 - github.com/hanneshapke 
 - linkedin.com/in/hanneshapke
+
+</div>
+
+</div>
+
+---
+
+<!-- _class: dark -->
+
+<!--<div class="logo"></div>-->
+
+<span class="badge">About the Lab</span>
+
+## Dataiku's Open Source Office
+
+<div class="cols">
+
+<div>
+
+![w:320](../paper/images/575_lab_logo_white.png)
+
+**Advancing Responsible AI through open source** &mdash; production-ready tools that give enterprises **transparency, control, and governance** to deploy AI with confidence.
+
+Our Responsible AI work:
+- **Trust** &mdash; no black boxes, no hidden behaviour
+- **Control** &mdash; no vendor lock-in, no opaque dependencies
+- **Accountability** &mdash; auditable, reproducible, community-reviewed
+
+</div>
+
+<div>
+
+### Signature projects
+
+- **Kiji Inspector** &mdash; mechanistic interpretability for agent tool selection *(this talk)*
+- **Kiji Privacy Proxy** &mdash; detect &amp; redact sensitive data before LLM API calls
+
+### Also contributing to
+
+vLLM &middot; scikit-learn (sponsor) &middot; Cardinal (active learning) &middot; CodeMirror
+
+[dataiku.com/open-source](https://www.dataiku.com/open-source)
 
 </div>
 
