@@ -88,7 +88,7 @@ def load_activations_from_shards(
 
     del all_activations
 
-    activations = np.stack(unique_activations, axis=0).astype(np.float32)
+    activations = np.stack(unique_activations, axis=0)
     del unique_activations
 
     print(f"  Unique prompts: {len(unique_prompts)}, activations shape: {activations.shape}")
@@ -132,54 +132,88 @@ def collect_max_activating_examples(
     sae.eval()
     sae_dtype = next(sae.parameters()).dtype
 
-    print(f"  Encoding {len(prompts)} prompts through SAE (d_sae={sae.d_sae})...")
+    n_features = len(feature_indices)
+    n_prompts = len(activations)
+    feat_idx_t = torch.tensor(feature_indices, device=device, dtype=torch.long)
 
-    # Encode all activations through SAE in chunks to avoid OOM
+    print(
+        f"  Encoding {n_prompts} prompts through SAE (d_sae={sae.d_sae}), "
+        f"streaming top-{top_n}/bottom-{bottom_n} for {n_features} features..."
+    )
+
+    eff_top_n = min(top_n, n_prompts)
+    eff_bot_n = min(bottom_n, n_prompts)
+
+    # Running heaps on CPU — total ≈ n_features × (top_n+bottom_n) × 8B ≪ 1 GB
+    top_vals = torch.full((n_features, eff_top_n), float("-inf"), dtype=torch.float32)
+    top_idx = torch.full((n_features, eff_top_n), -1, dtype=torch.long)
+    bot_vals = torch.full((n_features, eff_bot_n), float("inf"), dtype=torch.float32)
+    bot_idx = torch.full((n_features, eff_bot_n), -1, dtype=torch.long)
+    sum_vals = torch.zeros(n_features, dtype=torch.float64)
+    max_vals = torch.full((n_features,), float("-inf"), dtype=torch.float32)
+    nonzero_count = torch.zeros(n_features, dtype=torch.long)
+
     chunk_size = 4096
-    all_features: list[torch.Tensor] = []
 
     with torch.no_grad():
         for i in tqdm(
-            range(0, len(activations), chunk_size), desc="[4b] SAE encoding", unit="chunk"
+            range(0, n_prompts, chunk_size),
+            desc="[4b] SAE encode + streaming top-K",
+            unit="chunk",
         ):
-            chunk = torch.from_numpy(activations[i : i + chunk_size]).to(
-                device=device, dtype=sae_dtype
-            )
+            end = min(i + chunk_size, n_prompts)
+            chunk = torch.from_numpy(activations[i:end]).to(device=device, dtype=sae_dtype)
             if sae.rms_scale is not None and sae.rms_scale > 0:
                 chunk = chunk / sae.rms_scale
             features = sae.encode(chunk)  # (chunk, d_sae)
-            all_features.append(features.cpu())
+            # Project to only the features we care about, move to CPU as fp32
+            feat_sub = features.index_select(1, feat_idx_t).to(torch.float32).cpu()
+            # Transpose so each row is one feature's values across the chunk
+            feat_sub_t = feat_sub.t().contiguous()  # (n_features, chunk)
+            chunk_len = feat_sub_t.shape[1]
+            global_idx = torch.arange(i, end, dtype=torch.long).unsqueeze(0).expand(
+                n_features, chunk_len
+            )
 
-    # Concatenate on CPU
-    feature_matrix = torch.cat(all_features, dim=0)  # (N, d_sae), on CPU
-    del all_features
+            # Running stats
+            sum_vals += feat_sub_t.to(torch.float64).sum(dim=1)
+            max_vals = torch.maximum(max_vals, feat_sub_t.max(dim=1).values)
+            nonzero_count += (feat_sub_t > 0).sum(dim=1)
+
+            # Streaming top-N: combine current heap + new chunk, keep top
+            combined_vals = torch.cat([top_vals, feat_sub_t], dim=1)
+            combined_idx = torch.cat([top_idx, global_idx], dim=1)
+            top_vals, pos = combined_vals.topk(eff_top_n, dim=1, largest=True)
+            top_idx = combined_idx.gather(1, pos)
+
+            # Streaming bottom-N (smallest values)
+            combined_vals = torch.cat([bot_vals, feat_sub_t], dim=1)
+            combined_idx = torch.cat([bot_idx, global_idx], dim=1)
+            bot_vals, pos = combined_vals.topk(eff_bot_n, dim=1, largest=False)
+            bot_idx = combined_idx.gather(1, pos)
+
+            del features, feat_sub, feat_sub_t, combined_vals, combined_idx, pos
 
     results: dict[int, dict] = {}
-
-    for feat_idx in tqdm(feature_indices, desc="[4b] Collecting examples", unit="feature"):
-        col = feature_matrix[:, feat_idx]  # (N,)
-
-        # Top activating
-        topk_vals, topk_ids = col.topk(min(top_n, len(col)))
-        top_examples = []
-        for val, idx in zip(topk_vals.tolist(), topk_ids.tolist(), strict=True):
-            top_examples.append({"prompt": prompts[idx], "activation": round(val, 6)})
-
-        # Bottom (near-zero / zero)
-        bottomk_vals, bottomk_ids = col.topk(min(bottom_n, len(col)), largest=False)
-        bottom_examples = []
-        for val, idx in zip(bottomk_vals.tolist(), bottomk_ids.tolist(), strict=True):
-            bottom_examples.append({"prompt": prompts[idx], "activation": round(val, 6)})
-
+    for j, feat_idx in enumerate(feature_indices):
+        top_examples = [
+            {"prompt": prompts[int(gi)], "activation": round(float(v), 6)}
+            for v, gi in zip(top_vals[j].tolist(), top_idx[j].tolist(), strict=True)
+            if gi >= 0
+        ]
+        bottom_examples = [
+            {"prompt": prompts[int(gi)], "activation": round(float(v), 6)}
+            for v, gi in zip(bot_vals[j].tolist(), bot_idx[j].tolist(), strict=True)
+            if gi >= 0
+        ]
         results[feat_idx] = {
             "top": top_examples,
             "bottom": bottom_examples,
-            "mean_activation": round(col.mean().item(), 6),
-            "max_activation": round(col.max().item(), 6),
-            "frac_nonzero": round((col > 0).float().mean().item(), 4),
+            "mean_activation": round(sum_vals[j].item() / n_prompts, 6),
+            "max_activation": round(max_vals[j].item(), 6),
+            "frac_nonzero": round(nonzero_count[j].item() / n_prompts, 4),
         }
 
-    del feature_matrix
     return results
 
 
