@@ -14,6 +14,7 @@ layer's SAE is applied independently to produce per-layer reports.
 
 from __future__ import annotations
 
+import gc
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -25,7 +26,7 @@ def _analyze_layer(
     layer_key: str,
     sae_checkpoint: str,
     pairs_by_type: dict[str, list],
-    all_acts_by_type: dict[str, list[dict[str, np.ndarray]]],
+    acts_by_type: dict[str, tuple[np.ndarray, np.ndarray]],
     top_k: int,
     min_effect_size: float,
     min_activation: float,
@@ -34,10 +35,11 @@ def _analyze_layer(
     """Analyze contrastive features for a single layer using pre-extracted activations.
 
     Args:
-        layer_key: e.g. "residual_20".
+        layer_key: e.g. "residual_20" (used for logging).
         sae_checkpoint: Path to this layer's trained SAE.
         pairs_by_type: {contrast_type: [pairs]}.
-        all_acts_by_type: {contrast_type: [act_dicts]} — each dict has all layer keys.
+        acts_by_type: {contrast_type: (anchor_arr, contrast_arr)} pre-stacked
+            per-contrast-type activations for this layer only.
         top_k: Number of top features per contrast type.
         min_effect_size: Minimum Cohen's d.
         min_activation: Minimum mean activation.
@@ -63,15 +65,11 @@ def _analyze_layer(
     results: dict[str, dict] = {}
 
     for ct_value, ct_pairs in pairs_by_type.items():
-        ct_acts = all_acts_by_type[ct_value]
+        anchor_arr, contrast_arr = acts_by_type[ct_value]
         n = len(ct_pairs)
 
-        # Split into anchor (first n) and contrast (last n)
-        anchor_acts = [ct_acts[i][layer_key] for i in range(n)]
-        contrast_acts = [ct_acts[n + i][layer_key] for i in range(n)]
-
-        anchor_vecs = torch.from_numpy(np.stack(anchor_acts)).to(device=device, dtype=sae_dtype)
-        contrast_vecs = torch.from_numpy(np.stack(contrast_acts)).to(device=device, dtype=sae_dtype)
+        anchor_vecs = torch.from_numpy(anchor_arr).to(device=device, dtype=sae_dtype)
+        contrast_vecs = torch.from_numpy(contrast_arr).to(device=device, dtype=sae_dtype)
 
         # Normalize by the same RMS scale used during SAE training
         if sae.rms_scale is not None and sae.rms_scale > 0:
@@ -211,61 +209,49 @@ def _analyze_layer(
     return report_path
 
 
-def _load_shards_as_act_dicts(
-    layer_keys: list[str],
-    layer_dirs: dict[str, str],
-    total_prompts: int,
-) -> list[dict[str, np.ndarray]]:
-    """Load shard files back into a list of per-prompt activation dicts."""
-    # Load all shards per layer into a single array
-    layer_arrays: dict[str, np.ndarray] = {}
-    for lk in layer_keys:
-        shards = []
-        for shard_path in sorted(Path(layer_dirs[lk]).glob("shard_*.npy")):
-            shards.append(np.load(shard_path))
-        layer_arrays[lk] = np.concatenate(shards, axis=0)
-
-    # Build per-prompt dicts
-    result: list[dict[str, np.ndarray]] = []
-    for i in range(total_prompts):
-        result.append({lk: layer_arrays[lk][i] for lk in layer_keys})
-    return result
-
-
-def _load_and_regroup_activations(
-    pairs: list,
-    layer_keys: list[str],
-    base_output_dir: Path,
-) -> tuple[dict[str, list], dict[str, list[dict[str, np.ndarray]]]]:
-    """Load Step 1 shards and regroup into the format ``_analyze_layer`` expects.
-
-    Step 1 saves activations interleaved per pair:
-        [anchor_0, contrast_0, anchor_1, contrast_1, ...]
-
-    ``_analyze_layer`` expects activations grouped by contrast type with all
-    anchors first then all contrasts:
-        {ct: [anchor_0, anchor_3, ..., contrast_0, contrast_3, ...]}
-
-    This function bridges the two orderings.
+def _open_layer_shards(
+    layer_dir: Path,
+) -> tuple[list[np.memmap], np.ndarray]:
+    """Open all shard files in a layer dir as memmaps (no RAM materialization).
 
     Returns:
-        (pairs_by_type, all_acts_by_type) ready for ``_analyze_layer``.
+        (memmaps, cum_offsets) — ``cum_offsets[i]`` is the global row index of
+        the first row in shard ``i``, and ``cum_offsets[-1]`` is the total row
+        count across all shards.
     """
-    # Build layer_dirs from the base output directory
-    layer_dirs: dict[str, str] = {}
-    for lk in layer_keys:
-        layer_num = lk.split("_", 1)[1]
-        layer_dir = base_output_dir / f"layer_{layer_num}" / "activations"
-        if not layer_dir.exists():
-            raise FileNotFoundError(
-                f"Step 1 activations not found for {lk}. "
-                f"Expected at: {layer_dir}\n"
-                "Run step 1 first to extract activations."
-            )
-        layer_dirs[lk] = str(layer_dir)
+    shard_paths = sorted(layer_dir.glob("shard_*.npy"))
+    if not shard_paths:
+        raise FileNotFoundError(f"No shard_*.npy files in {layer_dir}")
+    memmaps = [np.load(p, mmap_mode="r") for p in shard_paths]
+    cum = np.zeros(len(memmaps) + 1, dtype=np.int64)
+    for i, m in enumerate(memmaps):
+        cum[i + 1] = cum[i] + m.shape[0]
+    return memmaps, cum
 
-    # Load metadata to validate pair count
-    first_layer_dir = Path(layer_dirs[layer_keys[0]])
+
+def _gather_rows(
+    memmaps: list[np.memmap],
+    cum_offsets: np.ndarray,
+    global_indices: np.ndarray,
+) -> np.ndarray:
+    """Gather rows at ``global_indices`` from a list of virtually-concatenated memmaps.
+
+    Only the requested rows are paged in from disk; the full array is never
+    materialized in RAM.
+    """
+    d_model = memmaps[0].shape[1]
+    out = np.empty((len(global_indices), d_model), dtype=memmaps[0].dtype)
+    for shard_idx, m in enumerate(memmaps):
+        lo, hi = int(cum_offsets[shard_idx]), int(cum_offsets[shard_idx + 1])
+        mask = (global_indices >= lo) & (global_indices < hi)
+        if mask.any():
+            local = global_indices[mask] - lo
+            out[mask] = m[local]
+    return out
+
+
+def _validate_step1_metadata(pairs: list, first_layer_dir: Path) -> None:
+    """Validate Step 1 metadata + prompt ordering matches the loaded pairs."""
     metadata_path = first_layer_dir / "metadata.json"
     with open(metadata_path) as f:
         metadata = json.load(f)
@@ -279,7 +265,6 @@ def _load_and_regroup_activations(
             "Ensure the same pairs directory is used for steps 1 and 3."
         )
 
-    # Validate prompt ordering against prompts.json
     prompts_path = first_layer_dir / "prompts.json"
     if prompts_path.exists():
         with open(prompts_path) as f:
@@ -296,30 +281,20 @@ def _load_and_regroup_activations(
                     "The pairs may have been regenerated since step 1."
                 )
 
-    # Load all shards into a flat list of per-prompt activation dicts
-    all_acts = _load_shards_as_act_dicts(layer_keys, layer_dirs, total_tokens)
 
-    # Group pairs by contrast type
+def _build_pair_indices(
+    pairs: list,
+) -> tuple[dict[str, list], dict[str, np.ndarray]]:
+    """Group pair objects and their integer indices by contrast type."""
     pairs_by_type: dict[str, list] = defaultdict(list)
     pair_indices_by_type: dict[str, list[int]] = defaultdict(list)
     for i, pair in enumerate(pairs):
         pairs_by_type[pair.contrast_type].append(pair)
         pair_indices_by_type[pair.contrast_type].append(i)
-
-    # Regroup activations: for each contrast type, all anchors first then all contrasts
-    # (matching _analyze_layer's expectation: first n = anchors, next n = contrasts)
-    all_acts_by_type: dict[str, list[dict[str, np.ndarray]]] = {}
-    for ct_value, ct_pair_indices in pair_indices_by_type.items():
-        ct_acts: list[dict[str, np.ndarray]] = []
-        # Anchors first
-        for pair_idx in ct_pair_indices:
-            ct_acts.append(all_acts[2 * pair_idx])
-        # Then contrasts
-        for pair_idx in ct_pair_indices:
-            ct_acts.append(all_acts[2 * pair_idx + 1])
-        all_acts_by_type[ct_value] = ct_acts
-
-    return pairs_by_type, all_acts_by_type
+    indices_arrays = {
+        ct: np.asarray(idxs, dtype=np.int64) for ct, idxs in pair_indices_by_type.items()
+    }
+    return pairs_by_type, indices_arrays
 
 
 def identify_contrastive_features(
@@ -350,33 +325,61 @@ def identify_contrastive_features(
     Returns:
         Dict mapping layer_key to report path.
     """
+    base_dir = Path(base_output_dir)
     layer_keys = [f"residual_{layer}" for layer in layers]
 
-    pairs_by_type, all_acts_by_type = _load_and_regroup_activations(
-        pairs=pairs,
-        layer_keys=layer_keys,
-        base_output_dir=Path(base_output_dir),
-    )
+    first_layer_dir = base_dir / f"layer_{layers[0]}" / "activations"
+    if not first_layer_dir.exists():
+        raise FileNotFoundError(
+            f"Step 1 activations not found for layer {layers[0]}. "
+            f"Expected at: {first_layer_dir}\nRun step 1 first."
+        )
+    _validate_step1_metadata(pairs, first_layer_dir)
+
+    pairs_by_type, pair_indices_by_type = _build_pair_indices(pairs)
 
     report_paths: dict[str, Path] = {}
 
     for layer, layer_key in zip(layers, layer_keys, strict=True):
         checkpoint = sae_checkpoints[layer_key]
-        output_dir = Path(base_output_dir) / f"layer_{layer}" / "activations"
+        layer_act_dir = base_dir / f"layer_{layer}" / "activations"
+        if not layer_act_dir.exists():
+            raise FileNotFoundError(
+                f"Step 1 activations not found for layer {layer}. "
+                f"Expected at: {layer_act_dir}\nRun step 1 first."
+            )
 
         print(f"\n  --- Layer {layer} ---")
         print(f"    SAE checkpoint: {checkpoint}")
+
+        memmaps, cum_offsets = _open_layer_shards(layer_act_dir)
+        print(
+            f"    Memmapped {len(memmaps)} shards "
+            f"({int(cum_offsets[-1])} rows × {memmaps[0].shape[1]} dims, "
+            f"dtype={memmaps[0].dtype})"
+        )
+
+        acts_by_type: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        for ct_value, ct_pair_indices in pair_indices_by_type.items():
+            anchor_global = 2 * ct_pair_indices
+            contrast_global = 2 * ct_pair_indices + 1
+            anchor_arr = _gather_rows(memmaps, cum_offsets, anchor_global)
+            contrast_arr = _gather_rows(memmaps, cum_offsets, contrast_global)
+            acts_by_type[ct_value] = (anchor_arr, contrast_arr)
 
         report_path = _analyze_layer(
             layer_key=layer_key,
             sae_checkpoint=checkpoint,
             pairs_by_type=pairs_by_type,
-            all_acts_by_type=all_acts_by_type,
+            acts_by_type=acts_by_type,
             top_k=top_k,
             min_effect_size=min_effect_size,
             min_activation=min_activation,
-            output_dir=output_dir,
+            output_dir=layer_act_dir,
         )
         report_paths[layer_key] = report_path
+
+        del acts_by_type, memmaps, cum_offsets
+        gc.collect()
 
     return report_paths
