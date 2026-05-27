@@ -281,7 +281,7 @@ def _run_labeling_subprocess(
         max_model_len=max_model_len,
         trust_remote_code=True,
         gpu_memory_utilization=0.80,
-        enforce_eager=True,
+        enforce_eager=False,
         enable_expert_parallel=False,
         disable_log_stats=True,
     )
@@ -292,21 +292,24 @@ def _run_labeling_subprocess(
         max_tokens=500,
     )
 
-    # Build ChatML prompts
     system = (
         "You are an expert at interpreting neural network features. "
         "Output only valid JSON, no markdown fences."
     )
-    chatml_prompts = []
-    for _feat_idx, user_content in label_prompts:
-        chatml_prompts.append(
-            f"<|im_start|>system\n{system}<|im_end|>\n"
-            f"<|im_start|>user\n{user_content}<|im_end|>\n"
-            f"<|im_start|>assistant\n"
-        )
+    messages_batch = [
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_content},
+        ]
+        for _feat_idx, user_content in label_prompts
+    ]
 
-    print(f"  [subprocess] Labeling {len(chatml_prompts)} features...")
-    outputs = llm.generate(chatml_prompts, sampling_params)
+    print(f"  [subprocess] Labeling {len(messages_batch)} features...")
+    outputs = llm.chat(
+        messages_batch,
+        sampling_params=sampling_params,
+        chat_template_kwargs={"enable_thinking": False},
+    )
 
     labels: dict[str, dict] = {}
     for (feat_idx, _), output in zip(label_prompts, outputs, strict=True):
