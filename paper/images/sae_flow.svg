@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" font-family="'DM Sans', system-ui, sans-serif">
+  <defs>
+    <marker id="sae-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0A2A1F" />
+    </marker>
+  </defs>
+
+  <!-- ============================================================ -->
+  <!--  LARGE LANGUAGE MODEL                                         -->
+  <!-- ============================================================ -->
+
+  <text transform="translate(38 315) rotate(-90)" text-anchor="middle"
+        font-size="14" font-weight="700" fill="#0A2A1F" letter-spacing="3">LARGE LANGUAGE MODEL</text>
+
+  <rect x="60" y="80" width="280" height="480" rx="14"
+        fill="none" stroke="#0A2A1F" stroke-width="1.6" stroke-dasharray="8 6" />
+
+  <!-- Next-word Prediction label & arrow -->
+  <text x="200" y="55" text-anchor="middle" font-size="14" font-weight="600" fill="#0A2A1F">Next-word Prediction</text>
+  <line x1="200" y1="65" x2="200" y2="95" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#sae-arr)" />
+
+  <!-- Upper Transformer Block -->
+  <rect x="105" y="115" width="190" height="55" rx="8" fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.6" />
+  <text x="200" y="149" text-anchor="middle" font-size="15" font-weight="700" fill="#0A2A1F">Transformer Block</text>
+
+  <line x1="200" y1="183" x2="200" y2="207" stroke="#0A2A1F" stroke-width="1.4" stroke-dasharray="2 5" />
+
+  <!-- Hidden activation row -->
+  <rect x="105" y="218" width="190" height="55" rx="8" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.4" />
+  <g fill="#ABCFFA" stroke="#2B3B64" stroke-width="1">
+    <rect x="118" y="232" width="22" height="27" rx="3" />
+    <rect x="144" y="232" width="22" height="27" rx="3" />
+    <rect x="170" y="232" width="22" height="27" rx="3" />
+  </g>
+  <text x="207" y="253" font-size="18" fill="#0A2A1F">⋯</text>
+  <g fill="#ABCFFA" stroke="#2B3B64" stroke-width="1">
+    <rect x="227" y="232" width="22" height="27" rx="3" />
+    <rect x="253" y="232" width="22" height="27" rx="3" />
+  </g>
+
+  <line x1="200" y1="283" x2="200" y2="307" stroke="#0A2A1F" stroke-width="1.4" stroke-dasharray="2 5" />
+
+  <!-- Lower Transformer Block -->
+  <rect x="105" y="315" width="190" height="55" rx="8" fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.6" />
+  <text x="200" y="349" text-anchor="middle" font-size="15" font-weight="700" fill="#0A2A1F">Transformer Block</text>
+
+  <line x1="200" y1="383" x2="200" y2="418" stroke="#0A2A1F" stroke-width="1.4" stroke-dasharray="2 5" />
+
+  <!-- Token stack -->
+  <g transform="translate(150 425)">
+    <rect x="14" y="14" width="100" height="48" rx="6" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.4" />
+    <rect x="7" y="7" width="100" height="48" rx="6" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.4" />
+    <rect x="0" y="0" width="100" height="48" rx="6" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.4" />
+    <text x="50" y="30" text-anchor="middle" font-size="14" font-weight="600" fill="#0A2A1F">Token</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!--  z extraction                                                 -->
+  <!-- ============================================================ -->
+
+  <line x1="298" y1="245" x2="370" y2="245" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#sae-arr)" />
+
+  <text x="394" y="195" text-anchor="middle" font-size="20" font-weight="700" font-style="italic" fill="#0A2A1F">z</text>
+  <g fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.5">
+    <rect x="375" y="210" width="38" height="26" rx="4" />
+    <rect x="375" y="240" width="38" height="26" rx="4" />
+    <rect x="375" y="270" width="38" height="26" rx="4" />
+    <rect x="375" y="300" width="38" height="26" rx="4" />
+  </g>
+  <text x="394" y="345" text-anchor="middle" font-size="20" fill="#0A2A1F">⋮</text>
+
+  <!-- ============================================================ -->
+  <!--  SPARSE AUTOENCODER                                           -->
+  <!-- ============================================================ -->
+
+  <text x="790" y="55" text-anchor="middle" font-size="15" font-weight="700" fill="#0A2A1F" letter-spacing="2">SPARSE AUTOENCODER</text>
+  <rect x="440" y="75" width="710" height="395" rx="14"
+        fill="none" stroke="#0A2A1F" stroke-width="1.6" stroke-dasharray="8 6" />
+
+  <!-- arrow z -> W_enc -->
+  <line x1="416" y1="265" x2="462" y2="265" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#sae-arr)" />
+
+  <!-- W_enc trapezoid (widens L->R) -->
+  <polygon points="470,205 600,110 600,420 470,325"
+           fill="#63FF91" fill-opacity="0.32" stroke="#0A2A1F" stroke-width="2" />
+  <text x="528" y="266" font-size="24" font-weight="700" font-style="italic" fill="#0A2A1F">W</text>
+  <text x="548" y="274" font-size="13" font-weight="600" fill="#0A2A1F">enc</text>
+
+  <line x1="605" y1="265" x2="624" y2="265" stroke="#0A2A1F" stroke-width="1.4" marker-end="url(#sae-arr)" />
+
+  <!-- Pre-activation column -->
+  <g fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.4">
+    <rect x="632" y="120" width="32" height="24" rx="3" />
+    <rect x="632" y="150" width="32" height="24" rx="3" />
+    <rect x="632" y="180" width="32" height="24" rx="3" />
+    <rect x="632" y="210" width="32" height="24" rx="3" />
+    <rect x="632" y="240" width="32" height="24" rx="3" />
+    <rect x="632" y="270" width="32" height="24" rx="3" />
+    <rect x="632" y="370" width="32" height="24" rx="3" />
+    <rect x="632" y="400" width="32" height="24" rx="3" />
+  </g>
+  <text x="648" y="320" text-anchor="middle" font-size="20" fill="#0A2A1F">⋮</text>
+
+  <line x1="672" y1="270" x2="700" y2="270" stroke="#0A2A1F" stroke-width="1.4" marker-end="url(#sae-arr)" />
+
+  <!-- Activation Function box -->
+  <rect x="708" y="135" width="55" height="280" rx="8" fill="#F4F7F2" stroke="#0A2A1F" stroke-width="1.6" />
+  <text transform="translate(736 275) rotate(-90)" text-anchor="middle"
+        font-size="14" font-weight="600" fill="#0A2A1F">Activation Function</text>
+
+  <line x1="770" y1="270" x2="800" y2="270" stroke="#0A2A1F" stroke-width="1.4" marker-end="url(#sae-arr)" />
+
+  <!-- h(z) sparse vector -->
+  <text x="826" y="105" text-anchor="middle" font-size="18" font-weight="700" font-style="italic" fill="#0A2A1F">h(z)</text>
+
+  <!-- inactive cells (dim) -->
+  <g stroke="#2B3B64" stroke-width="1.1" stroke-opacity="0.5" fill="#FFFFFA">
+    <rect x="808" y="120" width="36" height="24" rx="3" />
+    <rect x="808" y="150" width="36" height="24" rx="3" />
+    <rect x="808" y="210" width="36" height="24" rx="3" />
+    <rect x="808" y="240" width="36" height="24" rx="3" />
+    <rect x="808" y="270" width="36" height="24" rx="3" />
+    <rect x="808" y="370" width="36" height="24" rx="3" />
+    <rect x="808" y="400" width="36" height="24" rx="3" />
+  </g>
+  <!-- active cells (bright green) -->
+  <g stroke="#0A2A1F" stroke-width="1.7" fill="#63FF91">
+    <rect x="806" y="178" width="40" height="28" rx="3" />
+    <rect x="806" y="328" width="40" height="28" rx="3" />
+  </g>
+  <text x="826" y="320" text-anchor="middle" font-size="20" fill="#0A2A1F">⋮</text>
+
+  <line x1="848" y1="270" x2="870" y2="270" stroke="#0A2A1F" stroke-width="1.4" marker-end="url(#sae-arr)" />
+
+  <!-- W_dec trapezoid (narrows L->R) -->
+  <polygon points="880,110 880,420 1010,325 1010,205"
+           fill="#7099FF" fill-opacity="0.28" stroke="#2B3B64" stroke-width="2" />
+  <text x="943" y="266" font-size="24" font-weight="700" font-style="italic" fill="#2B3B64">W</text>
+  <text x="963" y="274" font-size="13" font-weight="600" fill="#2B3B64">dec</text>
+
+  <line x1="1015" y1="265" x2="1062" y2="265" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#sae-arr)" />
+
+  <!-- z_hat output column -->
+  <text x="1085" y="195" text-anchor="middle" font-size="20" font-weight="700" font-style="italic" fill="#2B3B64">ẑ</text>
+  <g fill="#ABCFFA" stroke="#2B3B64" stroke-width="1.5">
+    <rect x="1066" y="210" width="38" height="26" rx="4" />
+    <rect x="1066" y="240" width="38" height="26" rx="4" />
+    <rect x="1066" y="270" width="38" height="26" rx="4" />
+    <rect x="1066" y="300" width="38" height="26" rx="4" />
+  </g>
+  <text x="1085" y="345" text-anchor="middle" font-size="20" fill="#2B3B64">⋮</text>
+
+  <!-- ============================================================ -->
+  <!--  LOSS                                                          -->
+  <!-- ============================================================ -->
+
+  <!-- routing lines from z and z_hat down to the loss -->
+  <path d="M394 360 Q 394 510 555 530" stroke="#0A2A1F" stroke-width="1.3" stroke-dasharray="5 3" fill="none" marker-end="url(#sae-arr)" />
+  <path d="M1085 360 Q 1085 510 940 530" stroke="#0A2A1F" stroke-width="1.3" stroke-dasharray="5 3" fill="none" marker-end="url(#sae-arr)" />
+
+  <!-- Loss equation -->
+  <g font-size="22" fill="#0A2A1F">
+    <text x="450" y="545" font-style="italic">ℒ</text>
+    <text x="473" y="545">(z) =</text>
+    <text x="555" y="545">‖ z − ẑ ‖</text>
+    <text x="663" y="536" font-size="13">2</text>
+    <text x="663" y="556" font-size="13">2</text>
+    <text x="685" y="545">+  α  ‖ h(z) ‖</text>
+    <text x="870" y="555" font-size="13">1</text>
+  </g>
+
+  <!-- Brace + label: Reconstruction -->
+  <path d="M555 562 L555 572 L680 572 L680 562 M617 572 L617 580"
+        stroke="#2B3B64" stroke-width="1.3" fill="none" />
+  <text x="617" y="600" text-anchor="middle" font-size="13" font-weight="600" fill="#2B3B64">Reconstruction</text>
+
+  <!-- Brace + label: Sparsity -->
+  <path d="M700 562 L700 572 L885 572 L885 562 M792 572 L792 580"
+        stroke="#2B3B64" stroke-width="1.3" fill="none" />
+  <text x="792" y="600" text-anchor="middle" font-size="13" font-weight="600" fill="#2B3B64">Sparsity</text>
+</svg>

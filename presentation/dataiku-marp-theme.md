@@ -1,10 +1,52 @@
 ---
 marp: true
 theme: default
-size: 16:9
 paginate: true
-math: mathjax
 ---
+
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║         DATAIKU MARP TEMPLATE  ·  Brand Guidelines 2026     ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  CORE COLORS                                                 ║
+  ║  Core Black        #0F1314    PMS Black 6 C                  ║
+  ║  Core White        #FFFFFA    PMS 1-1 C                      ║
+  ║                                                              ║
+  ║  GREENS                                                      ║
+  ║  Dark Green        #0A2A1F    PMS 627 C  — primary dark BG   ║
+  ║  Green             #63FF91    PMS 3385 C — primary accent    ║
+  ║  Light Green       #D1FFE6    PMS 331 C  — light tint        ║
+  ║                                                              ║
+  ║  BLUES & GREYS                                               ║
+  ║  Blue              #7099FF    — secondary accent             ║
+  ║  Dark Grey         #1D2220    — near-black alt               ║
+  ║  Dark Blue Grey    #081030    — deepest dark surface         ║
+  ║  Blue Grey         #2B3B64    — muted dark accent            ║
+  ║  Light Blue Grey   #ABCFFA    — light dividers, muted text   ║
+  ║                                                              ║
+  ║  TYPOGRAPHY                                                  ║
+  ║  Display / H1   DM Serif Display — editorial weight          ║
+  ║  Headings       DM Sans Bold — clean, modern                 ║
+  ║  Body           DM Sans Regular                              ║
+  ║  Code / Mono    DM Mono                                      ║
+  ║                                                              ║
+  ║  USAGE                                                       ║
+  ║  marp --html --pdf dataiku-marp-theme.md                     ║
+  ║                                                              ║
+  ║  LOGO                                                        ║
+  ║  575 Lab condensed logo — embedded as base64 data URIs       ║
+  ║  White variant: cover, section, dark, closing slides         ║
+  ║  Black variant: default (light) slides                       ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+  HOW TO USE SLIDE CLASSES  (add to the front-matter of each slide)
+  ─────────────────────────────────────────────────────────────────
+  _class: cover          → dark green hero slide (title / cover)
+  _class: section        → bright green section divider
+  _class: dark           → dark blue-grey content slide
+  _class: light          → off-white content slide (default)
+  _class: closing        → gradient closing / thank-you slide
+-->
 
 <style>
 /* ─── Google Fonts ─────────────────────────────────────────────── */
@@ -24,8 +66,8 @@ math: mathjax
   --light-blue-grey:  #ABCFFA;
 
   --ink:              var(--core-black);
-  --ink-soft:         #4A5A55;
-  --offwhite-bg:      #F4F7F2;
+  --ink-soft:         #4A5A55;        /* derived muted body text   */
+  --offwhite-bg:      #F4F7F2;        /* slightly cool off-white   */
 
   --font-display:     'DM Serif Display', Georgia, serif;
   --font-sans:        'DM Sans', system-ui, sans-serif;
@@ -53,6 +95,7 @@ section {
   overflow: hidden;
 }
 
+/* Corner accent — a small green bar in the top-right */
 section::before {
   content:  '';
   position: absolute;
@@ -63,6 +106,7 @@ section::before {
   background: var(--green);
 }
 
+/* Page number styling */
 section::after {
   font-family: var(--font-sans);
   font-size:   13px;
@@ -120,6 +164,7 @@ a {
   border-bottom:   1px solid var(--green);
 }
 
+/* ─── Lists ────────────────────────────────────────────────────── */
 ul, ol {
   padding-left: 1.4em;
   margin: 0 0 1em;
@@ -129,6 +174,7 @@ li { margin-bottom: 0.45em; }
 
 li::marker { color: var(--dark-green); }
 
+/* ─── Code ─────────────────────────────────────────────────────── */
 code {
   font-family:      var(--font-mono);
   font-size:        0.82em;
@@ -153,6 +199,7 @@ pre code {
   padding:     0;
 }
 
+/* ─── Tables ───────────────────────────────────────────────────── */
 table {
   width:           100%;
   border-collapse: collapse;
@@ -180,6 +227,7 @@ tr:nth-child(even) td {
   background: rgba(10,42,31,.04);
 }
 
+/* ─── Blockquote ───────────────────────────────────────────────── */
 blockquote {
   border-left: 4px solid var(--green);
   padding:     0.5em 1.5em;
@@ -192,6 +240,7 @@ blockquote {
 
 blockquote p { margin: 0; }
 
+/* ─── Horizontal Rule ──────────────────────────────────────────── */
 hr {
   border: none;
   height: 2px;
@@ -199,10 +248,12 @@ hr {
   margin: 1.5em 0;
 }
 
+/* ─── Images ───────────────────────────────────────────────────── */
 img {
   border-radius: var(--radius);
   max-width:     100%;
 }
+
 
 /* ─── Logo (575 Lab) ───────────────────────────────────────────── */
 .logo {
@@ -224,6 +275,7 @@ section.closing  .logo {
   background-image: var(--logo-white);
 }
 
+/* Center the logo on closing slide */
 section.closing .logo {
   top:     40px;
   left:    50%;
@@ -231,8 +283,11 @@ section.closing .logo {
   background-position: center;
 }
 
-/* ━━━ SLIDE VARIANTS ━━━ */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SLIDE VARIANTS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
+/* ── COVER  (dark green, large display type) ────────────────────── */
 section.cover {
   background: var(--dark-green);
   color:      var(--core-white);
@@ -256,7 +311,7 @@ section.cover::after { color: rgba(255,255,250,.4); }
 section.cover h1 {
   font-size:   4.5rem;
   color:       var(--core-white);
-  max-width:   100%;
+  max-width:   75%;
   line-height: 1.05;
 }
 
@@ -274,8 +329,7 @@ section.cover p {
   font-size: 0.9rem;
 }
 
-section.cover strong { color: var(--light-green); }
-
+/* ── SECTION DIVIDER  (bright green) ────────────────────────────── */
 section.section {
   background: var(--green);
   color:      var(--dark-green);
@@ -303,6 +357,7 @@ section.section h3 {
 
 section.section p { color: rgba(10,42,31,.8); }
 
+/* ── DARK  (dark blue-grey) ─────────────────────────────────────── */
 section.dark {
   background: var(--dark-blue-grey);
   color:      var(--core-white);
@@ -329,11 +384,13 @@ section.dark blockquote {
   color:             rgba(255,255,250,.8);
 }
 
+/* ── LIGHT  (default, off-white) ────────────────────────────────── */
 section.light {
   background: var(--offwhite-bg);
   color:      var(--ink);
 }
 
+/* ── CLOSING  (gradient, centered) ─────────────────────────────── */
 section.closing {
   background: linear-gradient(135deg, var(--dark-blue-grey) 0%, var(--dark-green) 60%, var(--blue-grey) 100%);
   color:       var(--core-white);
@@ -373,6 +430,8 @@ section.closing p {
 }
 
 /* ─── Utility Classes ──────────────────────────────────────────── */
+
+/* Green pill badge */
 .badge {
   display:        inline-block;
   background:     var(--green);
@@ -386,6 +445,7 @@ section.closing p {
   margin-bottom:  0.6em;
 }
 
+/* Stat callout */
 .stat {
   font-family: var(--font-display);
   font-size:   3.5rem;
@@ -401,6 +461,7 @@ section.closing p {
   letter-spacing: 0.1em;
 }
 
+/* Two-column grid (use inside a slide) */
 .cols {
   display:               grid;
   grid-template-columns: 1fr 1fr;
@@ -415,13 +476,16 @@ section.closing p {
   align-items:           start;
 }
 
+/* Card */
 .card {
   background:    var(--core-white);
   border:        1px solid rgba(43,59,100,.18);
   border-radius: var(--radius);
   padding:       1.25em 1.5em;
+  box-shadow:    0 2px 12px rgba(10,42,31,.06);
 }
 
+/* Tag / label */
 .tag {
   display:        inline-block;
   background:     rgba(112,153,255,.15);
@@ -433,6 +497,7 @@ section.closing p {
   letter-spacing: 0.04em;
 }
 
+/* Highlight box */
 .highlight {
   background:    linear-gradient(135deg, rgba(99,255,145,.14) 0%, rgba(112,153,255,.10) 100%);
   border-left:   4px solid var(--green);
@@ -441,514 +506,211 @@ section.closing p {
 }
 </style>
 
+---
 <!-- _class: cover -->
 
 <div class="logo"></div>
 
-# Opening the Black Box
+# The Platform<br>for AI Success
 
-## Mechanistic Interpretability for AI Agent Tool Selection Using Sparse Autoencoders
+## Subtitle or Presenter Name · Event · Date
 
-<p><strong>Hannes Hapke</strong> with <strong>David Cardozo</strong> · 575 Lab, Dataiku Inc.</p>
+<p>dataiku.com</p>
 
 ---
 
+<!-- Default light slide -->
+
+## Slide Title Goes Here
+
+Use this layout for **standard content** slides. The green accent bar at the top anchors the Dataiku brand on every slide without being distracting.
+
+- First bullet point with key insight
+- Second point supporting the narrative
+- Third point — keep lists to 3–5 items maximum
+
+> "A blockquote stands out with the green left border and gentle tinted background."
+
+---
+
+## Two-Column Layout
+
+<div class="cols">
+<div>
+
+### Left Column
+
+Use left for the **primary content** — the argument, the data, the main insight.
+
+- Point one
+- Point two
+- Point three
+
+</div>
+<div>
+
+### Right Column
+
+Use right for supporting evidence, an image, a chart, or a complementary list.
+
+```python
+# Code example
+result = model.predict(df)
+print(result.head())
+```
+
+</div>
+</div>
+
+---
+
+## Three Stats Layout
+
+<div class="cols-3">
+<div class="card">
+<span class="stat">1 in 4</span>
+<span class="stat-label">of Forbes Global 2000 companies trust Dataiku</span>
+</div>
+<div class="card">
+<span class="stat">1,250+</span>
+<span class="stat-label">employees across 13 global offices</span>
+</div>
+<div class="card">
+<span class="stat">10+</span>
+<span class="stat-label">years accelerating enterprise AI</span>
+</div>
+</div>
+
+Use **DM Serif Display** numerals for maximum visual impact on key metrics.
+
+---
+
+## Cards and Badges
+
+<span class="badge">New Feature</span>
+
+<div class="cols">
+<div class="card">
+
+### Orchestration
+
+Connects every tool, team, and environment in a single governed workflow.
+
+<span class="tag">Platform</span>
+
+</div>
+<div class="card">
+
+### Governance
+
+Audit-ready oversight with centralised risk controls and cost visibility.
+
+<span class="tag">Enterprise</span>
+
+</div>
+</div>
+
+---
+
+## Highlighted Callout
+
+<div class="highlight">
+
+**Key insight:** Use the highlight box to surface the single most important takeaway from a content-heavy slide. Keep it to one or two sentences maximum.
+
+</div>
+
+Supporting body copy follows below the callout. The gradient tint blends the brand green and blue, reinforcing the palette without overwhelming the message.
+
+---
+
+<!-- _class: section -->
+
+<div class="logo"></div>
+
+# Section Divider
+
+### Chapter 2 — Governance
+
+---
 <!-- _class: dark -->
 
 <div class="logo"></div>
 
-<span class="badge">About the Speaker</span>
+## Dark Slide — Dark Blue Grey
 
-## Hi, I'm Hannes Hapke
+Use dark slides to **add visual contrast** within a deck, or to separate major sections.
 
-<div class="cols">
+- The bright green `#63FF91` replaces the dark green accent for legibility on dark surfaces
+- Strong contrast between cool off-white body text and the dark blue-grey background
+- `inline code` reads well against the dark background
 
-<div>
-    <p><strong>ML Engineering Leader</strong> at Dataiku, 575 Lab <br>
-    <strong>Google Developer Expert</strong> -- Machine Learning</p>
-
-Focus areas:
-- Open Source Machine Learning
-- Production ML systems & pipelines
-- Generative AI and agentic systems
-</div>
-
-<div>
-
-Co-author of four O'Reilly & Manning books, including:
-  - **Generative AI Design Patterns** (2025)
-  - **Machine Learning Production Systems** (2024)
-
-**Find me:**
-- hanneshapke.com 
-- github.com/hanneshapke 
-- linkedin.com/in/hanneshapke
-
-</div>
-
-</div>
+> Quote callouts use the green border to maintain visual rhythm on this darker canvas.
 
 ---
-
-## The Problem: Opaque Agent Decisions
-
-AI agents autonomously select tools (databases, web search, code execution, ...) based on natural language requests.
-But **why**?
-
-> "Find information about *our company's* API rate limits."
-> &rarr; Internal docs search? Or public web search?
-
-Current approaches **fail** to provide mechanistic insight:
-
-1. **Prompt engineering** -- reveals correlations, not causal mechanisms
-2. **Behavioral testing** -- characterizes inputs/outputs, not internals
-3. **Chain-of-thought** -- plausible narratives $\neq$ true computation
-
-<div class="highlight">
-
-We need to look **inside the model**.
-
-</div>
-
----
-
-<!-- _class: section -->
-
-<div class="logo"></div>
-
-### Part I
-
-# The Solution
-
-### Looking Inside with Sparse Autoencoders
-
----
-
-## How to Understand Models &mdash; Step 1
-
-### Autoencoders
-
-A **self-supervised** technique that learns new representations: compress an input through a bottleneck, then reconstruct it. What survives the bottleneck is what the model considers essential.
-
-![center w:900](../paper/images/autoencoder_flow.svg)
-
-- **No labels required** -- the input *is* the target
-- **Well-understood** -- decades of theory and practice
-- **Lossy by design** -- the bottleneck forces the model to *prioritise*
-
----
-
-## How to Understand Models &mdash; Step 2
-
-### Sparse Autoencoders (SAE)
-
-Flip the autoencoder on its head: instead of compressing, **expand** the latent space &mdash; but force fewer than **5%** of dimensions to fire on any given input.
-
-![center w:900](../paper/images/sae_flow.svg)
-
-<!--- **Overcomplete dictionary** -- latent space is *wider* than the input-->
-<!--- **Monosemantic features** -- each dimension tends to track one human-interpretable concept-->
-<!--- **Sparsity constraint** -- $L_0 < 5\%$ of features active per token-->
-
----
-
-## How to Understand Models &mdash; Step 3
-
-### Interpreting What the Features Mean
-
-A trained feature is just an index. To *label* it, collect the contexts where it fires most strongly &mdash; then let an LLM describe the pattern.
-
-![center w:950](../paper/images/feature_interpretation_flow.svg)
-
-- **Feature &rArr; contexts** -- gather the top-*k* token spans that maximally activate each feature
-- **Auto-interpretation** -- an LLM proposes a short natural-language label from those examples
-- **Themes emerge** -- many features cluster around tool-relevant concepts (syntax, scope, error language)
-
----
-
-## The Kiji Inspector
-
-<div class="cols">
-
-<div class="card">
-
-<span class="badge">01</span>
-
-### Model Agnostic
-
-Framework to train custom Sparse Autoencoders &mdash; works on **any open-source LLM**, not just the ones we tested.
-
-</div>
-
-<div class="card">
-
-<span class="badge">02</span>
-
-### End-to-end Training Pipeline
-
-No custom training setup needed. The project **generates the contrastive datasets** for you and runs the full extract &rarr; train &rarr; analyse loop.
-
-</div>
-
-</div>
-
-<div class="cols">
-
-<div class="card">
-
-<span class="badge">03</span>
-
-### Production Inference Support
-
-vLLM patches, single-endpoint Docker containers, and PyPI packages &mdash; ready to drop into a live serving stack.
-
-</div>
-
-<div class="card">
-
-<span class="badge">04</span>
-
-### Fully Open Source
-
-Pre-trained SAE models distributed via **Hugging Face**, **Docker Hub**, and **PyPI** &mdash; reuse without retraining.
-
-</div>
-
-</div>
-
-GitHub: [github.com/dataiku/kiji-inspector](https://github.com/dataiku/kiji-inspector)
-
----
-
-## What's Novel?
-
-<div class="cols">
-
-<div class="card">
-
-<span class="badge">01</span>
-
-### Decision-Token Extraction
-
-Capture activations at the *precise moment* of tool commitment &mdash; not averaged over the prompt.
-
-</div>
-
-<div class="card">
-
-<span class="badge">02</span>
-
-### Contrastive Pairs as Post-hoc Probes
-
-The SAE learns the model's natural vocabulary **unsupervised**. Contrastive pairs are statistical probes only &mdash; never training signal.
-
-</div>
-
-</div>
-
-<div class="cols">
-
-<div class="card">
-
-<span class="badge">03</span>
-
-### Token-Level Fuzzing Evaluation
-
-Adapted from Eleuther AI's autointerp &mdash; catches labels that are *"right for the wrong reasons."*
-
-</div>
-
-<div class="card">
-
-<span class="badge">04</span>
-
-### Causal Validation via Ablation
-
-Zero a feature, measure the prediction flip &mdash; turns correlations into evidence.
-
-</div>
-
-</div>
-
----
-
-## Our Complete Training Pipeline
-
-![center w:950](../paper/images/training_pipeline.png)
-
-Contrastive pairs are generated and encoded by the subject model. The SAE is trained unsupervised on the extracted activations; contrastive pairs serve only as post-hoc statistical probes.
-
----
-
-## Our Inference Setup
-
-![center w:950](../paper/images/inference_pipeline.png)
-
-Seven steps from raw prompts to human-readable decision explanations.
-
----
-
-## Nemotron-3 Nano Architecture
-
-![center w:950](../paper/images/nemotron_architecture.png)
-
-Hybrid Mamba2-Transformer MoE, 52 layers, open weights &mdash; chosen for routing diversity (MoE) and a tractable extraction budget at 30B. We extract activations at **layer 20** (GQA attention), the last dense layer before the next MoE block. *(Layer choice motivated two slides ahead.)*
-
----
-
-## PyTorch SAE Model Architecture
-
-![center w:950](../paper/images/sae_architecture.png)
-
-Encoder projects 4,096-dim input to 16,384 sparse features via JumpReLU with learnable per-feature thresholds. Decoder reconstructs with unit-norm columns. Shared bias b_dec centers the input.
-
----
-
-## Decision Token Extraction
-
-Every formatted prompt ends with:
-```
-<|assistant|> I'll use the '
-```
-
-The hidden state at this final token is the **decision token** -- the model's internal state at the moment it commits to a tool name.
-
-- Activations extracted at **layer 20** of Nemotron-3-Nano-30B (54-layer MoE) &mdash; *layer choice justified below*
-- Hidden dimension: **4,096**
-- Batched extraction with left-padding for alignment
-- Dataset: **1,000,000** activation vectors (500K contrastive pairs)
-
----
-
-## Contrastive Pair Design
-
-Pairs share the same *intent* but require *different tools*:
-
-| Shared Intent | Anchor (tool A) | Contrast (tool B) |
-|---|---|---|
-| Resolve password issue | "How do I reset my password?" &rarr; `knowledge_base` | "I tried resetting 3 times but the email never arrives" &rarr; `ticket_lookup` |
-| Evaluate energy stocks | "Which companies invest in renewables?" &rarr; `financial_analysis` | "Which stocks trade below book value?" &rarr; `market_data_lookup` |
-| Check product version | "What is the latest version?" &rarr; `file_read` | "Set the version to v3.2.1" &rarr; `file_write` |
-
-5 domains, 32 tools, 37 contrast types.
-
----
-
-## JumpReLU SAE Architecture
-
-*JumpReLU = ReLU with a learnable per-feature threshold &mdash; gives exact zeros but stays trainable via tanh pseudo-gradients (Rajamanoharan et al., 2024).*
-
-**Encoder:**
-$$f_i(\mathbf{x}) = \pi_i(\mathbf{x}) \cdot H(\pi_i(\mathbf{x}) - \theta_i)$$
-
-where $\pi_i(\mathbf{x}) = [W_{\text{enc}}(\mathbf{x} - \mathbf{b}_{\text{dec}}) + \mathbf{b}_{\text{enc}}]_i$ and $\theta_i$ is a learnable threshold.
-
-**Key properties:**
-- **Exact sparsity** -- Heaviside step function $H$ produces true zeros
-- **Smooth training** -- tanh approximation for gradient flow:
-$$\hat{\mathcal{L}}_{\text{sparse}} = \sum_{i=1}^{M} \text{ReLU}\!\left(\tanh\!\left(\frac{\pi_i - \theta_i}{\varepsilon}\right)\right)$$
-- **Pseudo-gradients** via rectangular kernel density estimator
-
-Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
-
----
-
-## Why Layer 20?
-
-![center w:780](../paper/images/chart_layer_sweep.png)
-
-- Layers 8/16: low MSE but *pre-decision* representations
-- **Layer 20**: best alive %, lowest dead %, MSE < 1.0
-- Layers 32+: MoE expert routing &rarr; 500x+ higher MSE
-
----
-
-## SAE Feature Health (Layer 20, Full Dataset)
-
-| Metric | Value |
-|--------|-------|
-| Total features | 16,384 |
-| Alive features (>0.1% firing) | **81.2%** [80.6, 81.8] |
-| Dead features (0% firing) | **0.19%** [0.13, 0.27] |
-| L0 (active features per input) | 668 (&asymp;4.1% density) |
-| Reconstruction MSE | 0.574 |
-
-The SAE efficiently uses its capacity: sparse encoding with high feature utilization.
-
----
-
-## Baselines: Why Not Just a Probe?
-
-![center w:780](../paper/images/chart_baselines.png)
-
-- Linear probe confirms tool identity is *linearly encoded* (79.6% across 32 classes) -- but provides *no interpretability*
-- PCA + k-means fails entirely -- tool signal is not dominant variance
-- The SAE bridges this gap: **interpretable** *and* **causally testable** features
-
----
-
-## Token-Level Fuzzing Evaluation
-
-*Autointerp (EleutherAI) is the standard recipe for labelling SAE features at scale: an LLM proposes a label from top-activating contexts, a second LLM judges whether the label predicts activation. We tighten the test.*
-
-Standard evaluation: "Does this label predict which *prompts* activate the feature?"
-Our evaluation: "Does this label predict which *tokens* activate the feature?"
-
-**Protocol:**
-1. Extract per-token activations across entire prompt
-2. Highlight top-K tokens in user request span
-3. A/B test: LLM judge picks which highlighted text matches the label
-4. Randomized order to prevent position bias
-
-**Combined score** = $0.7 \cdot \text{acc}_{\text{token}} + 0.3 \cdot \text{acc}_{\text{prompt}}$
-
-Token-level gets higher weight because it tests the *actual mechanism*.
-
----
-
-## Fuzzing Results: Features Are Interpretable
-
-![center w:780](../paper/images/chart_fuzzing_tiers.png)
-
-- **402 features**, combined score **0.912 &plusmn; 0.008** (p < 10^-4)
-- Token-level accuracy: **0.906 &plusmn; 0.007**
-- Emergent features without supervision: "internal knowledge retrieval",
-  "data modification intent", "query complexity"
-
----
-
-<!-- _class: section -->
-
-<div class="logo"></div>
-
-### Part II
-
-# The Causality Test
-
-From Correlation to Causal Evidence
-
----
-
-## Feature Ablation: Experimental Design
-
-**Question:** Are contrastive features *causally necessary* for tool selection, or merely correlated?
-
-**Method:**
-1. Intercept residual stream at layer 20
-2. Encode through trained SAE
-3. **Zero out top-10 contrastive features**
-4. Decode back into residual stream
-5. Measure: does the model's tool prediction *flip*?
-
-**Controls:**
-- **Random ablation**: zero 10 random non-contrastive features
-- **Reconstruction-only**: SAE encode &rarr; decode with *no* features zeroed (measures round-trip distortion)
-
----
-
-## Ablation Results: Causal Evidence
-
-![center w:850](../paper/images/chart_ablation.png)
-
-**Aggregate (23 types):** 16.1% contrastive vs. 13.0% reconstruction-only
-
----
-
-## Why This Matters: Interpreting the Ablation
-
-**Fundamental vs. Technical Analysis** (p = 0.002):
-- Zeroing 10 contrastive features flips **10.1%** of predictions
-- 9.0% flip *toward the contrast tool* (directed change)
-- Random ablation: **0%** flips. Reconstruction-only: **0%** flips
-- These features are *causally necessary* for this distinction
-
-**Critical control insight:**
-> Random ablation flip rate *equals* SAE round-trip distortion across all 23 contrast types. Removing 10 random features from ~668 active adds *no disruption beyond the encode-decode cycle itself*.
-
-This validates the design: ablation effects are due to *specific features*, not general signal degradation.
-
----
-
-## The Spectrum of Causal Involvement
-
-Not all decisions rely on sparse feature circuits. Across 23 contrast types we see a spectrum:
-
-- **Sparse circuits** -- a small minority (e.g. fundamental/technical, single/multi-tool) concentrate causal signal in a handful of identifiable features; ablating 10 contrastive features flips up to 10.1% of predictions
-- **Distributed encodings** -- many contrast types (e.g. preventive/reactive maintenance) show 0% flips even with 10 features ablated, robust to any 10-feature subset
-- **Intermediate** -- the remainder show detectable but not statistically dominant feature involvement
-
-This reveals a heterogeneous landscape:
-> Some tool-selection decisions are governed by interpretable sparse circuits; others rely on distributed, redundant encodings.
-
-Both findings are scientifically valuable.
-
----
-
-<!-- _class: section -->
-
-<div class="logo"></div>
-
-# Demo Time
-
-### Kiji Inspector, live
-
----
-
-## End-to-End Demo Application
-
-![center w:850](../paper/images/demo_screenshot.png)
-
-Interactive system surfacing SAE-derived explanations alongside agent output -- translating internal feature activations into natural-language rationales.
-
----
-
-## Key Takeaways
-
-1. **SAEs discover interpretable decision features** without supervision -- 91.2% fuzzing accuracy
-
-2. **Token-level fuzzing** catches labels "right for the wrong reasons" -- a stricter test than prompt-level evaluation
-
-3. **Causal evidence** via ablation: specific features are necessary for specific tool-selection decisions (p = 0.002)
-
-4. **The reconstruction-only baseline** is essential -- it separates genuine causal effects from SAE distortion artifacts
-
-5. **Heterogeneous decision landscape** -- some decisions use sparse circuits, others are distributed
-
----
-
-## Limitations and Future Directions
-
-<div class="cols">
-<div>
-
-### Current Limitations
-
-- Training is compute-intensive (235B generation model + 30B subject model)
-- Access to model is required 
-- Synthetic contrastive pairs may miss real-world decision factors
-
-</div>
-<div>
-
-### Future Work
-
-- Support for more open-source models like Qwen 
-- Multi-layer / circuit-level analysis
-- Cross-model transfer (do tool-selection circuits generalize?)
-
-</div>
-</div>
-
----
-
 <!-- _class: closing -->
 
 <div class="logo"></div>
 
 # Thank You
 
-## Open source: github.com/dataiku/kiji-inspector
+## questions@dataiku.com · dataiku.com
 
-<img src="../paper/images/qr_github.svg" alt="QR code to github.com/dataiku/kiji-inspector" width="180" style="background:#FFFFFA;padding:10px;border-radius:8px;margin:0.6em 0;" />
+<p>© 2026 Dataiku. All rights reserved.</p>
 
-<p>Hannes Hapke — hannes.hapke@dataiku.com<br>David Cardozo — david.cardozo@dataiku.com<br>575 Lab, Dataiku Inc.</p>
+---
+
+<!--
+════════════════════════════════════════════════════════════════
+  DATAIKU BRAND QUICK REFERENCE
+════════════════════════════════════════════════════════════════
+
+  COLOR PALETTE
+  ─────────────────────────────────────────────────────────────
+  Core Black       #0F1314   — body text on light surfaces
+  Core White       #FFFFFA   — text on dark surfaces
+  Dark Green       #0A2A1F   — primary dark background, headings
+  Green            #63FF91   — primary accent, badges, highlights
+  Light Green      #D1FFE6   — light accents on dark slides
+  Blue             #7099FF   — secondary accent, gradients
+  Dark Grey        #1D2220   — near-black alternative
+  Dark Blue Grey   #081030   — deepest dark surface (closing slide)
+  Blue Grey        #2B3B64   — muted dark accent, h3, tags
+  Light Blue Grey  #ABCFFA   — dividers, muted text on dark
+
+  TYPOGRAPHY
+  ─────────────────────────────────────────────────────────────
+  DM Serif Display          — h1 on cover & closing slides
+  DM Sans 700               — h2 headings
+  DM Sans 600               — h3 / uppercase labels
+  DM Sans 400               — body copy
+  DM Mono                   — code snippets
+
+  SLIDE CLASSES                              LOGO VARIANT
+  ─────────────────────────────────────────────────────────────
+  (none / .light)           Default off-white   Black logo
+  .cover                    Dark green hero     White logo
+  .section                  Bright green        White logo
+  .dark                     Dark blue-grey      White logo
+  .closing                  Gradient            White (centered)
+
+  UTILITY CLASSES
+  ─────────────────────────────────────────────────────────────
+  .badge                    Green pill label
+  .stat / .stat-label       Large display metric + caption
+  .cols                     Two-column grid
+  .cols-3                   Three-column grid
+  .card                     White card with border + shadow
+  .tag                      Blue inline tag
+  .highlight                Green-left-border callout box
+
+  MARP CLI USAGE
+  ─────────────────────────────────────────────────────────────
+  marp --html --watch dataiku-marp-theme.md      # live preview
+  marp --html --pdf  dataiku-marp-theme.md       # PDF export
+  marp --html --pptx dataiku-marp-theme.md       # PowerPoint export
+
+  NOTE: --html flag is required to render the <style> block and
+  custom utility class divs.
+════════════════════════════════════════════════════════════════
+-->
