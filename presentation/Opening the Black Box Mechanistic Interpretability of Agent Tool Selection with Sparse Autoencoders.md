@@ -139,11 +139,14 @@ code {
 }
 
 pre {
-  background:    var(--dark-blue-grey);
-  color:         var(--light-green);
+  background:    var(--core-white);
+  color:         var(--dark-green);
+  border:        1px solid rgba(10,42,31,.12);
+  border-left:   4px solid var(--green);
   border-radius: var(--radius);
-  padding:       1.25em 1.5em;
+  padding:       1.4em 1.7em;
   font-size:     0.78em;
+  line-height:   1.85;
   overflow:      hidden;
 }
 
@@ -759,6 +762,141 @@ The hidden state at this final token is the **decision token** -- the model's in
 - Hidden dimension: **4,096**
 - Batched extraction with left-padding for alignment
 - Dataset: **1,000,000** activation vectors (500K contrastive pairs)
+
+---
+
+## Hands-on: Extract a Layer's Activations
+
+The Kiji Inspector builds on standard PyTorch primitives. Here's the extraction step in raw `transformers` &mdash; the same mechanism, no Kiji magic, on any HuggingFace causal LM.
+
+```bash
+pip install -U -q kiji-inspector transformers
+```
+
+---
+
+## Setup &mdash; Imports & Config
+
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoProcessor
+
+LAYER_INDEX = 8
+MODEL_ID    = "google/gemma-4-E4B-it"
+PROMPT      = "My dishwasher is smelly, what is the first element I should review?"
+```
+
+Pick the **layer** to study and the **model** to study it on. Everything else flows from these three constants.
+
+---
+
+## Load Model & Processor
+
+```python
+processor = AutoProcessor.from_pretrained(MODEL_ID)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,
+    torch_dtype=torch.bfloat16,
+    device_map="auto",
+)
+model.eval()
+```
+
+`bfloat16` halves memory; `device_map="auto"` lets HF Accelerate place layers across GPUs. `.eval()` disables dropout &mdash; we want deterministic activations.
+
+---
+
+## Format the Prompt
+
+```python
+messages = [{"role": "user", "content": [{"type": "text", "text": PROMPT}]}]
+prompt = processor.apply_chat_template(
+    messages, tokenize=False, add_generation_prompt=True,
+)
+inputs = processor(text=prompt, return_tensors="pt")
+inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
+```
+
+`add_generation_prompt=True` appends the assistant turn header &mdash; the model is now poised to *answer*. That final position is the **decision token** we just defined.
+
+---
+
+## Capture Activations with a Forward Hook
+
+```python
+captured = {}
+
+def hook(_module, _inputs, output):
+    hidden = output[0] if isinstance(output, tuple) else output
+    captured["tensor"] = hidden.detach().cpu()
+
+layer = model.model.language_model.layers[LAYER_INDEX]
+handle = layer.register_forward_hook(hook)
+```
+
+PyTorch's `register_forward_hook` intercepts the layer's output mid-forward-pass. We `.detach()` to drop the autograd graph and `.cpu()` so we don't pin GPU memory.
+
+---
+
+## Run Inference, Retrieve the Tensor
+
+```python
+try:
+    with torch.inference_mode():
+        model(**inputs)
+finally:
+    handle.remove()
+
+hidden_state = captured["tensor"]
+```
+
+`inference_mode()` is faster than `no_grad()` &mdash; it also skips view-tracking. The `try / finally` guarantees the hook is removed even on error. `hidden_state` is ready to feed into a trained SAE.
+
+---
+
+## Now: Ask the Kiji Inspector What Fired
+
+```python
+from kiji_inspector import SAE
+
+sae, feature_descriptions = SAE.from_pretrained(
+    base_model="google/gemma-4-E4B-it",
+    layer=8,
+)
+
+# Activation for the first sequence, last token
+last_token_act = hidden_state[0, -1, :]
+
+# Describe the top features activating on this token
+sae.describe(last_token_act, feature_descriptions)
+```
+
+`SAE.from_pretrained` pulls a layer-matched SAE *and* its labelled feature dictionary from the Hub. `describe()` returns the highest-activating features and their human-readable labels &mdash; the decision token, explained.
+
+---
+
+## Output: Top Features on the Token
+
+```python
+[(2341, 'unknown', 7.57),
+ (14641,
+  {'label':           'Dishwasher Gasket Issues',
+   'description':     'Detects descriptions of dishwashers leaking from '
+                      'the door or bottom, often mentioning a worn, torn, '
+                      'or cracked door gasket.',
+   'confidence':      'high',
+   'mean_activation': 7.66,
+   'max_activation':  8.63,
+   'frac_nonzero':    1.0,
+   'top_examples':    ['My 18-yr-old dishwasher is leaking from the door...',
+                       ...],
+   'bottom_examples': ['Find general best practices for API versioning...',
+                       ...]},
+  7.19),
+ ...]
+```
+
+A labelled feature (**#14641**) semantically matches the prompt &mdash; with full provenance (confidence, activation stats, witnessing contexts). Feature **#2341** fired too but autointerp hasn't named it. The trailing float in each tuple is the activation strength on *this* token.
 
 ---
 
