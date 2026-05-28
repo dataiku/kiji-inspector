@@ -1,0 +1,66 @@
+% Gemini theme --- Dataiku brand color theme
+% Colors sourced from the Dataiku DSS design system (DESIGN.md). Every value
+% below is a documented brand token; tints/shades are xcolor mixes of those
+% tokens (no invented hex values).
+%   @teal-blue-base   #045067  deep brand companion (headline, all text/titles)
+%   @teal-base        #2AB1AC  Dataiku brand (rules, separators -- accents only)
+%   @digital-green    #81C141  run/success
+%   Govern critical   #E7AB4F  warning
+%   Govern negative   #C91024  error
+%   @grey-base        #222222  primary text
+% Note: teal #2AB1AC is ~2.3:1 on white and so is used ONLY for non-text fill
+% bands/separators; all text uses deep teal-blue #045067 to stay WCAG AA-clean.
+
+% ====================
+% Definitions
+% ====================
+
+\definecolor{dkutealblue}{HTML}{045067} % @teal-blue-base
+\definecolor{dkuteal}    {HTML}{2AB1AC} % @teal-base
+\definecolor{dkugreen}   {HTML}{81C141} % @digital-green-base (run/success)
+\definecolor{dkuwarn}    {HTML}{E7AB4F} % Govern critical/warning text
+\definecolor{dkured}     {HTML}{C91024} % Govern negative/error text
+\definecolor{dkuink}     {HTML}{222222} % @grey-base (primary text)
+
+% ====================
+% Theme
+% ====================
+
+% Basic colors
+\setbeamercolor{palette primary}{fg=dkuink,bg=white}
+\setbeamercolor{palette secondary}{fg=dkuink,bg=white}
+\setbeamercolor{palette tertiary}{bg=dkutealblue,fg=white}
+\setbeamercolor{palette quaternary}{fg=dkuink,bg=white}
+\setbeamercolor{structure}{fg=dkuteal}
+
+% Headline
+\setbeamercolor{headline}{fg=white,bg=dkutealblue}
+\setbeamercolor{headline rule}{bg=dkuteal}
+
+% Block
+\setbeamercolor{block title}{fg=dkutealblue,bg=white}
+\setbeamercolor{block separator}{bg=dkuteal}
+\setbeamercolor{block body}{fg=dkuink,bg=white}
+
+% Alert Block --- teal-blue text on a light teal tint
+\setbeamercolor{block title alerted}{fg=dkutealblue,bg=dkuteal!12}
+\setbeamercolor{block separator alerted}{bg=dkuteal}
+\setbeamercolor{block body alerted}{fg=dkuink,bg=dkuteal!12}
+
+% Example Block --- teal-blue text on neutral light gray
+\setbeamercolor{block title example}{fg=dkutealblue,bg=black!6}
+\setbeamercolor{block separator example}{bg=dkuteal}
+\setbeamercolor{block body example}{fg=dkuink,bg=black!6}
+
+% Heading
+\setbeamercolor{heading}{fg=dkutealblue}
+
+% Itemize (dark marker for contrast; teal reserved for fill bands)
+\setbeamercolor{item}{fg=dkutealblue}
+
+% Bibliography
+\setbeamercolor{bibliography item}{fg=dkuink}
+\setbeamercolor{bibliography entry author}{fg=dkuink}
+\setbeamercolor{bibliography entry title}{fg=dkuink}
+\setbeamercolor{bibliography entry location}{fg=dkuink}
+\setbeamercolor{bibliography entry note}{fg=dkuink}

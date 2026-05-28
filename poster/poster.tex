@@ -10,7 +10,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[size=custom,width=118.9,height=84.1,scale=1.0]{beamerposter}
+\usepackage[size=custom,width=140,height=108,scale=1.05]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{dataiku}
 \usepackage{graphicx}
@@ -75,7 +75,7 @@
 % Logos
 % ====================
 
-\logoright{\includegraphics[height=4cm]{images/575lab_white_condensed.png}}
+\logoright{\includegraphics[height=5.5cm]{images/575lab_white_condensed.png}}
 
 % ====================
 % Footer
@@ -191,7 +191,7 @@
 
     \begin{figure}
       \centering
-      \includegraphics[height=8cm,keepaspectratio]{images/chart_layer_sweep.png}
+      \includegraphics[width=0.95\linewidth,keepaspectratio]{images/chart_layer_sweep.png}
       \caption{\textbf{A single SAE cannot decompose MoE layers.}
         Reconstruction MSE explodes by $>$500$\times$ at layers 32 and 44
         (sparse expert routing); layer~20 sits just before the MoE stack
@@ -214,7 +214,7 @@
 
     \begin{figure}
       \centering
-      \includegraphics[height=8cm,keepaspectratio]{images/sae_architecture.png}
+      \includegraphics[width=0.82\linewidth,keepaspectratio]{images/sae_architecture.png}
       \caption{\textbf{An overcomplete dictionary that decomposes hidden states
         into monosemantic features.} JumpReLU thresholds $\theta_i$ produce
         \emph{exact} zeros (true sparsity), trained with a smooth $\tanh$
@@ -282,7 +282,7 @@
 
     \begin{figure}
       \centering
-      \includegraphics[height=4.5cm,keepaspectratio]{images/inference_pipeline.png}
+      \includegraphics[width=0.74\linewidth,keepaspectratio]{images/inference_pipeline.png}
       \caption{\textbf{Every tool call ships with a rationale.}
         At inference, the top-$K$ active features at the decision token
         map to pre-computed labels --- a human-readable explanation
@@ -349,7 +349,7 @@
 
     \begin{figure}
       \centering
-      \includegraphics[height=7cm,keepaspectratio]{images/chart_ablation.png}
+      \includegraphics[width=0.92\linewidth,keepaspectratio]{images/chart_ablation.png}
       \caption{\textbf{Ablating SAE features changes tool decisions ---
         random features do not.} Top-10 contrastive features vs.\ random
         features vs.\ SAE round-trip baseline.}
