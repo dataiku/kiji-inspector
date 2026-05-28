@@ -318,6 +318,8 @@ section.dark h1,
 section.dark h2 { color: var(--core-white); }
 section.dark h3 { color: var(--light-blue-grey); }
 section.dark strong { color: var(--light-green); }
+section.dark em     { color: var(--light-blue-grey); }
+section.dark a      { color: var(--light-green); border-bottom-color: var(--green); }
 
 section.dark code {
   background: rgba(255,255,250,.10);
@@ -482,14 +484,12 @@ Co-author of four O'Reilly & Manning books, including:
   - **Generative AI Design Patterns** (2025)
   - **Machine Learning Production Systems** (2024)
 
-**Find me:**
-- hanneshapke.com 
-- github.com/hanneshapke 
-- linkedin.com/in/hanneshapke
-
 </div>
 
 </div>
+
+<p></p>
+<p style="text-align: center;"><strong>Find me:</strong> hanneshapke.com • github.com/hanneshapke • linkedin.com/in/hanneshapke</p>
 
 ---
 
@@ -537,7 +537,8 @@ vLLM &middot; scikit-learn (sponsor) &middot; Cardinal (active learning) &middot
 
 ## The Problem: Opaque Agent Decisions
 
-AI agents autonomously select tools (databases, web search, code execution, ...) based on natural language requests.
+AI agents autonomously select tools (databases, web search, code execution, ...) 
+based on natural language requests.
 But **why**?
 
 > "Find information about *our company's* API rate limits."
@@ -577,7 +578,7 @@ A **self-supervised** technique that learns new representations: compress an inp
 
 ![center w:900](../paper/images/autoencoder_flow.svg)
 
-- **No labels required** -- the input *is* the target
+<!--- **No labels required** -- the input *is* the target-->
 - **Well-understood** -- decades of theory and practice
 - **Lossy by design** -- the bottleneck forces the model to *prioritise*
 
@@ -667,7 +668,7 @@ GitHub: [github.com/dataiku/kiji-inspector](https://github.com/dataiku/kiji-insp
 
 ## What's Novel?
 
-<div class="cols">
+<div class="cols" style="grid-auto-rows: 1fr; align-items: stretch;">
 
 <div class="card">
 
@@ -683,15 +684,11 @@ Capture activations at the *precise moment* of tool commitment &mdash; not avera
 
 <span class="badge">02</span>
 
-### Contrastive Pairs as Post-hoc Probes
+### Pairs as Post-hoc Probes
 
 The SAE learns the model's natural vocabulary **unsupervised**. Contrastive pairs are statistical probes only &mdash; never training signal.
 
 </div>
-
-</div>
-
-<div class="cols">
 
 <div class="card">
 
@@ -988,7 +985,7 @@ Token-level gets higher weight because it tests the *actual mechanism*.
 
 ## Fuzzing Results: Features Are Interpretable
 
-![center w:780](../paper/images/chart_fuzzing_tiers.png)
+![center w:600](../paper/images/chart_fuzzing_tiers.png)
 
 - **402 features**, combined score **0.912 &plusmn; 0.008** (p < 10^-4)
 - Token-level accuracy: **0.906 &plusmn; 0.007**
@@ -1084,15 +1081,41 @@ Interactive system surfacing SAE-derived explanations alongside agent output -- 
 
 ## Key Takeaways
 
-1. **SAEs discover interpretable decision features** without supervision -- 91.2% fuzzing accuracy
+<div class="cols" style="grid-auto-rows: 1fr; align-items: stretch;">
 
-2. **Token-level fuzzing** catches labels "right for the wrong reasons" -- a stricter test than prompt-level evaluation
+<div class="card">
 
-3. **Causal evidence** via ablation: specific features are necessary for specific tool-selection decisions (p = 0.002)
+<span class="badge">01</span>
 
-4. **The reconstruction-only baseline** is essential -- it separates genuine causal effects from SAE distortion artifacts
+**SAEs discover interpretable decision features** without supervision &mdash; 91.2% fuzzing accuracy
 
-5. **Heterogeneous decision landscape** -- some decisions use sparse circuits, others are distributed
+</div>
+
+<div class="card">
+
+<span class="badge">02</span>
+
+**Token-level fuzzing** catches labels *"right for the wrong reasons"* &mdash; a stricter test than prompt-level evaluation
+
+</div>
+
+<div class="card">
+
+<span class="badge">03</span>
+
+**Causal evidence** via ablation: specific features are necessary for specific tool-selection decisions (p = 0.002)
+
+</div>
+
+<div class="card">
+
+<span class="badge">04</span>
+
+**The reconstruction-only baseline** is essential &mdash; it separates genuine causal effects from SAE distortion artifacts
+
+</div>
+
+</div>
 
 ---
 

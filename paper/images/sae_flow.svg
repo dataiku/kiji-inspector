@@ -162,20 +162,20 @@
   <g font-size="22" fill="#0A2A1F">
     <text x="450" y="545" font-style="italic">ℒ</text>
     <text x="473" y="545">(z) =</text>
-    <text x="555" y="545">‖ z − ẑ ‖</text>
-    <text x="663" y="536" font-size="13">2</text>
-    <text x="663" y="556" font-size="13">2</text>
-    <text x="685" y="545">+  α  ‖ h(z) ‖</text>
-    <text x="870" y="555" font-size="13">1</text>
+    <text x="555" y="545">‖z − ẑ‖</text>
+    <text x="638" y="536" font-size="13">2</text>
+    <text x="638" y="556" font-size="13">2</text>
+    <text x="660" y="545">+ α ‖h(z)‖</text>
+    <text x="780" y="555" font-size="13">1</text>
   </g>
 
   <!-- Brace + label: Reconstruction -->
-  <path d="M555 562 L555 572 L680 572 L680 562 M617 572 L617 580"
+  <path d="M555 562 L555 572 L655 572 L655 562 M605 572 L605 580"
         stroke="#2B3B64" stroke-width="1.3" fill="none" />
-  <text x="617" y="600" text-anchor="middle" font-size="13" font-weight="600" fill="#2B3B64">Reconstruction</text>
+  <text x="605" y="600" text-anchor="middle" font-size="13" font-weight="600" fill="#2B3B64">Reconstruction</text>
 
   <!-- Brace + label: Sparsity -->
-  <path d="M700 562 L700 572 L885 572 L885 562 M792 572 L792 580"
+  <path d="M675 562 L675 572 L795 572 L795 562 M735 572 L735 580"
         stroke="#2B3B64" stroke-width="1.3" fill="none" />
-  <text x="792" y="600" text-anchor="middle" font-size="13" font-weight="600" fill="#2B3B64">Sparsity</text>
+  <text x="735" y="600" text-anchor="middle" font-size="13" font-weight="600" fill="#2B3B64">Sparsity</text>
 </svg>
