@@ -12,7 +12,7 @@
 \usepackage{lmodern}
 \usepackage[size=custom,width=118.9,height=84.1,scale=1.0]{beamerposter}
 \usetheme{gemini}
-\usecolortheme{dart}
+\usecolortheme{dataiku}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tikz}
@@ -27,6 +27,28 @@
 \setbeamercolor{headline title}{fg=white}
 \setbeamercolor{headline author}{fg=white}
 \setbeamercolor{headline institute}{fg=white!85}
+
+% ====================
+% Brand typography --- Source Sans Pro (Dataiku Designer runtime font)
+% Overrides the gemini theme's Lato/Raleway with a single brand family so
+% the poster does not mix font systems (DESIGN.md). Must come after
+% \usetheme{gemini}, which defines \Lato and \Raleway via \newfontfamily.
+% ====================
+\setsansfont{Source Sans Pro}[
+  Ligatures=TeX,
+  UprightFont=*-Regular,
+  ItalicFont=*-It,
+  BoldFont=*-Semibold,
+  BoldItalicFont=*-SemiboldIt
+]
+\renewfontfamily\Raleway{Source Sans Pro}[Ligatures=TeX,BoldFont=*-Semibold]
+\renewfontfamily\Lato{Source Sans Pro}[
+  Ligatures=TeX,
+  UprightFont=*-Regular,
+  ItalicFont=*-It,
+  BoldFont=*-Semibold,
+  BoldItalicFont=*-SemiboldIt
+]
 
 % ====================
 % Lengths
@@ -122,27 +144,27 @@
       \centering
       \begin{tikzpicture}[
         every node/.style={align=center, font=\normalsize},
-        main/.style={rectangle, draw=black!70, rounded corners=5pt,
+        main/.style={rectangle, draw=black!70, rounded corners=2pt,
                      line width=1.2pt, minimum height=2.6cm,
                      inner xsep=0.4cm, inner ysep=0.3cm},
         arrow/.style={->, line width=1.8pt, >=stealth, draw=black!70},
-        sidebox/.style={rectangle, draw=orange!85, rounded corners=5pt,
-                        line width=1.2pt, fill=orange!20,
+        sidebox/.style={rectangle, draw=dkuwarn!80!black, rounded corners=2pt,
+                        line width=1.2pt, fill=dkuwarn!25,
                         minimum height=3.0cm, minimum width=7cm,
                         inner sep=0.3cm},
         branchArrow/.style={->, line width=1.8pt, >=stealth,
-                            draw=orange!85, dashed},
+                            draw=dkuwarn!80!black, dashed},
       ]
         % Main top-row pipeline (purely unsupervised up to "SAE features")
-        \node[main, fill=blue!8,    minimum width=4.0cm] (a) at (0,0)
+        \node[main, fill=dkutealblue!10, minimum width=4.0cm] (a) at (0,0)
               {\textbf{Activations}\\\small 1\,M @ layer 20};
-        \node[main, fill=green!10,  minimum width=5.0cm] (t) at (6.5,0)
+        \node[main, fill=dkuteal!15,     minimum width=5.0cm] (t) at (6.5,0)
               {\textbf{SAE training}\\\small \emph{unsupervised}\\\small 10{,}752 feats};
-        \node[main, fill=green!10,  minimum width=4.0cm] (s) at (12.5,0)
+        \node[main, fill=dkuteal!15,     minimum width=4.0cm] (s) at (12.5,0)
               {\textbf{SAE features}};
-        \node[main, fill=orange!15, minimum width=4.0cm] (p) at (17.5,0)
+        \node[main, fill=dkuwarn!30,     minimum width=4.0cm] (p) at (17.5,0)
               {\textbf{Probe}\\\small Cohen's $d$};
-        \node[main, fill=orange!15, minimum width=4.2cm] (v) at (22.5,0)
+        \node[main, fill=dkuwarn!30,     minimum width=4.2cm] (v) at (22.5,0)
               {\textbf{Fuzzing}\\\small token-level A/B};
         \draw[arrow] (a) -- (t);
         \draw[arrow] (t) -- (s);
@@ -154,7 +176,7 @@
         % doesn't run into the Fuzzing box.
         \node[sidebox] (c) at (17.5,-5.0)
               {\textbf{Contrastive pairs}\\\small 500K $\cdot$ 5 domains\\[0.2em]
-               \small\itshape\textcolor{orange!90!black}{enters here, not at training}};
+               \small\itshape\textcolor{dkuwarn!55!black}{enters here, not at training}};
         \draw[branchArrow] (c) -- (p);
       \end{tikzpicture}
       \caption{\textbf{The SAE is trained without contrastive pairs.}
@@ -223,11 +245,11 @@
     \end{center}
 
     \vspace{0.4em}
-    {\Large\textcolor{green!50!black}{\textbf{$\blacktriangle$ Activates on}}}\\[0.15em]
+    {\Large\textcolor{dkugreen!55!black}{\textbf{$\blacktriangle$ Activates on}}}\\[0.15em]
     {\large\texttt{set\,$\cdot$\,update\,$\cdot$\,modify\,$\cdot$\,create\,$\cdot$\,delete\,$\cdot$\,write}}
 
     \vspace{0.5em}
-    {\Large\textcolor{red!70!black}{\textbf{$\blacktriangledown$ Suppressed by}}}\\[0.15em]
+    {\Large\textcolor{dkured}{\textbf{$\blacktriangledown$ Suppressed by}}}\\[0.15em]
     {\large\texttt{what\,$\cdot$\,list\,$\cdot$\,show\,$\cdot$\,describe\,$\cdot$\,find\,$\cdot$\,latest}}
 
     \vspace{0.7em}
@@ -290,9 +312,9 @@
     \begin{figure}
       \centering
       \begin{tikzpicture}
-        \definecolor{tierExcellent}{HTML}{2E7D32}
-        \definecolor{tierGood}{HTML}{F9A825}
-        \definecolor{tierPoor}{HTML}{C62828}
+        \colorlet{tierExcellent}{dkugreen!70!black}
+        \colorlet{tierGood}{dkuwarn}
+        \colorlet{tierPoor}{dkured}
         % Stacked bar 20cm x 4.2cm
         \fill[tierExcellent] (0,0)       rectangle (16.860,4.2); % 84.3 of 20
         \fill[tierGood]      (16.860,0)  rectangle (18.740,4.2); %  9.4
