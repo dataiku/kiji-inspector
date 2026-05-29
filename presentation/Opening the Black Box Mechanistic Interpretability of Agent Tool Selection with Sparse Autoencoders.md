@@ -718,7 +718,7 @@ Zero a feature, measure the prediction flip &mdash; turns correlations into evid
 
 ![center w:950](../paper/images/training_pipeline.png)
 
-Contrastive pairs are generated and encoded by the subject model. The SAE is trained unsupervised on the extracted activations; contrastive pairs serve only as post-hoc statistical probes.
+The SAE is trained unsupervised on the activations; contrastive pairs serve only as post-hoc statistical probes.
 
 ---
 
@@ -734,7 +734,7 @@ Seven steps from raw prompts to human-readable decision explanations.
 
 ![center w:950](../paper/images/nemotron_architecture.png)
 
-Hybrid Mamba2-Transformer MoE, 52 layers, open weights &mdash; chosen for routing diversity (MoE) and a tractable extraction budget at 30B. We extract activations at **layer 20** (GQA attention), the last dense layer before the next MoE block. *(Layer choice motivated two slides ahead.)*
+Hybrid Mamba2-Transformer MoE, 52 layers, open weights &mdash. We extract activations at **layer 20** (GQA attention).
 
 ---
 
@@ -742,7 +742,9 @@ Hybrid Mamba2-Transformer MoE, 52 layers, open weights &mdash; chosen for routin
 
 ![center w:950](../paper/images/sae_architecture.png)
 
-Encoder projects 4,096-dim input to 16,384 sparse features via JumpReLU with learnable per-feature thresholds. Decoder reconstructs with unit-norm columns. Shared bias b_dec centers the input.
+Encoder projects 2,688-dim input to 10,752 sparse features via JumpReLU with learnable per-feature thresholds. 
+
+<!--Decoder reconstructs with unit-norm columns. Shared bias b_dec centers the input.-->
 
 ---
 
@@ -756,9 +758,28 @@ Every formatted prompt ends with:
 The hidden state at this final token is the **decision token** -- the model's internal state at the moment it commits to a tool name.
 
 - Activations extracted at **layer 20** of Nemotron-3-Nano-30B (54-layer MoE) &mdash; *layer choice justified below*
-- Hidden dimension: **4,096**
+- Hidden dimension: **2,688**
 - Batched extraction with left-padding for alignment
 - Dataset: **1,000,000** activation vectors (500K contrastive pairs)
+
+---
+
+## Supported Language Models
+
+| Huggingface Model | Link | Kiji Inspector Sparse Autoencoder | Supported Layers |
+|---|---|---|---|
+| `google/gemma-3-27b-it` | [model](https://huggingface.co/google/gemma-3-27b-it) | [575-lab/kiji-inspector-google-gemma-3-27b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-27b-it) | 10 20 31 41 50 58 |
+| `google/gemma-3-4b-it` | [model](https://huggingface.co/google/gemma-3-4b-it) | [575-lab/kiji-inspector-google-gemma-3-4b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-4b-it) | 5 10 15 20 25 |
+| `google/gemma-3-1b-it` | [model](https://huggingface.co/google/gemma-3-1b-it) | [575-lab/kiji-inspector-google-gemma-3-1b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-1b-it) | 5 10 15 20 25 |
+| `google/gemma-4-31B-it` | [model](https://huggingface.co/google/gemma-4-31B) | [575-lab/kiji-inspector-google-gemma-4-31B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-31B-it) | 10 20 31 41 50 58 |
+| `google/gemma-4-26B-A4B-it` | [model](https://huggingface.co/google/gemma-4-26B-A4B-it) | [575-lab/kiji-inspector-google-gemma-4-26B-A4B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-26B-A4B-it) | 11 14 17 20 23 |
+| `google/gemma-4-E4B-it` | [model](https://huggingface.co/google/gemma-4-E4B-it) | [575-lab/kiji-inspector-google-gemma-4-E4B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-E4B-it) | 11 17 23 29 35 |
+| `google/gemma-4-E2B-it` | [model](https://huggingface.co/google/gemma-4-E2B-it) | [575-lab/kiji-inspector-google-gemma-4-E2B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-E2B-it) | 13 14 15 18 19 20 23 24 25 |
+| `nvidia/Nemotron-3-Super-120B-A12B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-FP8) | 15 27 45 57 69 81 |
+| `nvidia/Nemotron-3-Super-120B-A12B-BF16` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-BF16](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-BF16) | 15 27 45 57 69 81 |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16) | 8 17 20 26 35 44 |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | 8 17 20 26 35 44 |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | 8 17 20 26 35 44 |
 
 ---
 
@@ -932,7 +953,7 @@ Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
 
 ## Why Layer 20?
 
-![center w:780](../paper/images/chart_layer_sweep.png)
+![center w:780](../paper/images/chart_layer_sweep_v2.png)
 
 - Layers 8/16: low MSE but *pre-decision* representations
 - **Layer 20**: best alive %, lowest dead %, MSE < 1.0
@@ -944,7 +965,7 @@ Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
 
 | Metric | Value |
 |--------|-------|
-| Total features | 16,384 |
+| Total features | 10,752 |
 | Alive features (>0.1% firing) | **81.2%** [80.6, 81.8] |
 | Dead features (0% firing) | **0.19%** [0.13, 0.27] |
 | L0 (active features per input) | 668 (&asymp;4.1% density) |
@@ -1126,7 +1147,8 @@ Interactive system surfacing SAE-derived explanations alongside agent output -- 
 
 ### Current Limitations
 
-- Training is compute-intensive (235B generation model + 30B subject model)
+- Training is compute-intensive
+  (235B generation model + 30B subject model)
 - Access to model is required 
 - Synthetic contrastive pairs may miss real-world decision factors
 
