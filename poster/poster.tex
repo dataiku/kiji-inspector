@@ -12,7 +12,7 @@
 \usepackage{lmodern}
 \usepackage[size=custom,width=140,height=108,scale=1.05]{beamerposter}
 \usetheme{gemini}
-\usecolortheme{dataiku}
+\usecolortheme{forest}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tikz}
@@ -22,7 +22,7 @@
 \usepackage{qrcode}
 \usepackage{xcolor}
 
-% Boost header contrast: white title on dart green
+% Boost header contrast: white title on dark green
 \setbeamercolor{headline}{fg=white}
 \setbeamercolor{headline title}{fg=white}
 \setbeamercolor{headline author}{fg=white}
@@ -144,27 +144,27 @@
       \centering
       \begin{tikzpicture}[
         every node/.style={align=center, font=\normalsize},
-        main/.style={rectangle, draw=black!70, rounded corners=2pt,
+        main/.style={rectangle, draw=fdark!70, rounded corners=2pt,
                      line width=1.2pt, minimum height=2.6cm,
                      inner xsep=0.4cm, inner ysep=0.3cm},
-        arrow/.style={->, line width=1.8pt, >=stealth, draw=black!70},
-        sidebox/.style={rectangle, draw=dkuwarn!80!black, rounded corners=2pt,
-                        line width=1.2pt, fill=dkuwarn!25,
+        arrow/.style={->, line width=1.8pt, >=stealth, draw=fdark},
+        sidebox/.style={rectangle, draw=fdark!60, rounded corners=2pt,
+                        line width=1.2pt, fill=fbeige,
                         minimum height=3.0cm, minimum width=7cm,
                         inner sep=0.3cm},
         branchArrow/.style={->, line width=1.8pt, >=stealth,
-                            draw=dkuwarn!80!black, dashed},
+                            draw=fdark!70, dashed},
       ]
         % Main top-row pipeline (purely unsupervised up to "SAE features")
-        \node[main, fill=dkutealblue!10, minimum width=4.0cm] (a) at (0,0)
+        \node[main, fill=fdark!12,  minimum width=4.0cm] (a) at (0,0)
               {\textbf{Activations}\\\small 1\,M @ layer 20};
-        \node[main, fill=dkuteal!15,     minimum width=5.0cm] (t) at (6.5,0)
+        \node[main, fill=fmint!30,  minimum width=5.0cm] (t) at (6.5,0)
               {\textbf{SAE training}\\\small \emph{unsupervised}\\\small 10{,}752 feats};
-        \node[main, fill=dkuteal!15,     minimum width=4.0cm] (s) at (12.5,0)
+        \node[main, fill=fmint!30,  minimum width=4.0cm] (s) at (12.5,0)
               {\textbf{SAE features}};
-        \node[main, fill=dkuwarn!30,     minimum width=4.0cm] (p) at (17.5,0)
+        \node[main, fill=fbeige,    minimum width=4.0cm] (p) at (17.5,0)
               {\textbf{Probe}\\\small Cohen's $d$};
-        \node[main, fill=dkuwarn!30,     minimum width=4.2cm] (v) at (22.5,0)
+        \node[main, fill=fbeige,    minimum width=4.2cm] (v) at (22.5,0)
               {\textbf{Fuzzing}\\\small token-level A/B};
         \draw[arrow] (a) -- (t);
         \draw[arrow] (t) -- (s);
@@ -176,7 +176,7 @@
         % doesn't run into the Fuzzing box.
         \node[sidebox] (c) at (17.5,-5.0)
               {\textbf{Contrastive pairs}\\\small 500K $\cdot$ 5 domains\\[0.2em]
-               \small\itshape\textcolor{dkuwarn!55!black}{enters here, not at training}};
+               \small\itshape\textcolor{fdark}{enters here, not at training}};
         \draw[branchArrow] (c) -- (p);
       \end{tikzpicture}
       \caption{\textbf{The SAE is trained without contrastive pairs.}
@@ -245,11 +245,11 @@
     \end{center}
 
     \vspace{0.4em}
-    {\Large\textcolor{dkugreen!55!black}{\textbf{$\blacktriangle$ Activates on}}}\\[0.15em]
+    {\Large\textcolor{fdark}{\textbf{$\blacktriangle$ Activates on}}}\\[0.15em]
     {\large\texttt{set\,$\cdot$\,update\,$\cdot$\,modify\,$\cdot$\,create\,$\cdot$\,delete\,$\cdot$\,write}}
 
     \vspace{0.5em}
-    {\Large\textcolor{dkured}{\textbf{$\blacktriangledown$ Suppressed by}}}\\[0.15em]
+    {\Large\textcolor{fink!55}{\textbf{$\blacktriangledown$ Suppressed by}}}\\[0.15em]
     {\large\texttt{what\,$\cdot$\,list\,$\cdot$\,show\,$\cdot$\,describe\,$\cdot$\,find\,$\cdot$\,latest}}
 
     \vspace{0.7em}
@@ -312,9 +312,9 @@
     \begin{figure}
       \centering
       \begin{tikzpicture}
-        \colorlet{tierExcellent}{dkugreen!70!black}
-        \colorlet{tierGood}{dkuwarn}
-        \colorlet{tierPoor}{dkured}
+        \colorlet{tierExcellent}{fdark}
+        \colorlet{tierGood}{fmint}
+        \colorlet{tierPoor}{fbeige}
         % Stacked bar 20cm x 4.2cm
         \fill[tierExcellent] (0,0)       rectangle (16.860,4.2); % 84.3 of 20
         \fill[tierGood]      (16.860,0)  rectangle (18.740,4.2); %  9.4
