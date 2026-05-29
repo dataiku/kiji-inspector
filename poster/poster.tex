@@ -76,6 +76,13 @@
 % ====================
 
 \logoright{\includegraphics[height=5.5cm]{images/575lab_white_condensed.png}}
+% QR mirrored top-left, symmetric to the logo. White tile keeps the black
+% modules scannable on the dark-green header. Pre-rendered into a box because
+% \qrcode cannot be expanded directly inside a tikz node.
+\newsavebox{\qrbox}
+\logoleft{%
+  \tikz\node[fill=white, rounded corners=6pt, inner sep=8pt]{\usebox{\qrbox}};%
+}
 
 % ====================
 % Footer
@@ -92,6 +99,9 @@
 % ====================
 
 \begin{document}
+
+% Render the header QR now (qrcode only works inside the document).
+\savebox{\qrbox}{\qrcode[height=4.9cm,padding]{https://github.com/dataiku/kiji-inspector}}
 
 \begin{frame}[t]
 \begin{columns}[t]
@@ -379,25 +389,20 @@
 
   \begin{block}{Code \& Paper}
 
-    \begin{minipage}{0.45\linewidth}
-      \centering
-      \qrcode[height=9cm]{https://github.com/dataiku/kiji-inspector}\\[0.3em]
-      {\small\textbf{Scan for paper + code}}
-    \end{minipage}\hfill
-    \begin{minipage}{0.52\linewidth}
-      \footnotesize\texttt{github.com/dataiku/}\\\texttt{kiji-inspector}
+    \large
+    \textbf{Scan the QR (top-left)} for the paper + code:\\
+    \texttt{github.com/dataiku/kiji-inspector}
 
-      \vspace{0.6em}
-      \footnotesize
-      Nemotron-3-Nano-30B (subject)\\
-      Qwen3-VL-235B (judge)\\
-      Compute by NVIDIA
+    \vspace{0.6em}
+    \normalsize
+    Nemotron-3-Nano-30B (subject) \quad$\cdot$\quad
+    Qwen3-VL-235B (judge) \quad$\cdot$\quad
+    Compute by NVIDIA
 
-      \vspace{0.4em}
-      \scriptsize Prior work: [1] Bricken'23 $\cdot$
-      [2] Rajamanoharan'24 (JumpReLU) $\cdot$
-      [3] Juang'24 (autointerp).
-    \end{minipage}
+    \vspace{0.4em}
+    \small Prior work: [1] Bricken'23 $\cdot$
+    [2] Rajamanoharan'24 (JumpReLU) $\cdot$
+    [3] Juang'24 (autointerp).
 
   \end{block}
 
