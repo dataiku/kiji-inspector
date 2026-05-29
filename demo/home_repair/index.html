@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Your AI Advisor Thinks | Kiji Inspector</title>
+<style>
+/* ================================================================
+   Design System
+   ================================================================ */
+:root {
+  --navy: #1a2744;
+  --navy-light: #2d4a7a;
+  --navy-pale: #3a5a8a;
+  --coral: #e8563a;
+  --coral-light: #ff7b5f;
+  --coral-bg: #fff5f2;
+  --white: #ffffff;
+  --gray-50: #f7fafc;
+  --gray-100: #edf2f7;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e0;
+  --gray-400: #a0aec0;
+  --gray-500: #718096;
+  --gray-600: #4a5568;
+  --gray-700: #2d3748;
+  --green: #38a169;
+  --green-bg: #f0fff4;
+  --yellow: #d69e2e;
+  --yellow-bg: #fffff0;
+  --red: #e53e3e;
+  --red-bg: #fff5f5;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  color: var(--gray-700);
+  background: var(--gray-50);
+  line-height: 1.6;
+}
+
+/* ================================================================
+   Hero
+   ================================================================ */
+.hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #1e3a5f 50%, var(--navy-light) 100%);
+  color: var(--white);
+  padding: 48px 24px 40px;
+  text-align: center;
+  position: relative;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--coral) 100%);
+}
+.hero h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.hero .subtitle {
+  font-size: 1.1rem;
+  color: var(--gray-300);
+  max-width: 600px;
+  margin: 0 auto 20px;
+}
+.how-to-read {
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: left;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.how-to-read summary {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--gray-300);
+  list-style: none;
+}
+.how-to-read summary::before {
+  content: '\25B6\00a0';
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.how-to-read[open] summary::before {
+  transform: rotate(90deg);
+}
+.how-to-read .content {
+  padding: 0 16px 14px;
+  font-size: 0.85rem;
+  color: var(--gray-400);
+  line-height: 1.7;
+}
+.how-to-read .content ol {
+  padding-left: 1.2em;
+}
+.how-to-read .content li {
+  margin-bottom: 4px;
+}
+
+/* ================================================================
+   Container
+   ================================================================ */
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ================================================================
+   Problem Navigator
+   ================================================================ */
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.problem-nav {
+  padding: 32px 0 0;
+}
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.problem-card {
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.problem-card:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-md);
+}
+.problem-card.active {
+  border-color: var(--coral);
+  box-shadow: var(--shadow-lg);
+}
+.problem-card.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--coral);
+}
+.problem-card .icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  display: block;
+}
+.problem-card h3 {
+  font-size: 1rem;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.problem-card .appliance {
+  font-size: 0.82rem;
+  color: var(--gray-500);
+  margin-bottom: 12px;
+}
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge--green { background: var(--green-bg); color: var(--green); }
+.badge--yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge--red { background: var(--red-bg); color: var(--red); }
+.badge--navy { background: var(--gray-100); color: var(--navy); }
+
+/* ================================================================
+   Detail View
+   ================================================================ */
+.detail-section {
+  padding: 32px 0;
+}
+.detail-view {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Overview bar */
+.overview-bar {
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 16px 24px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.overview-bar .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-500);
+  font-weight: 600;
+}
+.overview-bar .value {
+  font-size: 0.9rem;
+  color: var(--gray-700);
+  margin-top: 2px;
+}
+
+/* Timeline */
+.timeline {
+  padding: 24px 24px 8px;
+}
+.timeline-step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 0 16px;
+  padding-bottom: 24px;
+  position: relative;
+}
+.timeline-step:last-child { padding-bottom: 8px; }
+
+/* Vertical line */
+.timeline-step:not(:last-child) .timeline-rail::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  bottom: 0;
+  background: var(--gray-200);
+}
+.timeline-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+.timeline-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--coral);
+  background: var(--white);
+  z-index: 1;
+  flex-shrink: 0;
+}
+.timeline-step.active .timeline-dot {
+  background: var(--coral);
+}
+.timeline-content {
+  min-width: 0;
+}
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.tool-icon {
+  font-size: 1rem;
+}
+.tool-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+.tool-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+/* Data summary */
+.data-summary {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+.data-summary strong {
+  color: var(--gray-700);
+  font-weight: 600;
+}
+
+/* What the AI noticed */
+.noticed-panel {
+  background: var(--coral-bg);
+  border: 1px solid #fde0d8;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.noticed-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--coral);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.feature-bar {
+  margin-bottom: 6px;
+}
+.feature-bar:last-of-type {
+  margin-bottom: 0;
+}
+.feature-label {
+  font-size: 0.78rem;
+  color: var(--gray-700);
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.feature-qualifier {
+  font-size: 0.68rem;
+  color: var(--gray-500);
+  font-style: italic;
+  text-transform: lowercase;
+}
+.feature-track {
+  height: 6px;
+  background: #fde0d8;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.feature-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--coral);
+  transition: width 0.4s ease;
+}
+.noticed-sentence {
+  font-size: 0.78rem;
+  color: var(--gray-600);
+  font-style: italic;
+  margin-top: 10px;
+  line-height: 1.5;
+  border-top: 1px solid #fde0d8;
+  padding-top: 8px;
+}
+.noticed-sentence strong {
+  color: var(--coral);
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Reasoning + Verdict */
+.reasoning {
+  padding: 20px 24px;
+  border-top: 1px solid var(--gray-200);
+}
+.reasoning h4 {
+  font-size: 0.85rem;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.reasoning p {
+  font-size: 0.88rem;
+  color: var(--gray-600);
+  line-height: 1.7;
+}
+
+.verdict {
+  padding: 20px 24px;
+  border-top: 2px solid var(--gray-200);
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.verdict-badge {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 6px;
+  display: inline-block;
+  white-space: nowrap;
+}
+.verdict-badge--diy { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+.verdict-badge--pro { background: var(--coral-bg); color: var(--coral); border: 1px solid var(--coral); }
+.verdict-badge--replace { background: var(--gray-100); color: var(--navy); border: 1px solid var(--navy); }
+.verdict-details {
+  flex: 1;
+  min-width: 200px;
+}
+.cost-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+.cost-grid .cost-label {
+  color: var(--gray-500);
+  font-weight: 600;
+}
+.cost-grid .cost-value {
+  color: var(--gray-700);
+}
+.verdict-rationale {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+/* ================================================================
+   Comparison View
+   ================================================================ */
+.comparison-section {
+  padding: 0 0 40px;
+}
+.comparison-section h2 {
+  font-size: 1.2rem;
+  color: var(--navy);
+  margin-bottom: 20px;
+}
+
+/* Grouped bar chart */
+.chart {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.chart-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.chart-row:last-child { margin-bottom: 0; }
+.chart-theme-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-align: right;
+}
+.chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chart-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-bar-tag {
+  font-size: 0.65rem;
+  width: 80px;
+  text-align: right;
+  color: var(--gray-500);
+  flex-shrink: 0;
+}
+.chart-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--gray-100);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.chart-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+.chart-bar-fill--dishwasher { background: var(--navy-light); }
+.chart-bar-fill--disposal { background: var(--green); }
+.chart-bar-fill--water_heater { background: var(--coral); }
+
+.chart-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 16px;
+  font-size: 0.78rem;
+  color: var(--gray-600);
+}
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Comparison table */
+.comparison-table-wrap {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.comparison-table thead th {
+  background: var(--navy);
+  color: var(--white);
+  font-weight: 600;
+  padding: 10px 16px;
+  text-align: left;
+}
+.comparison-table tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.comparison-table tbody tr:last-child td { border-bottom: none; }
+.comparison-table tbody tr:nth-child(even) { background: var(--gray-50); }
+.comparison-table .row-label {
+  font-weight: 600;
+  color: var(--gray-700);
+  white-space: nowrap;
+}
+
+/* ================================================================
+   Key Themes
+   ================================================================ */
+.themes-section {
+  padding: 0 0 48px;
+}
+.themes-section h2 {
+  font-size: 1.2rem;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+.theme-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.theme-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.theme-card summary {
+  padding: 14px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--navy);
+}
+.theme-card summary::before {
+  content: '\25B6';
+  font-size: 0.6rem;
+  color: var(--coral);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.theme-card[open] summary::before {
+  transform: rotate(90deg);
+}
+.theme-card summary:hover {
+  background: var(--gray-50);
+}
+.theme-body {
+  padding: 0 20px 18px;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  line-height: 1.7;
+}
+.theme-description {
+  margin-bottom: 14px;
+}
+
+/* Spectrum visualization */
+.spectrum {
+  position: relative;
+  margin: 16px 0 8px;
+}
+.spectrum-track {
+  height: 6px;
+  background: linear-gradient(90deg, var(--green) 0%, var(--gray-300) 50%, var(--coral) 100%);
+  border-radius: 3px;
+  position: relative;
+}
+.spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+.spectrum-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+.spectrum-marker {
+  position: absolute;
+  top: -6px;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--white);
+  border: 2px solid var(--gray-700);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.theme-features {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--gray-500);
+}
+.theme-features strong {
+  color: var(--gray-700);
+}
+
+/* ================================================================
+   Footer
+   ================================================================ */
+.footer {
+  background: var(--navy);
+  color: var(--gray-400);
+  padding: 24px;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+.footer a {
+  color: var(--coral-light);
+  text-decoration: none;
+}
+.footer a:hover { text-decoration: underline; }
+
+/* ================================================================
+   Responsive
+   ================================================================ */
+@media (max-width: 1024px) {
+  .tool-panels {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .hero h1 { font-size: 1.5rem; }
+  .problem-grid { grid-template-columns: 1fr; }
+  .overview-bar { flex-direction: column; gap: 12px; }
+  .chart-row { grid-template-columns: 1fr; }
+  .chart-theme-label { text-align: left; }
+  .verdict { flex-direction: column; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     A. Hero
+     ============================================================ -->
+<header class="hero">
+  <div class="container">
+    <h1>How Your AI Advisor Thinks</h1>
+    <p class="subtitle">
+      See the reasoning behind every repair recommendation &mdash;
+      what data the AI gathered, what factors it weighed, and why it reached each conclusion.
+    </p>
+    <p id="data-source" style="font-size: 0.82rem; color: var(--gray-400); margin-bottom: 16px;">Loading...</p>
+    <details class="how-to-read">
+      <summary>How to read this page</summary>
+      <div class="content">
+        <ol>
+          <li><strong>Pick a problem</strong> below to see the full analysis.</li>
+          <li><strong>Follow the timeline</strong> to see each research step the AI took.</li>
+          <li><strong>Colored bars</strong> show which factors mattered most at each step.</li>
+          <li><strong>Scroll down</strong> to compare how the AI thought differently about each problem.</li>
+        </ol>
+      </div>
+    </details>
+  </div>
+</header>
+
+<!-- ============================================================
+     B. Problem Navigator
+     ============================================================ -->
+<section class="problem-nav">
+  <div class="container">
+    <div class="section-label">Select a Problem</div>
+    <div class="problem-grid" id="problem-grid"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     C. Detail View
+     ============================================================ -->
+<section class="detail-section">
+  <div class="container">
+    <div id="detail-view"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     D. Comparison View
+     ============================================================ -->
+<section class="comparison-section">
+  <div class="container">
+    <h2>How the AI's Focus Differed Across Problems</h2>
+    <div id="comparison-chart"></div>
+    <div id="comparison-table"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     E. Key Themes
+     ============================================================ -->
+<section class="themes-section">
+  <div class="container">
+    <h2>The Five Dimensions the AI Evaluates</h2>
+    <div id="themes-container" class="theme-cards"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     F. Footer
+     ============================================================ -->
+<footer class="footer">
+  Powered by <a href="https://github.com/dataiku/kiji-inspector">Kiji Inspector</a> &mdash;
+  Sparse Autoencoder analysis of AI decision-making.<br>
+  Model: NVIDIA Nemotron-3-Nano-30B &middot; SAE Layer 20 &middot; Apache 2.0
+</footer>
+
+<!-- ============================================================
+     Script: Data + Rendering
+     ============================================================ -->
+<script>
+/* ================================================================
+   DATA — loaded from output/ui_data.json (generated by the Python
+   demo) or falls back to the embedded mock data below.
+   ================================================================ */
+let DATA = null;
+
+const MOCK_DATA = {
+  problems: [
+    {
+      id: 'dishwasher_leak',
+      icon: '\uD83D\uDCA7',
+      title: 'Dishwasher Leaking From Bottom',
+      appliance: 'Bosch 500 Series',
+      age: '3 years',
+      details: 'Water pools under the front about 15 minutes into the wash cycle. No error codes on the display.',
+      urgency: { label: 'Fix Soon', level: 'yellow' },
+      difficulty: { label: 'Moderate', level: 'yellow' },
+      costRange: '$13\u2013$90 DIY'
+    },
+    {
+      id: 'disposal_stuck',
+      icon: '\u2699\uFE0F',
+      title: 'Garbage Disposal Hums But Won\'t Spin',
+      appliance: 'InSinkErator Badger 5',
+      age: '2 years',
+      details: 'Motor hums when switched on but blades don\'t turn. Was working fine yesterday. No unusual smell.',
+      urgency: { label: 'Can Wait', level: 'green' },
+      difficulty: { label: 'Easy', level: 'green' },
+      costRange: '$0\u2013$8 DIY'
+    },
+    {
+      id: 'water_heater_noise',
+      icon: '\uD83D\uDD25',
+      title: 'Water Heater Making Loud Popping Sounds',
+      appliance: 'Rheem 50-Gal Gas',
+      age: '9 years',
+      details: 'Loud popping when heating up, especially mornings. Hot water takes longer to reach faucets. Slight rust tinge.',
+      urgency: { label: 'Act Now', level: 'red' },
+      difficulty: { label: 'Difficult', level: 'red' },
+      costRange: '$15\u2013$649 DIY'
+    }
+  ],
+
+  toolResults: {
+    dishwasher_leak: {
+      ManualCheck: '<strong>Possible causes:</strong> Door gasket worn, pump seal failure, loose inlet valve, spray arm seal worn.<br><strong>DIY difficulty:</strong> Moderate. <strong>Safety:</strong> Disconnect power at breaker and shut off water supply before inspection.',
+      PartsSearch: '<strong>Door gasket:</strong> $42.99 &middot; <strong>Pump assembly:</strong> $89.50 &middot; <strong>Spray arm seal:</strong> $12.99<br>All parts in stock, ships in 2\u20133 days.',
+      TutorialSearch: '<strong>"How to Fix a Leaking Dishwasher"</strong> by RepairClinic (1.2M views, 12 min, Beginner\u2013Intermediate).<br><strong>"Bosch Door Gasket Replacement"</strong> by AppliancePartsPros (340K views, 8 min, Beginner).',
+      ProQuote: '<strong>Gasket replacement:</strong> $163 total &middot; <strong>Pump seal:</strong> $270 total &middot; <strong>Diagnosis fee:</strong> $89<br>Available in 2\u20133 business days. 90-day warranty on repair.'
+    },
+    disposal_stuck: {
+      ManualCheck: '<strong>Likely cause:</strong> Jammed flywheel \u2014 foreign object wedged between impellers, or thermal overload tripped.<br><strong>DIY difficulty:</strong> Easy. <strong>Quick fix:</strong> Use 1/4" Allen wrench in hex socket on bottom, rotate to free jam, press red reset button.',
+      PartsSearch: '<strong>Self-service wrench kit:</strong> $7.99 &middot; <strong>Replacement unit (if motor failed):</strong> $99.00<br>Allen wrench often included with disposal.',
+      TutorialSearch: '<strong>"Garbage Disposal Humming But Not Working?"</strong> by HomeRepairTutor (2.8M views, 4 min, Beginner).<br><strong>"Unjam a Disposal in 60 Seconds"</strong> by This Old House (1.5M views, 3 min, Beginner).',
+      ProQuote: '<strong>Clear jam + reset:</strong> $75 total &middot; <strong>Full replacement:</strong> $249 total &middot; <strong>Diagnosis fee:</strong> $75<br>Available in 3\u20135 business days. Low urgency \u2014 sink still drains.'
+    },
+    water_heater_noise: {
+      ManualCheck: '<strong>Possible causes:</strong> Sediment buildup on tank bottom, depleted anode rod, scale on burner assembly, possible tank corrosion.<br><strong>DIY difficulty:</strong> Moderate\u2013Difficult. <strong>Safety:</strong> GAS APPLIANCE \u2014 risk of scalding burns and gas leaks. Turn off gas supply before any work.',
+      PartsSearch: '<strong>Anode rod:</strong> $29.99 &middot; <strong>Tank flush kit:</strong> $14.99 &middot; <strong>Replacement unit:</strong> $649.00<br>Specialized 1-1/16" socket and pipe wrench required.',
+      TutorialSearch: '<strong>"Water Heater Making Noise?"</strong> by Roger Wakefield (890K views, 18 min, Intermediate\u2013Advanced).<br><strong>"How to Flush a Water Heater"</strong> by This Old House (3.1M views, 10 min, Intermediate).',
+      ProQuote: '<strong>Flush + anode rod:</strong> $245 total &middot; <strong>Full replacement:</strong> $1,099 total &middot; <strong>Diagnosis fee:</strong> $95<br>Available in 1\u20132 days (prioritized for gas appliances). 1-year labor warranty.'
+    }
+  },
+
+  saeFeatures: {
+    dishwasher_leak: {
+      ManualCheck: {
+        features: [
+          { label: 'Active damage risk detection', strength: 0.71, description: 'Identifies ongoing water damage potential' },
+          { label: 'DIY skill requirement', strength: 0.62, description: 'Assesses tools and knowledge needed' },
+          { label: 'Safety hazard awareness', strength: 0.45, description: 'Flags electrical disconnect needed' }
+        ],
+        sentence: 'While checking the repair manual, the AI focused most on <strong>water damage risk</strong> and the <strong>skill level needed</strong> for this repair.'
+      },
+      PartsSearch: {
+        features: [
+          { label: 'Cost-benefit comparison', strength: 0.68, description: 'Weighs repair cost vs replacement value' },
+          { label: 'Budget-friendly option identification', strength: 0.55, description: 'Notices inexpensive part alternatives' },
+          { label: 'Warranty coverage assessment', strength: 0.42, description: 'Considers appliance age vs warranty period' }
+        ],
+        sentence: 'When reviewing parts, the AI weighed <strong>repair costs against replacement value</strong> and flagged the <strong>low-cost spray arm seal</strong> as the most budget-friendly option.'
+      },
+      TutorialSearch: {
+        features: [
+          { label: 'DIY skill requirement', strength: 0.58, description: 'Matches tutorial difficulty to homeowner level' },
+          { label: 'Beginner-friendly repair recognition', strength: 0.40, description: 'Notices simpler repair paths' },
+          { label: 'Electrical safety awareness', strength: 0.35, description: 'Flags power disconnection steps in tutorials' }
+        ],
+        sentence: 'The tutorial search activated the AI\'s focus on <strong>difficulty ratings</strong> and whether a <strong>beginner could follow along</strong> safely.'
+      },
+      ProQuote: {
+        features: [
+          { label: 'Cost-benefit comparison', strength: 0.72, description: 'Compares DIY savings to professional guarantee' },
+          { label: 'Warranty coverage assessment', strength: 0.53, description: 'Notes 90-day repair warranty value' },
+          { label: 'Active damage risk detection', strength: 0.48, description: 'Weighs continued use against floor damage' }
+        ],
+        sentence: 'Reviewing pro quotes, the AI compared <strong>DIY savings vs. professional guarantees</strong> and considered the <strong>ongoing water damage risk</strong> from waiting.'
+      }
+    },
+    disposal_stuck: {
+      ManualCheck: {
+        features: [
+          { label: 'Beginner-friendly repair recognition', strength: 0.85, description: 'Identifies this as a simple Allen-wrench fix' },
+          { label: 'Non-essential system recognition', strength: 0.62, description: 'Sink still drains without disposal' },
+          { label: 'Safety hazard awareness', strength: 0.15, description: 'Minimal risk noted (never put hand inside)' }
+        ],
+        sentence: 'The manual immediately triggered the AI\'s <strong>beginner-friendly repair</strong> signal \u2014 this is a textbook quick fix with minimal safety concerns.'
+      },
+      PartsSearch: {
+        features: [
+          { label: 'Budget-friendly option identification', strength: 0.90, description: 'Flags the $0\u2013$8 fix as near-zero cost' },
+          { label: 'Cost-benefit comparison', strength: 0.45, description: 'Pro service costs 10x the DIY fix' },
+          { label: 'Non-essential system recognition', strength: 0.38, description: 'Low urgency reduces spending pressure' }
+        ],
+        sentence: 'Parts search strongly activated the <strong>budget-friendly</strong> signal \u2014 this fix costs almost nothing and doesn\'t justify a service call.'
+      },
+      TutorialSearch: {
+        features: [
+          { label: 'Beginner-friendly repair recognition', strength: 0.92, description: '2.8M-view tutorial confirms easy fix' },
+          { label: 'DIY skill requirement', strength: 0.20, description: 'Very low skill barrier' },
+          { label: 'Non-essential system recognition', strength: 0.35, description: 'No rush to complete' }
+        ],
+        sentence: 'Tutorial results triggered the strongest <strong>beginner-friendly</strong> signal in the entire analysis \u2014 millions of people have fixed this exact problem.'
+      },
+      ProQuote: {
+        features: [
+          { label: 'Cost-benefit comparison', strength: 0.70, description: '$75 service call for a free DIY fix' },
+          { label: 'Budget-friendly option identification', strength: 0.65, description: 'Pro cost dramatically exceeds DIY cost' },
+          { label: 'Non-essential system recognition', strength: 0.55, description: 'No urgency justifying professional speed' }
+        ],
+        sentence: 'The pro quote strongly reinforced the <strong>cost mismatch</strong> \u2014 paying $75 for something you can fix in 60 seconds makes no sense.'
+      }
+    },
+    water_heater_noise: {
+      ManualCheck: {
+        features: [
+          { label: 'Gas appliance risk assessment', strength: 0.95, description: 'Highest possible safety flag for gas systems' },
+          { label: 'Safety hazard awareness', strength: 0.88, description: 'Scalding, gas leak, and fire risks' },
+          { label: 'Immediate safety concern', strength: 0.82, description: 'Active deterioration requiring prompt action' },
+          { label: 'Appliance age-to-lifespan ratio', strength: 0.70, description: '9 years into typical 8\u201312 year lifespan' }
+        ],
+        sentence: 'The repair manual triggered the AI\'s strongest-ever <strong>gas appliance safety</strong> signal, combined with serious <strong>age and deterioration</strong> concerns.'
+      },
+      PartsSearch: {
+        features: [
+          { label: 'Replacement cost threshold', strength: 0.85, description: '$649 replacement vs $45 maintenance gamble' },
+          { label: 'Cost-benefit comparison', strength: 0.78, description: 'Maintenance may not extend life enough' },
+          { label: 'Appliance age-to-lifespan ratio', strength: 0.72, description: 'Near end of expected service life' },
+          { label: 'Specialized tool requirement', strength: 0.60, description: 'Needs anode socket and pipe wrench' }
+        ],
+        sentence: 'Parts pricing activated a strong <strong>replacement cost threshold</strong> signal \u2014 the AI questioned whether maintenance is worth it on a unit this old.'
+      },
+      TutorialSearch: {
+        features: [
+          { label: 'DIY skill requirement', strength: 0.80, description: 'Advanced tutorials with safety disclaimers' },
+          { label: 'Specialized tool requirement', strength: 0.75, description: 'Uncommon tools needed for anode replacement' },
+          { label: 'Gas appliance risk assessment', strength: 0.70, description: 'Tutorials emphasize professional gas work' },
+          { label: 'Safety hazard awareness', strength: 0.65, description: 'Multiple safety warnings in each tutorial' }
+        ],
+        sentence: 'Even the tutorials reinforced the AI\'s <strong>high skill requirement</strong> and <strong>gas safety</strong> concerns \u2014 every video emphasizes calling a pro for gas work.'
+      },
+      ProQuote: {
+        features: [
+          { label: 'Immediate safety concern', strength: 0.90, description: 'Gas appliance prioritized in scheduling' },
+          { label: 'Gas appliance risk assessment', strength: 0.85, description: 'Professional service avoids gas handling' },
+          { label: 'Replacement cost threshold', strength: 0.78, description: '$1,099 full replacement may be best value' },
+          { label: 'Appliance age-to-lifespan ratio', strength: 0.75, description: 'Long-term cost favors replacement' }
+        ],
+        sentence: 'The pro quote triggered peak <strong>immediate safety</strong> and <strong>gas risk</strong> signals \u2014 the AI strongly favors professional handling for this appliance.'
+      }
+    }
+  },
+
+  recommendations: {
+    dishwasher_leak: {
+      verdict: 'diy',
+      verdictLabel: 'DIY Repair',
+      diyCost: '$13\u2013$90',
+      proCost: '$163\u2013$270',
+      rationale: 'Start with the cheapest fix first: inspect and replace the spray arm seal ($13) or door gasket ($43). Disconnect power and water before starting. If the pump seal is the culprit ($90), it\'s still worth DIY with a good tutorial. The moderate difficulty and available video guides make this manageable for most homeowners.'
+    },
+    disposal_stuck: {
+      verdict: 'diy',
+      verdictLabel: 'Easy DIY Fix',
+      diyCost: '$0\u2013$8',
+      proCost: '$75\u2013$249',
+      rationale: 'This is one of the simplest home repairs. Insert a 1/4" Allen wrench into the hex socket on the bottom of the unit, rotate back and forth to free the jam, remove debris with tongs, press the red reset button, and test. The whole fix takes under 5 minutes and costs virtually nothing.'
+    },
+    water_heater_noise: {
+      verdict: 'pro',
+      verdictLabel: 'Call a Professional',
+      diyCost: '$15\u2013$45 (maintenance only)',
+      proCost: '$245\u2013$1,099',
+      rationale: 'At 9 years old with rust in the water, this unit is approaching end of life. The popping indicates heavy sediment buildup that may have already damaged the tank lining. This is a gas appliance \u2014 improper work risks gas leaks, scalding, and fire. A licensed plumber can assess whether a flush will extend its life or if full replacement is the safer, more cost-effective choice.'
+    }
+  },
+
+  comparison: {
+    'Safety Concern': { dishwasher_leak: 35, disposal_stuck: 10, water_heater_noise: 95 },
+    'Cost Sensitivity': { dishwasher_leak: 65, disposal_stuck: 85, water_heater_noise: 80 },
+    'DIY Feasibility': { dishwasher_leak: 60, disposal_stuck: 95, water_heater_noise: 20 },
+    'Urgency Level': { dishwasher_leak: 55, disposal_stuck: 15, water_heater_noise: 90 },
+    'Age / Warranty Factor': { dishwasher_leak: 40, disposal_stuck: 20, water_heater_noise: 80 }
+  },
+
+  themes: [
+    {
+      id: 'diy_vs_professional',
+      title: 'DIY vs. Professional',
+      description: 'Some repairs are safely done with basic household tools and minimal experience, while others involve safety hazards or specialized equipment that require a licensed professional.',
+      leftLabel: 'Easy DIY',
+      rightLabel: 'Needs a Pro',
+      markers: { dishwasher_leak: 40, disposal_stuck: 8, water_heater_noise: 88 },
+      features: 'Driven by <strong>DIY skill requirement</strong> and <strong>safety hazard awareness</strong>'
+    },
+    {
+      id: 'urgent_vs_planned',
+      title: 'Urgent vs. Planned',
+      description: 'Some problems need immediate attention due to active damage or safety risks, while others are nuisances that can be scheduled at your convenience.',
+      leftLabel: 'Can Wait',
+      rightLabel: 'Act Now',
+      markers: { dishwasher_leak: 55, disposal_stuck: 10, water_heater_noise: 90 },
+      features: 'Driven by <strong>immediate safety concern</strong> and <strong>active damage risk detection</strong>'
+    },
+    {
+      id: 'cheap_fix_vs_replacement',
+      title: 'Cheap Fix vs. Replacement',
+      description: 'Some problems are a simple, inexpensive part swap, while others suggest the appliance is near end-of-life and full replacement is more cost-effective than repair.',
+      leftLabel: 'Quick Part Swap',
+      rightLabel: 'Consider Replacing',
+      markers: { dishwasher_leak: 35, disposal_stuck: 10, water_heater_noise: 78 },
+      features: 'Driven by <strong>replacement cost threshold</strong> and <strong>appliance age-to-lifespan ratio</strong>'
+    },
+    {
+      id: 'safe_vs_hazardous',
+      title: 'Safe vs. Hazardous',
+      description: 'Some repairs pose no meaningful risk to a careful homeowner, while others involve gas lines, live electrical panels, or pressurized systems.',
+      leftLabel: 'Low Risk',
+      rightLabel: 'High Hazard',
+      markers: { dishwasher_leak: 30, disposal_stuck: 12, water_heater_noise: 95 },
+      features: 'Driven by <strong>gas appliance risk assessment</strong> and <strong>electrical safety awareness</strong>'
+    },
+    {
+      id: 'warranty_vs_out_of_pocket',
+      title: 'Warranty vs. Out of Pocket',
+      description: 'Newer appliances under warranty make professional service free or low-cost, while older appliances past coverage make DIY the economical choice.',
+      leftLabel: 'May Be Covered',
+      rightLabel: 'Out of Pocket',
+      markers: { dishwasher_leak: 35, disposal_stuck: 30, water_heater_noise: 85 },
+      features: 'Driven by <strong>warranty coverage assessment</strong> and <strong>appliance age-to-lifespan ratio</strong>'
+    }
+  ]
+};
+
+/* ================================================================
+   Data source indicator (shown in the hero)
+   ================================================================ */
+const dataSourceEl = document.getElementById('data-source');
+
+/* ================================================================
+   State
+   ================================================================ */
+let state = { selectedProblem: 'dishwasher_leak' };
+
+/* ================================================================
+   Helpers
+   ================================================================ */
+function strengthLabel(val) {
+  if (val >= 0.75) return 'strong';
+  if (val >= 0.45) return 'moderate';
+  return 'mild';
+}
+function strengthPct(val) {
+  return Math.round(val * 100) + '%';
+}
+function strengthOpacity(val) {
+  return 0.35 + val * 0.65;
+}
+const markerLetters = {
+  dishwasher_leak: 'D',
+  disposal_stuck: 'G',
+  water_heater_noise: 'W'
+};
+
+/* ================================================================
+   Render: Problem Cards
+   ================================================================ */
+function renderProblemCards() {
+  const grid = document.getElementById('problem-grid');
+  grid.innerHTML = DATA.problems.map(p => `
+    <div class="problem-card ${p.id === state.selectedProblem ? 'active' : ''}"
+         onclick="selectProblem('${p.id}')">
+      <span class="icon">${p.icon}</span>
+      <h3>${p.title}</h3>
+      <div class="appliance">${p.appliance} &middot; ${p.age} old</div>
+      <div class="badges">
+        <span class="badge badge--${p.urgency.level}">${p.urgency.label}</span>
+        <span class="badge badge--${p.difficulty.level}">${p.difficulty.label}</span>
+        <span class="badge badge--navy">${p.costRange}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ================================================================
+   Render: Detail View
+   ================================================================ */
+function renderDetail() {
+  const pid = state.selectedProblem;
+  const problem = DATA.problems.find(p => p.id === pid);
+  const tools = DATA.toolResults[pid];
+  const sae = DATA.saeFeatures[pid];
+  const rec = DATA.recommendations[pid];
+  const toolNames = ['ManualCheck', 'PartsSearch', 'TutorialSearch', 'ProQuote'];
+  const toolLabels = {
+    ManualCheck: { name: 'Repair Manual Lookup', icon: '\uD83D\uDCD6' },
+    PartsSearch: { name: 'Parts & Pricing Search', icon: '\uD83D\uDD27' },
+    TutorialSearch: { name: 'Video Tutorial Search', icon: '\uD83C\uDFAC' },
+    ProQuote: { name: 'Professional Quote', icon: '\uD83D\uDCCB' }
+  };
+
+  const verdictClass = rec.verdict === 'diy' ? 'verdict-badge--diy'
+    : rec.verdict === 'pro' ? 'verdict-badge--pro'
+    : 'verdict-badge--replace';
+
+  document.getElementById('detail-view').innerHTML = `
+    <div class="detail-view">
+      <!-- Overview bar -->
+      <div class="overview-bar">
+        <div><div class="label">Appliance</div><div class="value">${problem.appliance}</div></div>
+        <div><div class="label">Age</div><div class="value">${problem.age}</div></div>
+        <div><div class="label">Symptoms</div><div class="value">${problem.details}</div></div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="timeline">
+        ${toolNames.map((tn, i) => {
+          const tl = toolLabels[tn];
+          const feat = sae[tn];
+          const maxStr = Math.max(...feat.features.map(f => f.strength));
+          return `
+          <div class="timeline-step active">
+            <div class="timeline-rail"><div class="timeline-dot"></div></div>
+            <div class="timeline-content">
+              <div class="tool-header">
+                <span class="tool-icon">${tl.icon}</span>
+                <span class="tool-name">Step ${i + 1}: ${tl.name}</span>
+              </div>
+              <div class="tool-panels">
+                <div class="data-summary">${tools[tn]}</div>
+                <div class="noticed-panel">
+                  <div class="noticed-title">What the AI Noticed</div>
+                  ${feat.features.map(f => `
+                    <div class="feature-bar">
+                      <div class="feature-label">
+                        <span>${f.label}</span>
+                        <span class="feature-qualifier">${strengthLabel(f.strength)}</span>
+                      </div>
+                      <div class="feature-track">
+                        <div class="feature-fill" style="width: ${strengthPct(f.strength / maxStr)}; opacity: ${strengthOpacity(f.strength)}"></div>
+                      </div>
+                    </div>
+                  `).join('')}
+                  <div class="noticed-sentence">${feat.sentence}</div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Reasoning -->
+      <div class="reasoning">
+        <h4>How the AI Reached Its Conclusion</h4>
+        <p>${rec.rationale}</p>
+      </div>
+
+      <!-- Verdict -->
+      <div class="verdict">
+        <div class="verdict-badge ${verdictClass}">${rec.verdictLabel}</div>
+        <div class="verdict-details">
+          <div class="cost-grid">
+            <span class="cost-label">DIY Cost:</span><span class="cost-value">${rec.diyCost}</span>
+            <span class="cost-label">Pro Cost:</span><span class="cost-value">${rec.proCost}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   Render: Comparison Chart
+   ================================================================ */
+function renderComparison() {
+  const themes = Object.keys(DATA.comparison);
+  const pids = ['dishwasher_leak', 'disposal_stuck', 'water_heater_noise'];
+  const pidLabels = { dishwasher_leak: 'Dishwasher', disposal_stuck: 'Disposal', water_heater_noise: 'Water Heater' };
+
+  document.getElementById('comparison-chart').innerHTML = `
+    <div class="chart">
+      ${themes.map(theme => `
+        <div class="chart-row">
+          <div class="chart-theme-label">${theme}</div>
+          <div class="chart-bars">
+            ${pids.map(pid => `
+              <div class="chart-bar-row">
+                <span class="chart-bar-tag">${pidLabels[pid]}</span>
+                <div class="chart-bar-track">
+                  <div class="chart-bar-fill chart-bar-fill--${pid}" style="width: ${DATA.comparison[theme][pid]}%"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+      <div class="chart-legend">
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background: var(--navy-light)"></div> Dishwasher</div>
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background: var(--green)"></div> Disposal</div>
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background: var(--coral)"></div> Water Heater</div>
+      </div>
+    </div>
+  `;
+
+  // Comparison table
+  const rec = DATA.recommendations;
+  document.getElementById('comparison-table').innerHTML = `
+    <div class="comparison-table-wrap">
+      <table class="comparison-table">
+        <thead>
+          <tr><th></th><th>Dishwasher Leak</th><th>Stuck Disposal</th><th>Water Heater Noise</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">Verdict</td><td>${rec.dishwasher_leak.verdictLabel}</td><td>${rec.disposal_stuck.verdictLabel}</td><td>${rec.water_heater_noise.verdictLabel}</td></tr>
+          <tr><td class="row-label">DIY Cost</td><td>${rec.dishwasher_leak.diyCost}</td><td>${rec.disposal_stuck.diyCost}</td><td>${rec.water_heater_noise.diyCost}</td></tr>
+          <tr><td class="row-label">Pro Cost</td><td>${rec.dishwasher_leak.proCost}</td><td>${rec.disposal_stuck.proCost}</td><td>${rec.water_heater_noise.proCost}</td></tr>
+          <tr><td class="row-label">Urgency</td>
+            <td><span class="badge badge--yellow">Fix Soon</span></td>
+            <td><span class="badge badge--green">Can Wait</span></td>
+            <td><span class="badge badge--red">Act Now</span></td></tr>
+          <tr><td class="row-label">Safety Risk</td>
+            <td><span class="badge badge--yellow">Moderate</span></td>
+            <td><span class="badge badge--green">Low</span></td>
+            <td><span class="badge badge--red">High</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================================================================
+   Render: Theme Cards
+   ================================================================ */
+function renderThemes() {
+  const container = document.getElementById('themes-container');
+  container.innerHTML = DATA.themes.map(t => `
+    <details class="theme-card">
+      <summary>${t.title}</summary>
+      <div class="theme-body">
+        <div class="theme-description">${t.description}</div>
+        <div class="spectrum">
+          <div class="spectrum-track">
+            <div class="spectrum-markers">
+              ${Object.entries(t.markers).map(([pid, pos]) => `
+                <div class="spectrum-marker" style="left: ${pos}%" title="${DATA.problems.find(p => p.id === pid).title}">${markerLetters[pid]}</div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="spectrum-labels">
+            <span>${t.leftLabel}</span>
+            <span>${t.rightLabel}</span>
+          </div>
+        </div>
+        <div class="theme-features">
+          ${t.features}<br>
+          <span style="font-size: 0.72rem; color: var(--gray-400)">D = Dishwasher &middot; G = Garbage Disposal &middot; W = Water Heater</span>
+        </div>
+      </div>
+    </details>
+  `).join('');
+}
+
+/* ================================================================
+   Event Handlers
+   ================================================================ */
+function selectProblem(id) {
+  state.selectedProblem = id;
+  renderProblemCards();
+  renderDetail();
+  document.getElementById('detail-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ================================================================
+   Init: try loading real data, fall back to mock
+   ================================================================ */
+function render() {
+  renderProblemCards();
+  renderDetail();
+  renderComparison();
+  renderThemes();
+}
+
+async function init() {
+  try {
+    const resp = await fetch('output/ui_data.json');
+    if (!resp.ok) throw new Error(resp.status);
+    DATA = await resp.json();
+    if (dataSourceEl) dataSourceEl.textContent = 'Showing live results from the last demo run.';
+    console.log('Loaded live data from output/ui_data.json');
+  } catch (e) {
+    DATA = MOCK_DATA;
+    if (dataSourceEl) dataSourceEl.textContent = 'Showing example data. Run the demo to see live results.';
+    console.log('Using mock data (output/ui_data.json not found)');
+  }
+  state.selectedProblem = DATA.problems[0]?.id || 'dishwasher_leak';
+  render();
+}
+init();
+</script>
+</body>
+</html>
