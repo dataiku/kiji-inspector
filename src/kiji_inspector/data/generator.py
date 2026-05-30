@@ -78,7 +78,9 @@ def _format_chat(
     ]
     if tokenizer is not None and hasattr(tokenizer, "apply_chat_template"):
         return tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True,
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
         )
     # Fallback: manual ChatML for API / tokenizer-less paths
     return (

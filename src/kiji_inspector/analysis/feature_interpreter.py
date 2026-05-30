@@ -230,6 +230,7 @@ def _try_parse_label_json(raw: str) -> dict | None:
 
     Returns {"label", "description", "confidence"} or None.
     """
+
     def _validate(parsed: dict) -> dict | None:
         if not isinstance(parsed, dict):
             return None
@@ -312,7 +313,9 @@ def _run_labeling_subprocess(
         ]
         formatted_prompts.append(
             tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True,
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
             )
         )
 

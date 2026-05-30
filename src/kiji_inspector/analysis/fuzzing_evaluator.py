@@ -801,7 +801,9 @@ def _run_judge_subprocess(
         ]
         formatted_prompts.append(
             tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True,
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
             )
         )
 
