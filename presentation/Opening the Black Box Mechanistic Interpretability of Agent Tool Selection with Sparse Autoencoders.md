@@ -456,6 +456,10 @@ section.closing p {
 
 <p><strong>Hannes Hapke</strong> with <strong>David Cardozo</strong> · 575 Lab, Dataiku Inc.</p>
 
+<!--
+Welcome the audience. Frame the talk in one sentence: today we're going to look inside an AI agent's head while it picks a tool, using sparse autoencoders. This is joint work with David Cardozo at 575 Lab, Dataiku's open source research office. Keep this slide short - 20 seconds max.
+-->
+
 ---
 
 <!-- _class: dark -->
@@ -490,6 +494,10 @@ Co-author of four O'Reilly & Manning books, including:
 
 <p></p>
 <p style="text-align: center;"><strong>Find me:</strong> hanneshapke.com • github.com/hanneshapke • linkedin.com/in/hanneshapke</p>
+
+<!--
+Quick personal intro. I lead engineering at Dataiku's 575 Lab and I'm a Google Developer Expert for ML. My background is production ML pipelines - which is why this project obsesses about packaging, vLLM patches, and reproducibility, not just the science. Co-authored four books, most recently Generative AI Design Patterns. Don't read the bullets - just pick one focus area to riff on. Move on in under 45 seconds.
+-->
 
 ---
 
@@ -533,6 +541,10 @@ vLLM &middot; scikit-learn (sponsor) &middot; Cardinal (active learning) &middot
 
 </div>
 
+<!--
+575 Lab is Dataiku's open source office. Our charter is Responsible AI you can actually ship - meaning transparency, control, and accountability are non-negotiable. Two flagship projects: Kiji Inspector (today's talk) and Kiji Privacy Proxy (PII redaction before LLM calls). We also sponsor scikit-learn and contribute upstream to vLLM. Key point: interpretability isn't a research curiosity for us, it's a deployment requirement.
+-->
+
 ---
 
 ## The Problem: Opaque Agent Decisions
@@ -556,6 +568,10 @@ We need to look **inside the model**.
 
 </div>
 
+<!--
+Set the stakes. Modern agents pick from dozens of tools - databases, web search, code execution, file writes - based on a single natural language sentence. When it goes wrong (privacy leak, wrong data source, irreversible action), the question "why did it pick that?" has no good answer today. Walk through the three failure modes: prompt engineering only finds correlations; behavioral tests only see I/O; chain-of-thought is plausible storytelling that often doesn't match the actual computation. The Anthropic faithfulness work is a good reference if anyone asks. Land on the punchline: we need to look inside the model.
+-->
+
 ---
 
 <!-- _class: section -->
@@ -567,6 +583,10 @@ We need to look **inside the model**.
 # The Solution
 
 ### Looking Inside with Sparse Autoencoders
+
+<!--
+Section transition - 5 seconds. Three-step build coming: autoencoders, then sparse autoencoders, then how we read the features. Audience may not have interpretability background, so I'm grounding the technique from first principles before showing what we did with it.
+-->
 
 ---
 
@@ -582,6 +602,10 @@ A **self-supervised** technique that learns new representations: compress an inp
 - **Well-understood** -- decades of theory and practice
 - **Lossy by design** -- the bottleneck forces the model to *prioritise*
 
+<!--
+Start from the textbook autoencoder: compress to a bottleneck, reconstruct, train on reconstruction loss. The point isn't the reconstruction - it's that whatever survives the squeeze is what the model decided was essential. Self-supervised: no labels needed because the input is also the target. This is the foundation; the next slide is the twist.
+-->
+
 ---
 
 ## How to Understand Models &mdash; Step 2
@@ -596,6 +620,10 @@ Flip the autoencoder on its head: instead of compressing, **expand** the latent 
 <!--- **Monosemantic features** -- each dimension tends to track one human-interpretable concept-->
 <!--- **Sparsity constraint** -- $L_0 < 5\%$ of features active per token-->
 
+<!--
+Here's the counterintuitive flip: instead of squeezing the representation smaller, expand it - sometimes 4x to 16x wider than the input - but force the model to use fewer than 5% of those dimensions for any single example. Why this works: dense activations are polysemantic (one neuron means many things). The sparsity constraint pushes the network toward monosemantic features - each dimension tends to track one human-interpretable concept. This is the Anthropic/EleutherAI line of work; namedrop Bricken 2023 if anyone asks for a primary reference.
+-->
+
 ---
 
 ## How to Understand Models &mdash; Step 3
@@ -609,6 +637,10 @@ A trained feature is just an index. To *label* it, collect the contexts where it
 - **Feature &rArr; contexts** -- gather the top-*k* token spans that maximally activate each feature
 - **Auto-interpretation** -- an LLM proposes a short natural-language label from those examples
 - **Themes emerge** -- many features cluster around tool-relevant concepts (syntax, scope, error language)
+
+<!--
+After training, a feature is just an integer index - feature 14641, feature 2341 - it has no name. To label it: for each feature, collect the contexts (token spans) where it activates most strongly, then hand those to an LLM and ask "what's the common pattern?" This is autointerp - the standard recipe from EleutherAI. We use it both to assign labels and as a basis for the stricter evaluation we'll show later. End by previewing: themes emerge naturally - syntax, scope, intent type - all without us defining a taxonomy.
+-->
 
 ---
 
@@ -664,6 +696,10 @@ Pre-trained SAE models distributed via **Hugging Face**, **Docker Hub**, and **P
 
 GitHub: [github.com/dataiku/kiji-inspector](https://github.com/dataiku/kiji-inspector)
 
+<!--
+This is the product pitch slide - what we shipped, not what we discovered. Four pillars: (1) model agnostic - we tested on Nemotron and Gemma but the framework runs on any HuggingFace causal LM, (2) end-to-end - we generate the contrastive datasets too, no manual labeling needed, (3) production-ready inference - vLLM patches and Docker containers so this drops into a live serving stack, (4) open source - pre-trained SAEs already on Hugging Face for several models, so most users can skip training entirely. Repo link at the bottom.
+-->
+
 ---
 
 ## What's Novel?
@@ -712,6 +748,10 @@ Zero a feature, measure the prediction flip &mdash; turns correlations into evid
 
 </div>
 
+<!--
+Now the research contributions - what's different from prior SAE work. (1) Decision-token extraction: most SAE work pools activations across a whole sequence; we grab the exact token where the model commits to a tool name. (2) Contrastive pairs are used post-hoc as probes - they never enter the SAE training signal, so the SAE learns the model's natural feature vocabulary unsupervised. (3) Token-level fuzzing - we tightened EleutherAI's autointerp by evaluating at the token, not the prompt, so a feature can't get credit for matching the topic if it doesn't match the token. (4) Causal ablation - the difference between "this feature correlates with the decision" and "this feature is necessary for the decision." We'll see results for all four later.
+-->
+
 ---
 
 ## Our Complete Training Pipeline
@@ -719,6 +759,10 @@ Zero a feature, measure the prediction flip &mdash; turns correlations into evid
 ![center w:950](../paper/images/training_pipeline.png)
 
 The SAE is trained unsupervised on the activations; contrastive pairs serve only as post-hoc statistical probes.
+
+<!--
+Walk through the diagram left to right. Start: generate ~500K contrastive pairs from scenario JSON files. Run them through the subject model and harvest the decision-token activations - one vector per pair. That's the SAE training corpus. Train the JumpReLU SAE on those activations - unsupervised. Then, post-hoc, we use the contrastive pair labels to identify which features differentiate between tool A and tool B. Emphasize: the pair labels never enter the SAE loss. The SAE learns the model's vocabulary; we use the pairs to read it.
+-->
 
 ---
 
@@ -728,6 +772,10 @@ The SAE is trained unsupervised on the activations; contrastive pairs serve only
 
 Seven steps from raw prompts to human-readable decision explanations.
 
+<!--
+This is the runtime story - what happens after the SAE is trained. A user request comes in, the subject model selects a tool, and in parallel we capture the decision-token activation, pass it through the SAE, look up the top-firing features in the labeled dictionary, and emit a human-readable rationale alongside the tool call. The whole thing runs as a single Docker container on the vLLM side. Don't dwell on every arrow - the point is that interpretation is online, not a separate offline analysis.
+-->
+
 ---
 
 ## Nemotron-3 Nano Architecture
@@ -735,6 +783,10 @@ Seven steps from raw prompts to human-readable decision explanations.
 ![center w:950](../paper/images/nemotron_architecture.png)
 
 Hybrid Mamba2-Transformer MoE, 52 layers, open weights &mdash. We extract activations at **layer 20** (GQA attention).
+
+<!--
+For the main results we used Nemotron-3 Nano 30B. Why this one: hybrid Mamba2-Transformer MoE, 52 layers, fully open weights, and large enough to do real tool use - but small enough to extract a million activations affordably. We hook at layer 20 - a grouped-query attention block - and the rationale for layer 20 specifically comes later in the layer sweep slide. If the audience asks about MoE: routing happens post-layer-32 in this architecture, which is why we stay below it.
+-->
 
 ---
 
@@ -745,6 +797,10 @@ Hybrid Mamba2-Transformer MoE, 52 layers, open weights &mdash. We extract activa
 Encoder projects 2,688-dim input to 10,752 sparse features via JumpReLU with learnable per-feature thresholds. 
 
 <!--Decoder reconstructs with unit-norm columns. Shared bias b_dec centers the input.-->
+
+<!--
+This is the architecture of our SAE itself. Input is the 2,688-dim hidden state from Nemotron layer 20. Encoder projects up to 10,752 features - 4x expansion. JumpReLU gating with one learnable threshold per feature gives true zeros without breaking gradients. Decoder is a linear layer with unit-norm columns - that constraint keeps features from absorbing magnitude into the dictionary vector. Shared bias b_dec centers the input. Don't dwell on the math here - the equations come two slides later. Just establish: this is the model we trained.
+-->
 
 ---
 
@@ -761,6 +817,10 @@ The hidden state at this final token is the **decision token** -- the model's in
 - Hidden dimension: **2,688**
 - Batched extraction with left-padding for alignment
 - Dataset: **1,000,000** activation vectors (500K contrastive pairs)
+
+<!--
+Key idea of the slide: where in the sequence do we look? Most SAE work pools activations across the whole prompt. We don't - we grab one specific token: the hidden state at "I'll use the '" - literally the position where the next token will be the tool name. That's the model's internal state at the moment of commitment. Two reasons this matters: (1) cleaner signal - no averaging over irrelevant context, (2) directly causal for the tool choice we're trying to explain. Dataset: a million activation vectors from 500K contrastive pairs (two activations per pair).
+-->
 
 ---
 
@@ -781,6 +841,10 @@ The hidden state at this final token is the **decision token** -- the model's in
 | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | 8 17 20 26 35 44 |
 | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | 8 17 20 26 35 44 |
 
+<!--
+Skip the table quickly - it's a reference slide. The point: pre-trained SAEs are already on Hugging Face under the 575-lab org for Gemma 3 (1B/4B/27B), Gemma 4 (multiple variants including E2B/E4B), and Nemotron-3 across Nano 30B (BF16/FP8/NVFP4) and Super 120B (BF16/FP8). For each model we ship multiple layers so you can pick the one that matches your decision point. If anyone is on a supported model they can skip training entirely - that's the whole point of the open release.
+-->
+
 ---
 
 ## Hands-on: Extract a Layer's Activations
@@ -790,6 +854,10 @@ The Kiji Inspector builds on standard PyTorch primitives. Here's the extraction 
 ```bash
 pip install -U -q kiji-inspector transformers
 ```
+
+<!--
+Pivoting from research narrative to a live code walkthrough. The point of the next six slides is: this is plain PyTorch + HuggingFace - no Kiji magic for the extraction step. We're deliberately showing the raw mechanism first so people see the SAE is layered on top of standard infrastructure they already know. After the code walkthrough we'll bring in the Kiji Inspector API and show the payoff. One pip install, two libraries.
+-->
 
 ---
 
@@ -805,6 +873,10 @@ PROMPT      = "My dishwasher is smelly, what is the first element I should revie
 ```
 
 Pick the **layer** to study and the **model** to study it on. Everything else flows from these three constants.
+
+<!--
+Just three constants drive everything: which layer, which model, what prompt. Layer 8 here because we're demonstrating on Gemma 4 E4B which is smaller than Nemotron - the analogous "decision-near" layer is shallower. Use the dishwasher prompt deliberately - it's mundane and shows the system handles non-toy domains. Move through this slide in 15 seconds.
+-->
 
 ---
 
@@ -822,6 +894,10 @@ model.eval()
 
 `bfloat16` halves memory; `device_map="auto"` lets HF Accelerate place layers across GPUs. `.eval()` disables dropout &mdash; we want deterministic activations.
 
+<!--
+Three details worth pointing out: bf16 because we don't need fp32 precision for forward-only inference - it halves memory and the SAE can absorb the noise. device_map=auto lets HF Accelerate split layers across whatever GPUs are available. eval mode disables dropout - critical because we want the *same* activation every time we run the same prompt, otherwise our SAE features become noisy.
+-->
+
 ---
 
 ## Format the Prompt
@@ -836,6 +912,10 @@ inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
 ```
 
 `add_generation_prompt=True` appends the assistant turn header &mdash; the model is now poised to *answer*. That final position is the **decision token** we just defined.
+
+<!--
+The crucial flag here is add_generation_prompt=True. Without it, you tokenize "user said X" - with it, you tokenize "user said X, assistant is about to respond starting with...". That final cursor position is the decision token from earlier in the talk. This is where the model's internal state has converged on what it's going to do next. Everything else on this slide is boilerplate device handling.
+-->
 
 ---
 
@@ -854,6 +934,10 @@ handle = layer.register_forward_hook(hook)
 
 PyTorch's `register_forward_hook` intercepts the layer's output mid-forward-pass. We `.detach()` to drop the autograd graph and `.cpu()` so we don't pin GPU memory.
 
+<!--
+This is the meat. register_forward_hook is a one-line PyTorch primitive that lets you intercept a layer's output mid-forward-pass without modifying the model code. The hook stuffs the hidden state into a captured dict. Two important hygiene moves: detach() drops the autograd graph (we're not training), and cpu() moves the tensor off GPU so we don't accidentally pin a million activations in VRAM during dataset construction. This same code pattern scales from one example to a million.
+-->
+
 ---
 
 ## Run Inference, Retrieve the Tensor
@@ -869,6 +953,10 @@ hidden_state = captured["tensor"]
 ```
 
 `inference_mode()` is faster than `no_grad()` &mdash; it also skips view-tracking. The `try / finally` guarantees the hook is removed even on error. `hidden_state` is ready to feed into a trained SAE.
+
+<!--
+Two craft notes here. inference_mode is strictly faster than no_grad because it also skips view-tracking - matters at scale. The try/finally guarantees the hook handle is removed even if the forward pass raises - otherwise hooks accumulate silently and you start capturing other people's tensors. After this block, hidden_state is just a regular CPU tensor ready to feed into the SAE. That's the handoff to the next slide.
+-->
 
 ---
 
@@ -890,6 +978,10 @@ sae.describe(last_token_act, feature_descriptions)
 ```
 
 `SAE.from_pretrained` pulls a layer-matched SAE *and* its labelled feature dictionary from the Hub. `describe()` returns the highest-activating features and their human-readable labels &mdash; the decision token, explained.
+
+<!--
+This is the payoff slide. Three lines: load a layer-matched SAE *and* its labeled feature dictionary from the Hub, slice out the last-token activation, call describe(). That's the whole user experience. The HF-style API is deliberate - same ergonomics as transformers, drops into any existing pipeline. If audience is wondering why we ship the feature dictionary alongside the weights: features are model-specific - their indices only make sense paired with the autointerp labels we generated. So we always distribute them together.
+-->
 
 ---
 
@@ -916,6 +1008,10 @@ sae.describe(last_token_act, feature_descriptions)
 
 A labelled feature (**#14641**) semantically matches the prompt &mdash; with full provenance (confidence, activation stats, witnessing contexts). Feature **#2341** fired too but autointerp hasn't named it. The trailing float in each tuple is the activation strength on *this* token.
 
+<!--
+The prompt was about a smelly dishwasher. The top labeled feature - #14641 - is "Dishwasher Gasket Issues", and it fires hard (7.66 mean, 8.63 max). That's the model recognizing this is a dishwasher complaint via a feature it built unsupervised. Notice we ship full provenance: top examples (what activated it during training), bottom examples (what didn't), confidence, frac_nonzero. That's there to build trust - reviewers can audit whether a label is honest. Feature #2341 also fired but autointerp couldn't confidently label it - we surface those as "unknown" rather than hide them.
+-->
+
 ---
 
 ## Contrastive Pair Design
@@ -929,6 +1025,10 @@ Pairs share the same *intent* but require *different tools*:
 | Check product version | "What is the latest version?" &rarr; `file_read` | "Set the version to v3.2.1" &rarr; `file_write` |
 
 5 domains, 32 tools, 37 contrast types.
+
+<!--
+The design principle: each pair has the SAME underlying intent but routes to DIFFERENT tools because of a subtle linguistic distinction. First row: both want password help, but "I tried 3 times" implies an existing problem - that flips knowledge_base into ticket_lookup. Same for read vs write - "what is" vs "set the". The point of isolating these single-axis differences is that any feature that fires differently on the two halves is *probably* tracking that specific distinction. 5 domains times ~7 contrast types each gives the 37 contrasts we used. Tool count is 32 total across all domains.
+-->
 
 ---
 
@@ -949,6 +1049,10 @@ $$\hat{\mathcal{L}}_{\text{sparse}} = \sum_{i=1}^{M} \text{ReLU}\!\left(\tanh\!\
 
 Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
 
+<!--
+This is the math slide for the ML audience. The problem with regular ReLU SAEs is that the sparsity penalty is an L1 norm, which biases features toward zero magnitude even when active - it shrinks the very signal you want to keep. TopK SAEs fix that but lose differentiability. JumpReLU (Rajamanoharan 2024, DeepMind) splits the difference: a Heaviside step function gives true zeros, but the gradient is approximated through a tanh kernel so the optimizer can still move thresholds smoothly. Each feature has its own learnable threshold theta_i. Dictionary is 16,384 - 4x the 4,096 hidden dim of the model we did the math on for this slide. (Nemotron Nano is 2,688 -> 10,752 in practice; the formula is identical.) Don't read the equations - point at them and move on unless the audience is hungry.
+-->
+
 ---
 
 ## Why Layer 20?
@@ -958,6 +1062,10 @@ Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
 - Layers 8/16: low MSE but *pre-decision* representations
 - **Layer 20**: best alive %, lowest dead %, MSE < 1.0
 - Layers 32+: MoE expert routing &rarr; 500x+ higher MSE
+
+<!--
+We swept SAEs across multiple layers and three things showed up. Layers 8 and 16 look great on MSE but the representations are pre-decision - the model hasn't finished integrating context yet, so features are about surface form, not tool choice. Layer 20 hits the sweet spot: highest fraction alive features, lowest dead, reconstruction MSE under 1.0. After layer 32 the architecture hits MoE routing and MSE jumps 500x because the residual stream becomes fundamentally different per expert. Lesson: layer choice is not a hyperparameter to be swept randomly - it has to land on a representation that's *about* the thing you're trying to interpret.
+-->
 
 ---
 
@@ -973,6 +1081,10 @@ Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
 
 The SAE efficiently uses its capacity: sparse encoding with high feature utilization.
 
+<!--
+Diagnostic stats for the SAE we'll use for the rest of the talk. 10,752 features total. 81% alive - they fire on >0.1% of inputs - this is the "is the dictionary actually being used" check. Dead features are 0.19% - vanishingly few of the 10,752 are wasted. L0 is 668 features per input, about 4% density - that's the sparsity we trained for. Reconstruction MSE 0.574 means the SAE rebuilds the original activation with low residual error. Together these say: the model isn't degenerate, isn't over-sparse, isn't under-sparse. It's healthy and any downstream claims about features mean something.
+-->
+
 ---
 
 ## Baselines: Why Not Just a Probe?
@@ -982,6 +1094,10 @@ The SAE efficiently uses its capacity: sparse encoding with high feature utiliza
 - Linear probe confirms tool identity is *linearly encoded* (79.6% across 32 classes) -- but provides *no interpretability*
 - PCA + k-means fails entirely -- tool signal is not dominant variance
 - The SAE bridges this gap: **interpretable** *and* **causally testable** features
+
+<!--
+Anticipate the obvious challenge: "if you just want to know which tool the model picks, train a linear probe - way simpler than an SAE." So we did. The linear probe gets 79.6% across 32 tools - decent. That confirms tool identity IS linearly encoded in the activations - we're looking in the right place. But a linear probe gives you a weight vector you can't read - no interpretation. PCA plus k-means fails entirely because tool signal isn't dominant variance - it's a tiny direction inside the residual stream. The SAE wins because it gives you both: interpretable features AND something you can ablate to test causality. Probes can't be ablated meaningfully because they don't sit inside the model.
+-->
 
 ---
 
@@ -1002,6 +1118,10 @@ Our evaluation: "Does this label predict which *tokens* activate the feature?"
 
 Token-level gets higher weight because it tests the *actual mechanism*.
 
+<!--
+EleutherAI's autointerp is the standard recipe for evaluating SAE feature labels: an LLM proposes a label, a second LLM acts as judge and decides whether the label predicts activation. The trouble is judges work at the prompt level - they only see the whole text. A label like "Python code" can pass on a Python-related prompt even if the feature actually fires on a Java token in that prompt. That's "right for the wrong reasons". Our fix: highlight the specific tokens the feature actually fires on, A/B against random tokens, randomize order, and ask the judge to pick which highlighted text matches the label. That tests the actual mechanism. We weight token-level 70/30 because it's the stricter test.
+-->
+
 ---
 
 ## Fuzzing Results: Features Are Interpretable
@@ -1012,6 +1132,10 @@ Token-level gets higher weight because it tests the *actual mechanism*.
 - Token-level accuracy: **0.906 &plusmn; 0.007**
 - Emergent features without supervision: "internal knowledge retrieval",
   "data modification intent", "query complexity"
+
+<!--
+402 features survived our quality filter. Combined fuzzing score 0.912 with very tight error bars - p-value below 10^-4 versus chance. Token-level alone is 0.906 - the harder test almost equals the combined score, which means the labels are genuinely about the tokens the feature fires on, not just the topic of the prompt. Notice the examples of emergent features at the bottom: "internal knowledge retrieval", "data modification intent", "query complexity" - we never defined these concepts, we never gave them labels, the SAE discovered them and autointerp named them. That's the unsupervised story landing.
+-->
 
 ---
 
@@ -1024,6 +1148,10 @@ Token-level gets higher weight because it tests the *actual mechanism*.
 # The Causality Test
 
 From Correlation to Causal Evidence
+
+<!--
+Section transition. Everything so far is correlational - "these features fire when the model picks tool A". The next four slides answer the harder question: are those features doing the work, or just along for the ride? This is where we earn the right to say "the model picks tool A because of feature X". Brief pause here, then dive in.
+-->
 
 ---
 
@@ -1042,6 +1170,10 @@ From Correlation to Causal Evidence
 - **Random ablation**: zero 10 random non-contrastive features
 - **Reconstruction-only**: SAE encode &rarr; decode with *no* features zeroed (measures round-trip distortion)
 
+<!--
+Experimental setup. We intercept the residual stream at layer 20, encode through the trained SAE, zero the top-10 contrastive features for the relevant contrast, decode back into the residual stream, and let the model finish its forward pass. If the model now picks a different tool, the feature mattered causally. Two controls are critical. Random ablation: zero 10 random non-contrastive features - asks "would zeroing ANY 10 features have done this?" Reconstruction-only: encode-decode with no zeroing - measures the distortion the SAE itself introduces. Both controls have to be near zero for our contrastive ablation effect to mean anything.
+-->
+
 ---
 
 ## Ablation Results: Causal Evidence
@@ -1049,6 +1181,10 @@ From Correlation to Causal Evidence
 ![center w:850](../paper/images/chart_ablation.png)
 
 **Aggregate (23 types):** 16.1% contrastive vs. 13.0% reconstruction-only
+
+<!--
+Headline result aggregated across 23 contrast types: 16.1% prediction flip rate with contrastive ablation versus 13.0% from reconstruction-only baseline. The gap is small but the direction matters - removing the *specific* features we identified does more damage than the SAE's reconstruction noise alone. The aggregate hides huge variance though: some contrast types show big causal effects, others show none. The next two slides unpack that.
+-->
 
 ---
 
@@ -1065,6 +1201,10 @@ From Correlation to Causal Evidence
 
 This validates the design: ablation effects are due to *specific features*, not general signal degradation.
 
+<!--
+Drill into the cleanest case: fundamental vs technical financial analysis. Ablating 10 specific contrastive features flips 10.1% of predictions, p=0.002. 9 out of 10 percentage points flip *toward the contrast tool* - the direction we'd expect if we'd removed exactly the signal driving the choice. Random ablation: 0% flips. Reconstruction-only: 0% flips. So on this contrast, neither generic noise nor SAE distortion could have produced the effect - it has to be the specific features. Highlight the methodological win: random ablation rate equaling reconstruction-only rate across all 23 contrasts means our SAE adds essentially no spurious damage. That's what justifies attributing the contrastive effect to specific features rather than general degradation.
+-->
+
 ---
 
 ## The Spectrum of Causal Involvement
@@ -1080,6 +1220,10 @@ This reveals a heterogeneous landscape:
 
 Both findings are scientifically valuable.
 
+<!--
+This is the honest reading of the full ablation table. Not every tool-selection decision sits on a sparse, identifiable circuit. About a third of contrasts (the cleanest cases like fundamental/technical, single/multi-tool) show large effects from ablating just 10 features - those are sparse circuits we can name and intervene on. Another chunk - including preventive/reactive maintenance - shows 0% flips even after we ablate 10 features. That doesn't mean nothing is there - it means the signal is distributed across many features redundantly, so any 10-subset leaves the decision intact. The third bucket is in between. The scientifically honest story: tool selection is heterogeneous - sometimes sparse, sometimes distributed - and Kiji Inspector lets us tell which is which. That's a useful diagnostic on its own.
+-->
+
 ---
 
 <!-- _class: section -->
@@ -1090,6 +1234,10 @@ Both findings are scientifically valuable.
 
 ### Kiji Inspector, live
 
+<!--
+Section transition into live demo. If you have a working laptop demo, this is your cue to alt-tab. If not, the next slide has a screenshot that walks through what the demo shows. Be prepared for both - venue wifi or screen-share failures will happen. Have the screenshot ready as a fallback.
+-->
+
 ---
 
 ## End-to-End Demo Application
@@ -1097,6 +1245,10 @@ Both findings are scientifically valuable.
 ![center w:850](../paper/images/demo_screenshot.png)
 
 Interactive system surfacing SAE-derived explanations alongside agent output -- translating internal feature activations into natural-language rationales.
+
+<!--
+Walk through the screenshot: left pane is the user prompt, middle is the agent's tool choice and arguments, right pane is the Kiji Inspector explanation - the top features that fired on the decision token, with their labels and activation strengths. The whole thing runs on a single vLLM endpoint with the SAE attached as a side-car. The interesting moment for the audience: when you change the prompt subtly (the password contrast pair from earlier), the tool choice flips AND the feature explanation changes in a way that maps to the contrast. That's the live "we can see why" moment.
+-->
 
 ---
 
@@ -1138,6 +1290,10 @@ Interactive system surfacing SAE-derived explanations alongside agent output -- 
 
 </div>
 
+<!--
+Four takeaways. (1) Unsupervised SAEs can discover interpretable decision features without any human labels - 91.2% fuzzing accuracy on token-level evaluation. (2) Token-level fuzzing is the methodological upgrade - it catches labels that pass prompt-level but fail at the actual mechanism. (3) Ablation gives us real causal evidence on specific contrast types, not just correlation - p=0.002 for fundamental/technical. (4) The reconstruction-only baseline is the unsung hero - without it you can't tell genuine causal effect from SAE round-trip noise. Don't read the cards - paraphrase. Land on takeaway 4 because that's the methodological contribution other groups should adopt.
+-->
+
 ---
 
 ## Limitations and Future Directions
@@ -1164,6 +1320,10 @@ Interactive system surfacing SAE-derived explanations alongside agent output -- 
 </div>
 </div>
 
+<!--
+Be honest about the limits. Training cost is the big one: we used a 235B generator to make the contrastive pairs and a 30B subject model - that's not a hobbyist setup. We need access to model internals, so this doesn't work on closed APIs. Synthetic contrastive pairs may miss decision factors that only show up in real user traffic. Future work I'm excited about: adding Qwen support (most-requested), multi-layer circuit analysis (single-layer SAEs miss compositional structure), and cross-model transfer - do the same tool-selection features appear in different model families? If yes, that's a big claim about universal computation.
+-->
+
 ---
 
 <!-- _class: closing -->
@@ -1177,3 +1337,8 @@ Interactive system surfacing SAE-derived explanations alongside agent output -- 
 <img src="../paper/images/qr_github.svg" alt="QR code to github.com/dataiku/kiji-inspector" width="180" style="background:#FFFFFA;padding:10px;border-radius:8px;margin:0.6em 0;" />
 
 <p>Hannes Hapke — hannes.hapke@dataiku.com<br>David Cardozo — david.cardozo@dataiku.com<br>575 Lab, Dataiku Inc.</p>
+
+<!--
+Thank the audience. Point to the QR code - it goes straight to the GitHub repo where everything lives: code, pre-trained SAEs, paper, scenarios. Drop David's name explicitly so the joint work is clearly credited. Then open Q&A. Likely questions to prepare for: (a) "what about closed models like GPT?" - we need internal access, this is open-weights only; (b) "how much did training cost?" - rough numbers in the limitations slide; (c) "does this work for safety-relevant tools?" - yes, that's where we want it to go, the methodology is tool-agnostic; (d) "do features generalize across models?" - open research question, slide 40 lists it as future work.
+-->
+
