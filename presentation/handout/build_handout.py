@@ -6,10 +6,11 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).parent
-MD_FILE = HERE / "Opening the Black Box Mechanistic Interpretability of Agent Tool Selection with Sparse Autoencoders.md"
+PRESENTATION_DIR = HERE.parent
+MD_FILE = PRESENTATION_DIR / "Opening the Black Box Mechanistic Interpretability of Agent Tool Selection with Sparse Autoencoders.md"
 SLIDES_DIR = HERE / "handout_slides"
 HANDOUT_HTML = HERE / "handout.html"
-HANDOUT_PDF = HERE / "Opening the Black Box - Handout.pdf"
+HANDOUT_PDF = PRESENTATION_DIR / "Opening the Black Box - Handout.pdf"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 
