@@ -710,6 +710,15 @@ body {
       what data the AI gathered, what factors it weighed, and why it reached each conclusion.
     </p>
     <p id="data-source" style="font-size: 0.82rem; color: var(--gray-400); margin-bottom: 16px;">Loading...</p>
+    <div id="progress-strip" style="display:none; max-width:560px; margin:0 auto 16px; background:rgba(255,255,255,0.08); border-radius:var(--radius); padding:10px 16px; text-align:left;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; font-size:0.78rem; color:var(--gray-300); margin-bottom:6px;">
+        <span id="progress-label">Waiting...</span>
+        <span id="progress-counter" style="color:var(--gray-400);"></span>
+      </div>
+      <div style="height:4px; background:rgba(255,255,255,0.15); border-radius:2px; overflow:hidden;">
+        <div id="progress-bar" style="height:100%; width:0%; background:var(--coral); transition:width 0.4s ease;"></div>
+      </div>
+    </div>
     <details class="how-to-read">
       <summary>How to read this page</summary>
       <div class="content">
@@ -1279,20 +1288,114 @@ function render() {
   renderThemes();
 }
 
-async function init() {
+/* ================================================================
+   Live polling: progress.json (lightweight, written during the run)
+   and ui_data.json (full payload, written at the end).
+   ================================================================ */
+const POLL_MS = 2000;
+let dataSignature = null;          // last ui_data.json hash to skip redundant re-renders
+let progressSignature = null;      // last progress.json hash
+let liveDataLoaded = false;        // true once real ui_data.json has been seen
+
+async function fetchJSON(path) {
   try {
-    const resp = await fetch('output/ui_data.json');
-    if (!resp.ok) throw new Error(resp.status);
-    DATA = await resp.json();
-    if (dataSourceEl) dataSourceEl.textContent = 'Showing live results from the last demo run.';
-    console.log('Loaded live data from output/ui_data.json');
+    const resp = await fetch(path + '?_=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return null;
+    return await resp.json();
   } catch (e) {
+    return null;
+  }
+}
+
+function isUsable(ui) {
+  // The render functions assume every section is populated. Partial JSON
+  // (e.g. only `problems` present) would throw, so we wait until the
+  // notebook's final write is in before swapping out the mock data.
+  return !!(ui
+            && ui.problems?.length > 0
+            && Object.keys(ui.toolResults || {}).length > 0
+            && Object.keys(ui.saeFeatures || {}).length > 0
+            && Object.keys(ui.recommendations || {}).length > 0
+            && Object.keys(ui.comparison || {}).length > 0
+            && (ui.themes || []).length > 0);
+}
+
+function updateProgressStrip(prog) {
+  const strip = document.getElementById('progress-strip');
+  if (!prog || prog.phase === 'complete') {
+    if (strip) strip.style.display = 'none';
+    return;
+  }
+  if (strip) strip.style.display = 'block';
+  const label = document.getElementById('progress-label');
+  const counter = document.getElementById('progress-counter');
+  const bar = document.getElementById('progress-bar');
+  if (label) label.textContent = prog.label || prog.phase || 'Working...';
+  if (counter && prog.total) counter.textContent = `${prog.current ?? 0} / ${prog.total}`;
+  else if (counter) counter.textContent = '';
+  const pct = prog.total ? Math.min(100, Math.round(((prog.current ?? 0) / prog.total) * 100)) : 0;
+  if (bar) bar.style.width = pct + '%';
+}
+
+async function pollOnce() {
+  // Progress strip
+  const prog = await fetchJSON('output/progress.json');
+  const progSig = prog ? JSON.stringify(prog) : null;
+  if (progSig !== progressSignature) {
+    progressSignature = progSig;
+    updateProgressStrip(prog);
+  }
+
+  // Full data
+  const ui = await fetchJSON('output/ui_data.json');
+  if (!ui) return;
+  const sig = JSON.stringify({
+    p: (ui.problems || []).length,
+    t: Object.keys(ui.toolResults || {}).length,
+    s: Object.keys(ui.saeFeatures || {}).length,
+    r: Object.keys(ui.recommendations || {}).length,
+    c: Object.keys(ui.comparison || {}).length,
+    th: (ui.themes || []).length,
+  });
+  if (sig === dataSignature) return;  // no change since last poll
+  dataSignature = sig;
+
+  if (!isUsable(ui)) return;
+
+  DATA = ui;
+  liveDataLoaded = true;
+  if (dataSourceEl) dataSourceEl.textContent = 'Showing live results from this demo run.';
+  // Preserve selected problem if still present, otherwise pick the first.
+  const stillThere = DATA.problems.some(p => p.id === state.selectedProblem);
+  if (!stillThere) state.selectedProblem = DATA.problems[0]?.id || 'dishwasher_leak';
+  render();
+}
+
+async function init() {
+  // First paint: try real data; if absent or partial, fall back to mock so the page never looks empty.
+  const ui = await fetchJSON('output/ui_data.json');
+  if (isUsable(ui)) {
+    DATA = ui;
+    liveDataLoaded = true;
+    if (dataSourceEl) dataSourceEl.textContent = 'Showing live results from this demo run.';
+    dataSignature = JSON.stringify({
+      p: DATA.problems.length,
+      t: Object.keys(DATA.toolResults || {}).length,
+      s: Object.keys(DATA.saeFeatures || {}).length,
+      r: Object.keys(DATA.recommendations || {}).length,
+      c: Object.keys(DATA.comparison || {}).length,
+      th: (DATA.themes || []).length,
+    });
+  } else {
     DATA = MOCK_DATA;
-    if (dataSourceEl) dataSourceEl.textContent = 'Showing example data. Run the demo to see live results.';
-    console.log('Using mock data (output/ui_data.json not found)');
+    if (dataSourceEl) dataSourceEl.textContent = 'Showing example data. Live results will appear here as the demo runs.';
   }
   state.selectedProblem = DATA.problems[0]?.id || 'dishwasher_leak';
   render();
+
+  // Start polling.
+  setInterval(pollOnce, POLL_MS);
+  pollOnce();  // also fire immediately so the progress strip appears without delay
 }
 init();
 </script>
