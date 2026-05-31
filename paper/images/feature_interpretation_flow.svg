@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 620" font-family="'DM Sans', system-ui, sans-serif">
+  <defs>
+    <marker id="fi-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0A2A1F" />
+    </marker>
+  </defs>
+
+  <!-- ============================================================ -->
+  <!--  ROW 1 - extraction pipeline                                  -->
+  <!-- ============================================================ -->
+
+  <!-- (1) CORPUS -->
+  <text x="80" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">CORPUS</text>
+  <g transform="translate(20 90)">
+    <rect x="26" y="22" width="100" height="135" rx="6" fill="#FFFFFA" stroke="#2B3B64" stroke-width="1.3" />
+    <rect x="13" y="11" width="100" height="135" rx="6" fill="#FFFFFA" stroke="#2B3B64" stroke-width="1.3" />
+    <rect x="0"  y="0"  width="100" height="135" rx="6" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.4" />
+    <g stroke="#2B3B64" stroke-width="1" stroke-opacity="0.55">
+      <line x1="14" y1="22" x2="86" y2="22" />
+      <line x1="14" y1="36" x2="86" y2="36" />
+      <line x1="14" y1="50" x2="60" y2="50" />
+      <line x1="14" y1="72" x2="86" y2="72" />
+      <line x1="14" y1="86" x2="74" y2="86" />
+      <line x1="14" y1="100" x2="54" y2="100" />
+      <line x1="14" y1="120" x2="86" y2="120" />
+    </g>
+  </g>
+
+  <line x1="150" y1="158" x2="180" y2="158" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#fi-arr)" />
+
+  <!-- (2) LANGUAGE MODEL -->
+  <text x="265" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">LANGUAGE MODEL</text>
+  <rect x="190" y="80" width="155" height="195" rx="12" fill="none" stroke="#0A2A1F" stroke-width="1.4" stroke-dasharray="6 4" />
+  <rect x="210" y="100" width="115" height="38" rx="6" fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.4" />
+  <text x="267" y="124" text-anchor="middle" font-size="11" font-weight="700" fill="#0A2A1F">Transformer Block</text>
+  <line x1="267" y1="148" x2="267" y2="172" stroke="#0A2A1F" stroke-width="1.2" stroke-dasharray="2 4" />
+  <rect x="210" y="180" width="115" height="38" rx="6" fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.4" />
+  <text x="267" y="204" text-anchor="middle" font-size="11" font-weight="700" fill="#0A2A1F">Transformer Block</text>
+  <line x1="267" y1="228" x2="267" y2="248" stroke="#0A2A1F" stroke-width="1.2" stroke-dasharray="2 4" />
+  <g transform="translate(238 252)">
+    <rect x="0" y="0" width="58" height="18" rx="3" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.2" />
+    <text x="29" y="13" text-anchor="middle" font-size="10" font-weight="600" fill="#0A2A1F">Token</text>
+  </g>
+
+  <line x1="352" y1="158" x2="388" y2="158" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#fi-arr)" />
+
+  <!-- (3) ACTIVATION z -->
+  <text x="425" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">ACTIVATION</text>
+  <text x="425" y="92" text-anchor="middle" font-size="18" font-style="italic" font-weight="700" fill="#0A2A1F">z</text>
+  <g fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.4">
+    <rect x="407" y="105" width="36" height="22" rx="3" />
+    <rect x="407" y="131" width="36" height="22" rx="3" />
+    <rect x="407" y="157" width="36" height="22" rx="3" />
+    <rect x="407" y="183" width="36" height="22" rx="3" />
+    <rect x="407" y="209" width="36" height="22" rx="3" />
+  </g>
+  <text x="425" y="252" text-anchor="middle" font-size="16" fill="#0A2A1F">⋮</text>
+
+  <line x1="448" y1="158" x2="478" y2="158" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#fi-arr)" />
+
+  <!-- (4) SPARSE AUTOENCODER -->
+  <text x="635" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">SPARSE AUTOENCODER</text>
+  <rect x="485" y="80" width="305" height="195" rx="12" fill="none" stroke="#0A2A1F" stroke-width="1.4" stroke-dasharray="6 4" />
+  <!-- W_enc -->
+  <polygon points="500,135 575,90 575,225 500,180" fill="#63FF91" fill-opacity="0.30" stroke="#0A2A1F" stroke-width="1.6" />
+  <text x="538" y="163" text-anchor="middle" font-size="14" font-weight="700" font-style="italic" fill="#0A2A1F">W</text>
+  <text x="551" y="170" font-size="10" font-weight="600" fill="#0A2A1F">enc</text>
+  <!-- h(z) inside -->
+  <g stroke="#2B3B64" stroke-width="1" stroke-opacity="0.5" fill="#FFFFFA">
+    <rect x="595" y="92"  width="26" height="16" rx="2" />
+    <rect x="595" y="112" width="26" height="16" rx="2" />
+    <rect x="595" y="152" width="26" height="16" rx="2" />
+    <rect x="595" y="172" width="26" height="16" rx="2" />
+    <rect x="595" y="212" width="26" height="16" rx="2" />
+  </g>
+  <g stroke="#0A2A1F" stroke-width="1.4" fill="#63FF91">
+    <rect x="593" y="130" width="30" height="20" rx="2" />
+    <rect x="593" y="190" width="30" height="20" rx="2" />
+  </g>
+  <text x="608" y="246" text-anchor="middle" font-size="13" font-weight="700" font-style="italic" fill="#0A2A1F">h(z)</text>
+  <!-- W_dec -->
+  <polygon points="645,90 645,225 720,180 720,135" fill="#7099FF" fill-opacity="0.28" stroke="#2B3B64" stroke-width="1.6" />
+  <text x="683" y="163" text-anchor="middle" font-size="14" font-weight="700" font-style="italic" fill="#2B3B64">W</text>
+  <text x="696" y="170" font-size="10" font-weight="600" fill="#2B3B64">dec</text>
+
+  <!-- Connector down to Row 2 -->
+  <path d="M635 285 Q 400 330 145 363"
+        stroke="#0A2A1F" stroke-width="1.6" fill="none"
+        stroke-dasharray="6 4" marker-end="url(#fi-arr)" />
+  <text x="430" y="318" text-anchor="middle" font-size="12" font-style="italic" fill="#0A2A1F">
+    for each feature i, collect top-activating contexts
+  </text>
+
+  <!-- ============================================================ -->
+  <!--  ROW 2 - interpretation pipeline                              -->
+  <!-- ============================================================ -->
+
+  <!-- (5) FEATURE -->
+  <text x="135" y="385" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">FEATURE</text>
+  <text x="135" y="410" text-anchor="middle" font-size="15" font-style="italic" font-weight="700" fill="#0A2A1F">h(z)<tspan dy="3" font-size="11">i</tspan></text>
+  <g stroke="#2B3B64" stroke-width="1" stroke-opacity="0.5" fill="#FFFFFA">
+    <rect x="113" y="422" width="44" height="22" rx="3" />
+    <rect x="113" y="448" width="44" height="22" rx="3" />
+    <rect x="113" y="500" width="44" height="22" rx="3" />
+    <rect x="113" y="526" width="44" height="22" rx="3" />
+  </g>
+  <g stroke="#0A2A1F" stroke-width="1.7" fill="#63FF91">
+    <rect x="111" y="472" width="48" height="26" rx="3" />
+  </g>
+  <text x="170" y="491" font-size="12" font-weight="700" fill="#0A2A1F">← i</text>
+  <text x="135" y="571" text-anchor="middle" font-size="16" fill="#0A2A1F">⋮</text>
+
+  <line x1="195" y1="485" x2="225" y2="485" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#fi-arr)" />
+
+  <!-- (6) FEATURE DICTIONARY -->
+  <text x="490" y="385" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">FEATURE DICTIONARY</text>
+  <rect x="240" y="400" width="500" height="195" rx="10" fill="#FFFFFA" stroke="#0A2A1F" stroke-width="1.6" />
+  <rect x="240" y="400" width="500" height="30" rx="10" fill="#0A2A1F" />
+  <text x="265" y="420" font-size="12" font-weight="700" fill="#FFFFFA">#</text>
+  <text x="320" y="420" font-size="12" font-weight="700" fill="#FFFFFA">Top-activating contexts</text>
+  <text x="615" y="420" font-size="12" font-weight="700" fill="#FFFFFA">Label</text>
+
+  <g font-size="11" fill="#0A2A1F">
+    <text x="265" y="452">#12</text>
+    <text x="320" y="452" font-family="'DM Mono','Courier New',monospace">"import numpy as np…"</text>
+    <text x="615" y="452">Python imports</text>
+    <line x1="255" y1="464" x2="725" y2="464" stroke="#2B3B64" stroke-opacity="0.25" />
+
+    <text x="265" y="486">#47</text>
+    <text x="320" y="486" font-family="'DM Mono','Courier New',monospace">"GET /api/v2/orders…"</text>
+    <text x="615" y="486">REST endpoints</text>
+    <line x1="255" y1="498" x2="725" y2="498" stroke="#2B3B64" stroke-opacity="0.25" />
+
+    <text x="265" y="520">#88</text>
+    <text x="320" y="520" font-family="'DM Mono','Courier New',monospace">"rate limit exceeded…"</text>
+    <text x="615" y="520">Throttling errors</text>
+    <line x1="255" y1="532" x2="725" y2="532" stroke="#2B3B64" stroke-opacity="0.25" />
+
+    <text x="265" y="554">#103</text>
+    <text x="320" y="554" font-family="'DM Mono','Courier New',monospace">"our company's internal…"</text>
+    <text x="615" y="554">Internal scope</text>
+    <line x1="255" y1="566" x2="725" y2="566" stroke="#2B3B64" stroke-opacity="0.25" />
+
+    <text x="265" y="588">…</text>
+    <text x="320" y="588">…</text>
+    <text x="615" y="588">…</text>
+  </g>
+
+  <line x1="755" y1="498" x2="790" y2="498" stroke="#0A2A1F" stroke-width="1.6" marker-end="url(#fi-arr)" />
+
+  <!-- (7) INTERPRETABLE THEMES -->
+  <text x="1020" y="385" text-anchor="middle" font-size="12" font-weight="700" fill="#0A2A1F" letter-spacing="2">INTERPRETABLE THEMES</text>
+  <g>
+    <rect x="805" y="400" width="450" height="44" rx="10" fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.4" />
+    <text x="820" y="428" font-size="13" font-weight="600" fill="#0A2A1F">⊕  Programming-language syntax</text>
+
+    <rect x="805" y="452" width="450" height="44" rx="10" fill="#D1FFE6" stroke="#0A2A1F" stroke-width="1.4" />
+    <text x="820" y="480" font-size="13" font-weight="600" fill="#0A2A1F">⊕  Web / API vocabulary</text>
+
+    <rect x="805" y="504" width="450" height="44" rx="10" fill="#ABCFFA" fill-opacity="0.4" stroke="#2B3B64" stroke-width="1.4" />
+    <text x="820" y="532" font-size="13" font-weight="600" fill="#0A2A1F">⊕  Internal-vs-external scope</text>
+
+    <rect x="805" y="556" width="450" height="44" rx="10" fill="#ABCFFA" fill-opacity="0.4" stroke="#2B3B64" stroke-width="1.4" />
+    <text x="820" y="584" font-size="13" font-weight="600" fill="#0A2A1F">⊕  Error / failure-mode language</text>
+  </g>
+</svg>
