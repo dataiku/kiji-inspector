@@ -450,14 +450,18 @@ section.closing p {
 
 <div class="logo"></div>
 
+<img src="../paper/images/qr_github.svg" alt="QR code to github.com/dataiku/kiji-inspector" width="110" style="position:absolute;top:40px;right:72px;background:#FFFFFA;padding:8px;border-radius:8px;" />
+
 # Opening the Black Box
 
 ## Mechanistic Interpretability for AI Agent Tool Selection Using Sparse Autoencoders
 
 <p><strong>Hannes Hapke</strong> with <strong>David Cardozo</strong> · 575 Lab, Dataiku Inc.</p>
 
+<p style="position:absolute;top:180px;right:72px;width:110px;text-align:center;font-size:0.7rem;color:rgba(255,255,250,.65);margin:0;">Scan to follow along</p>
+
 <!--
-Welcome the audience. Frame the talk in one sentence: today we're going to look inside an AI agent's head while it picks a tool, using sparse autoencoders. This is joint work with David Cardozo at 575 Lab, Dataiku's open source research office. Keep this slide short - 20 seconds max.
+Welcome the audience. Frame the talk in one sentence: today we're going to look inside an AI agent's head while it picks a tool, using sparse autoencoders. This is joint work with David Cardozo at 575 Lab, Dataiku's open source research office. Keep this slide short - 20 seconds max. Point at the QR briefly - tell them they can scan to follow along, all the code and pre-trained SAEs are open.
 -->
 
 ---
@@ -644,64 +648,6 @@ After training, a feature is just an integer index - feature 14641, feature 2341
 
 ---
 
-## The Kiji Inspector
-
-<div class="cols">
-
-<div class="card">
-
-<span class="badge">01</span>
-
-### Model Agnostic
-
-Framework to train custom Sparse Autoencoders &mdash; works on **any open-source LLM**, not just the ones we tested.
-
-</div>
-
-<div class="card">
-
-<span class="badge">02</span>
-
-### End-to-end Training Pipeline
-
-No custom training setup needed. The project **generates the contrastive datasets** for you and runs the full extract &rarr; train &rarr; analyse loop.
-
-</div>
-
-</div>
-
-<div class="cols">
-
-<div class="card">
-
-<span class="badge">03</span>
-
-### Production Inference Support
-
-vLLM patches, single-endpoint Docker containers, and PyPI packages &mdash; ready to drop into a live serving stack.
-
-</div>
-
-<div class="card">
-
-<span class="badge">04</span>
-
-### Fully Open Source
-
-Pre-trained SAE models distributed via **Hugging Face**, **Docker Hub**, and **PyPI** &mdash; reuse without retraining.
-
-</div>
-
-</div>
-
-GitHub: [github.com/dataiku/kiji-inspector](https://github.com/dataiku/kiji-inspector)
-
-<!--
-This is the product pitch slide - what we shipped, not what we discovered. Four pillars: (1) model agnostic - we tested on Nemotron and Gemma but the framework runs on any HuggingFace causal LM, (2) end-to-end - we generate the contrastive datasets too, no manual labeling needed, (3) production-ready inference - vLLM patches and Docker containers so this drops into a live serving stack, (4) open source - pre-trained SAEs already on Hugging Face for several models, so most users can skip training entirely. Repo link at the bottom.
--->
-
----
-
 ## What's Novel?
 
 <div class="cols" style="grid-auto-rows: 1fr; align-items: stretch;">
@@ -766,18 +712,6 @@ Walk through the diagram left to right. Start: generate ~500K contrastive pairs 
 
 ---
 
-## Our Inference Setup
-
-![center w:950](../paper/images/inference_pipeline.png)
-
-Seven steps from raw prompts to human-readable decision explanations.
-
-<!--
-This is the runtime story - what happens after the SAE is trained. A user request comes in, the subject model selects a tool, and in parallel we capture the decision-token activation, pass it through the SAE, look up the top-firing features in the labeled dictionary, and emit a human-readable rationale alongside the tool call. The whole thing runs as a single Docker container on the vLLM side. Don't dwell on every arrow - the point is that interpretation is online, not a separate offline analysis.
--->
-
----
-
 ## Nemotron-3 Nano Architecture
 
 ![center w:950](../paper/images/nemotron_architecture.png)
@@ -820,196 +754,6 @@ The hidden state at this final token is the **decision token** -- the model's in
 
 <!--
 Key idea of the slide: where in the sequence do we look? Most SAE work pools activations across the whole prompt. We don't - we grab one specific token: the hidden state at "I'll use the '" - literally the position where the next token will be the tool name. That's the model's internal state at the moment of commitment. Two reasons this matters: (1) cleaner signal - no averaging over irrelevant context, (2) directly causal for the tool choice we're trying to explain. Dataset: a million activation vectors from 500K contrastive pairs (two activations per pair).
--->
-
----
-
-## Supported Language Models
-
-| Huggingface Model | Link | Kiji Inspector Sparse Autoencoder | Supported Layers |
-|---|---|---|---|
-| `google/gemma-3-27b-it` | [model](https://huggingface.co/google/gemma-3-27b-it) | [575-lab/kiji-inspector-google-gemma-3-27b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-27b-it) | 10 20 31 41 50 58 |
-| `google/gemma-3-4b-it` | [model](https://huggingface.co/google/gemma-3-4b-it) | [575-lab/kiji-inspector-google-gemma-3-4b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-4b-it) | 5 10 15 20 25 |
-| `google/gemma-3-1b-it` | [model](https://huggingface.co/google/gemma-3-1b-it) | [575-lab/kiji-inspector-google-gemma-3-1b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-1b-it) | 5 10 15 20 25 |
-| `google/gemma-4-31B-it` | [model](https://huggingface.co/google/gemma-4-31B) | [575-lab/kiji-inspector-google-gemma-4-31B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-31B-it) | 10 20 31 41 50 58 |
-| `google/gemma-4-26B-A4B-it` | [model](https://huggingface.co/google/gemma-4-26B-A4B-it) | [575-lab/kiji-inspector-google-gemma-4-26B-A4B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-26B-A4B-it) | 11 14 17 20 23 |
-| `google/gemma-4-E4B-it` | [model](https://huggingface.co/google/gemma-4-E4B-it) | [575-lab/kiji-inspector-google-gemma-4-E4B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-E4B-it) | 11 17 23 29 35 |
-| `google/gemma-4-E2B-it` | [model](https://huggingface.co/google/gemma-4-E2B-it) | [575-lab/kiji-inspector-google-gemma-4-E2B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-E2B-it) | 13 14 15 18 19 20 23 24 25 |
-| `nvidia/Nemotron-3-Super-120B-A12B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-FP8) | 15 27 45 57 69 81 |
-| `nvidia/Nemotron-3-Super-120B-A12B-BF16` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-BF16](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-BF16) | 15 27 45 57 69 81 |
-| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16) | 8 17 20 26 35 44 |
-| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | 8 17 20 26 35 44 |
-| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | 8 17 20 26 35 44 |
-
-<!--
-Skip the table quickly - it's a reference slide. The point: pre-trained SAEs are already on Hugging Face under the 575-lab org for Gemma 3 (1B/4B/27B), Gemma 4 (multiple variants including E2B/E4B), and Nemotron-3 across Nano 30B (BF16/FP8/NVFP4) and Super 120B (BF16/FP8). For each model we ship multiple layers so you can pick the one that matches your decision point. If anyone is on a supported model they can skip training entirely - that's the whole point of the open release.
--->
-
----
-
-## Hands-on: Extract a Layer's Activations
-
-The Kiji Inspector builds on standard PyTorch primitives. Here's the extraction step in raw `transformers` &mdash; the same mechanism, no Kiji magic, on any HuggingFace causal LM.
-
-```bash
-pip install -U -q kiji-inspector transformers
-```
-
-<!--
-Pivoting from research narrative to a live code walkthrough. The point of the next six slides is: this is plain PyTorch + HuggingFace - no Kiji magic for the extraction step. We're deliberately showing the raw mechanism first so people see the SAE is layered on top of standard infrastructure they already know. After the code walkthrough we'll bring in the Kiji Inspector API and show the payoff. One pip install, two libraries.
--->
-
----
-
-## Setup &mdash; Imports & Config
-
-```python
-import torch
-from transformers import AutoModelForCausalLM, AutoProcessor
-
-LAYER_INDEX = 8
-MODEL_ID    = "google/gemma-4-E4B-it"
-PROMPT      = "My dishwasher is smelly, what is the first element I should review?"
-```
-
-Pick the **layer** to study and the **model** to study it on. Everything else flows from these three constants.
-
-<!--
-Just three constants drive everything: which layer, which model, what prompt. Layer 8 here because we're demonstrating on Gemma 4 E4B which is smaller than Nemotron - the analogous "decision-near" layer is shallower. Use the dishwasher prompt deliberately - it's mundane and shows the system handles non-toy domains. Move through this slide in 15 seconds.
--->
-
----
-
-## Load Model & Processor
-
-```python
-processor = AutoProcessor.from_pretrained(MODEL_ID)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_ID,
-    torch_dtype=torch.bfloat16,
-    device_map="auto",
-)
-model.eval()
-```
-
-`bfloat16` halves memory; `device_map="auto"` lets HF Accelerate place layers across GPUs. `.eval()` disables dropout &mdash; we want deterministic activations.
-
-<!--
-Three details worth pointing out: bf16 because we don't need fp32 precision for forward-only inference - it halves memory and the SAE can absorb the noise. device_map=auto lets HF Accelerate split layers across whatever GPUs are available. eval mode disables dropout - critical because we want the *same* activation every time we run the same prompt, otherwise our SAE features become noisy.
--->
-
----
-
-## Format the Prompt
-
-```python
-messages = [{"role": "user", "content": [{"type": "text", "text": PROMPT}]}]
-prompt = processor.apply_chat_template(
-    messages, tokenize=False, add_generation_prompt=True,
-)
-inputs = processor(text=prompt, return_tensors="pt")
-inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
-```
-
-`add_generation_prompt=True` appends the assistant turn header &mdash; the model is now poised to *answer*. That final position is the **decision token** we just defined.
-
-<!--
-The crucial flag here is add_generation_prompt=True. Without it, you tokenize "user said X" - with it, you tokenize "user said X, assistant is about to respond starting with...". That final cursor position is the decision token from earlier in the talk. This is where the model's internal state has converged on what it's going to do next. Everything else on this slide is boilerplate device handling.
--->
-
----
-
-## Capture Activations with a Forward Hook
-
-```python
-captured = {}
-
-def hook(_module, _inputs, output):
-    hidden = output[0] if isinstance(output, tuple) else output
-    captured["tensor"] = hidden.detach().cpu()
-
-layer = model.model.language_model.layers[LAYER_INDEX]
-handle = layer.register_forward_hook(hook)
-```
-
-PyTorch's `register_forward_hook` intercepts the layer's output mid-forward-pass. We `.detach()` to drop the autograd graph and `.cpu()` so we don't pin GPU memory.
-
-<!--
-This is the meat. register_forward_hook is a one-line PyTorch primitive that lets you intercept a layer's output mid-forward-pass without modifying the model code. The hook stuffs the hidden state into a captured dict. Two important hygiene moves: detach() drops the autograd graph (we're not training), and cpu() moves the tensor off GPU so we don't accidentally pin a million activations in VRAM during dataset construction. This same code pattern scales from one example to a million.
--->
-
----
-
-## Run Inference, Retrieve the Tensor
-
-```python
-try:
-    with torch.inference_mode():
-        model(**inputs)
-finally:
-    handle.remove()
-
-hidden_state = captured["tensor"]
-```
-
-`inference_mode()` is faster than `no_grad()` &mdash; it also skips view-tracking. The `try / finally` guarantees the hook is removed even on error. `hidden_state` is ready to feed into a trained SAE.
-
-<!--
-Two craft notes here. inference_mode is strictly faster than no_grad because it also skips view-tracking - matters at scale. The try/finally guarantees the hook handle is removed even if the forward pass raises - otherwise hooks accumulate silently and you start capturing other people's tensors. After this block, hidden_state is just a regular CPU tensor ready to feed into the SAE. That's the handoff to the next slide.
--->
-
----
-
-## Now: Ask the Kiji Inspector What Fired
-
-```python
-from kiji_inspector import SAE
-
-sae, feature_descriptions = SAE.from_pretrained(
-    base_model="google/gemma-4-E4B-it",
-    layer=8,
-)
-
-# Activation for the first sequence, last token
-last_token_act = hidden_state[0, -1, :]
-
-# Describe the top features activating on this token
-sae.describe(last_token_act, feature_descriptions)
-```
-
-`SAE.from_pretrained` pulls a layer-matched SAE *and* its labelled feature dictionary from the Hub. `describe()` returns the highest-activating features and their human-readable labels &mdash; the decision token, explained.
-
-<!--
-This is the payoff slide. Three lines: load a layer-matched SAE *and* its labeled feature dictionary from the Hub, slice out the last-token activation, call describe(). That's the whole user experience. The HF-style API is deliberate - same ergonomics as transformers, drops into any existing pipeline. If audience is wondering why we ship the feature dictionary alongside the weights: features are model-specific - their indices only make sense paired with the autointerp labels we generated. So we always distribute them together.
--->
-
----
-
-## Output: Top Features on the Token
-
-```python
-[(2341, 'unknown', 7.57),
- (14641,
-  {'label':           'Dishwasher Gasket Issues',
-   'description':     'Detects descriptions of dishwashers leaking from '
-                      'the door or bottom, often mentioning a worn, torn, '
-                      'or cracked door gasket.',
-   'confidence':      'high',
-   'mean_activation': 7.66,
-   'max_activation':  8.63,
-   'frac_nonzero':    1.0,
-   'top_examples':    ['My 18-yr-old dishwasher is leaking from the door...',
-                       ...],
-   'bottom_examples': ['Find general best practices for API versioning...',
-                       ...]},
-  7.19),
- ...]
-```
-
-A labelled feature (**#14641**) semantically matches the prompt &mdash; with full provenance (confidence, activation stats, witnessing contexts). Feature **#2341** fired too but autointerp hasn't named it. The trailing float in each tuple is the activation strength on *this* token.
-
-<!--
-The prompt was about a smelly dishwasher. The top labeled feature - #14641 - is "Dishwasher Gasket Issues", and it fires hard (7.66 mean, 8.63 max). That's the model recognizing this is a dishwasher complaint via a feature it built unsupervised. Notice we ship full provenance: top examples (what activated it during training), bottom examples (what didn't), confidence, frac_nonzero. That's there to build trust - reviewers can audit whether a label is honest. Feature #2341 also fired but autointerp couldn't confidently label it - we surface those as "unknown" rather than hide them.
 -->
 
 ---
@@ -1230,24 +974,362 @@ This is the honest reading of the full ablation table. Not every tool-selection 
 
 <div class="logo"></div>
 
+### Part III
+
+# Using Kiji Inspector
+
+### From research to production
+
+<!--
+Section transition into the practical side. The previous two sections established what SAEs can discover and that the features carry causal weight. Now we shift gears: how does a practitioner actually use this? We'll show the API, the supported models, and walk through a code example before the live demo.
+-->
+
+---
+
+## The Kiji Inspector
+
+<img src="../paper/images/qr_github.svg" alt="QR code to github.com/dataiku/kiji-inspector" width="120" style="position:absolute;top:48px;right:72px;background:#FFFFFA;padding:8px;border-radius:8px;border:1px solid rgba(43,59,100,.18);" />
+
+<div class="cols">
+
+<div class="card">
+
+<span class="badge">01</span>
+
+### Model Agnostic
+
+Framework to train custom Sparse Autoencoders &mdash; works on **any open-source LLM**, not just the ones we tested.
+
+</div>
+
+<div class="card">
+
+<span class="badge">02</span>
+
+### End-to-end Training Pipeline
+
+No custom training setup needed. The project **generates the contrastive datasets** for you and runs the full extract &rarr; train &rarr; analyse loop.
+
+</div>
+
+</div>
+
+<div class="cols">
+
+<div class="card">
+
+<span class="badge">03</span>
+
+### Production Inference Support
+
+vLLM patches, single-endpoint Docker containers, and PyPI packages &mdash; ready to drop into a live serving stack.
+
+</div>
+
+<div class="card">
+
+<span class="badge">04</span>
+
+### Fully Open Source
+
+Pre-trained SAE models distributed via **Hugging Face**, **Docker Hub**, and **PyPI** &mdash; reuse without retraining.
+
+</div>
+
+</div>
+
+GitHub: [github.com/dataiku/kiji-inspector](https://github.com/dataiku/kiji-inspector)
+
+<!--
+This is the product pitch slide - what we shipped, not what we discovered. Four pillars: (1) model agnostic - we tested on Nemotron and Gemma but the framework runs on any HuggingFace causal LM, (2) end-to-end - we generate the contrastive datasets too, no manual labeling needed, (3) production-ready inference - vLLM patches and Docker containers so this drops into a live serving stack, (4) open source - pre-trained SAEs already on Hugging Face for several models, so most users can skip training entirely. Point at the QR - this is the highest-intent moment in the talk, anyone who's about to be sold should scan now.
+-->
+
+---
+
+## Supported Language Models
+
+| Huggingface Model | Link | Kiji Inspector Sparse Autoencoder | Supported Layers |
+|---|---|---|---|
+| `google/gemma-3-27b-it` | [model](https://huggingface.co/google/gemma-3-27b-it) | [575-lab/kiji-inspector-google-gemma-3-27b-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-3-27b-it) | 10 20 31 41 50 58 |
+| `google/gemma-4-26B-A4B-it` | [model](https://huggingface.co/google/gemma-4-26B-A4B-it) | [575-lab/kiji-inspector-google-gemma-4-26B-A4B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-26B-A4B-it) | 11 14 17 20 23 |
+| `google/gemma-4-E4B-it` | [model](https://huggingface.co/google/gemma-4-E4B-it) | [575-lab/kiji-inspector-google-gemma-4-E4B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-E4B-it) | 11 17 23 29 35 |
+| `google/gemma-4-E2B-it` | [model](https://huggingface.co/google/gemma-4-E2B-it) | [575-lab/kiji-inspector-google-gemma-4-E2B-it](https://huggingface.co/575-lab/kiji-inspector-google-gemma-4-E2B-it) | 13 14 15 18 19 20 23 24 25 |
+| `nvidia/Nemotron-3-Super-120B-A12B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-FP8) | 15 27 45 57 69 81 |
+| `nvidia/Nemotron-3-Super-120B-A12B-BF16` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-BF16](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Super-120B-A12B-BF16) | 15 27 45 57 69 81 |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16) | 8 17 20 26 35 44 |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | 8 17 20 26 35 44 |
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4` | [model](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | [575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4](https://huggingface.co/575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4) | 8 17 20 26 35 44 |
+
+<!--
+Skip the table quickly - it's a reference slide. The point: pre-trained SAEs are already on Hugging Face under the 575-lab org for Gemma 3 (1B/4B/27B), Gemma 4 (multiple variants including E2B/E4B), and Nemotron-3 across Nano 30B (BF16/FP8/NVFP4) and Super 120B (BF16/FP8). For each model we ship multiple layers so you can pick the one that matches your decision point. If anyone is on a supported model they can skip training entirely - that's the whole point of the open release.
+-->
+
+---
+
+## Our Inference Setup
+
+![center w:950](../paper/images/inference_pipeline.png)
+
+Seven steps from raw prompts to human-readable decision explanations.
+
+<!--
+This is the runtime story - what happens after the SAE is trained. A user request comes in, the subject model selects a tool, and in parallel we capture the decision-token activation, pass it through the SAE, look up the top-firing features in the labeled dictionary, and emit a human-readable rationale alongside the tool call. The whole thing runs as a single Docker container on the vLLM side. Don't dwell on every arrow - the point is that interpretation is online, not a separate offline analysis.
+-->
+
+---
+
+## Hands-on: Extract a Layer's Activations
+
+The Kiji Inspector builds on standard PyTorch primitives. Here's the extraction step in raw `transformers` &mdash; the same mechanism, no Kiji magic, on any HuggingFace causal LM.
+
+```bash
+pip install -U -q kiji-inspector transformers
+```
+
+<!--
+Pivoting from research narrative to a live code walkthrough. The point of the next six slides is: this is plain PyTorch + HuggingFace - no Kiji magic for the extraction step. We're deliberately showing the raw mechanism first so people see the SAE is layered on top of standard infrastructure they already know. After the code walkthrough we'll bring in the Kiji Inspector API and show the payoff. One pip install, two libraries.
+-->
+
+---
+
+## Setup &mdash; Imports & Config
+
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoProcessor
+
+LAYER_INDEX = 8
+MODEL_ID    = "google/gemma-4-E4B-it"
+PROMPT      = "My dishwasher is smelly, what is the first element I should review?"
+```
+
+Pick the **layer** to study and the **model** to study it on. Everything else flows from these three constants.
+
+<!--
+Just three constants drive everything: which layer, which model, what prompt. Layer 8 here because we're demonstrating on Gemma 4 E4B which is smaller than Nemotron - the analogous "decision-near" layer is shallower. Use the dishwasher prompt deliberately - it's mundane and shows the system handles non-toy domains. Move through this slide in 15 seconds.
+-->
+
+---
+
+## Load Model & Processor
+
+```python
+processor = AutoProcessor.from_pretrained(MODEL_ID)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,
+    torch_dtype=torch.bfloat16,
+    device_map="auto",
+)
+model.eval()
+```
+
+`bfloat16` halves memory; `device_map="auto"` lets HF Accelerate place layers across GPUs. `.eval()` disables dropout &mdash; we want deterministic activations.
+
+<!--
+Three details worth pointing out: bf16 because we don't need fp32 precision for forward-only inference - it halves memory and the SAE can absorb the noise. device_map=auto lets HF Accelerate split layers across whatever GPUs are available. eval mode disables dropout - critical because we want the *same* activation every time we run the same prompt, otherwise our SAE features become noisy.
+-->
+
+---
+
+## Format the Prompt
+
+```python
+messages = [{"role": "user", "content": [{"type": "text", "text": PROMPT}]}]
+prompt = processor.apply_chat_template(
+    messages, tokenize=False, add_generation_prompt=True,
+)
+inputs = processor(text=prompt, return_tensors="pt")
+inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
+```
+
+`add_generation_prompt=True` appends the assistant turn header &mdash; the model is now poised to *answer*. That final position is the **decision token** we just defined.
+
+<!--
+The crucial flag here is add_generation_prompt=True. Without it, you tokenize "user said X" - with it, you tokenize "user said X, assistant is about to respond starting with...". That final cursor position is the decision token from earlier in the talk. This is where the model's internal state has converged on what it's going to do next. Everything else on this slide is boilerplate device handling.
+-->
+
+---
+
+## Capture Activations with a Forward Hook
+
+```python
+captured = {}
+
+def hook(_module, _inputs, output):
+    hidden = output[0] if isinstance(output, tuple) else output
+    captured["tensor"] = hidden.detach().cpu()
+
+layer = model.model.language_model.layers[LAYER_INDEX]
+handle = layer.register_forward_hook(hook)
+```
+
+PyTorch's `register_forward_hook` intercepts the layer's output mid-forward-pass. We `.detach()` to drop the autograd graph and `.cpu()` so we don't pin GPU memory.
+
+<!--
+This is the meat. register_forward_hook is a one-line PyTorch primitive that lets you intercept a layer's output mid-forward-pass without modifying the model code. The hook stuffs the hidden state into a captured dict. Two important hygiene moves: detach() drops the autograd graph (we're not training), and cpu() moves the tensor off GPU so we don't accidentally pin a million activations in VRAM during dataset construction. This same code pattern scales from one example to a million.
+-->
+
+---
+
+## Run Inference, Retrieve the Tensor
+
+```python
+try:
+    with torch.inference_mode():
+        model(**inputs)
+finally:
+    handle.remove()
+
+hidden_state = captured["tensor"]
+```
+
+`inference_mode()` is faster than `no_grad()` &mdash; it also skips view-tracking. The `try / finally` guarantees the hook is removed even on error. `hidden_state` is ready to feed into a trained SAE.
+
+<!--
+Two craft notes here. inference_mode is strictly faster than no_grad because it also skips view-tracking - matters at scale. The try/finally guarantees the hook handle is removed even if the forward pass raises - otherwise hooks accumulate silently and you start capturing other people's tensors. After this block, hidden_state is just a regular CPU tensor ready to feed into the SAE. That's the handoff to the next slide.
+-->
+
+---
+
+## Now: Ask the Kiji Inspector What Fired
+
+```python
+from kiji_inspector import SAE
+
+sae, feature_descriptions = SAE.from_pretrained(
+    base_model="google/gemma-4-E4B-it",
+    layer=8,
+)
+
+# Activation for the first sequence, last token
+last_token_act = hidden_state[0, -1, :]
+
+# Describe the top features activating on this token
+sae.describe(last_token_act, feature_descriptions)
+```
+
+`SAE.from_pretrained` pulls a layer-matched SAE *and* its labelled feature dictionary from the Hub. `describe()` returns the highest-activating features and their human-readable labels &mdash; the decision token, explained.
+
+<!--
+This is the payoff slide. Three lines: load a layer-matched SAE *and* its labeled feature dictionary from the Hub, slice out the last-token activation, call describe(). That's the whole user experience. The HF-style API is deliberate - same ergonomics as transformers, drops into any existing pipeline. If audience is wondering why we ship the feature dictionary alongside the weights: features are model-specific - their indices only make sense paired with the autointerp labels we generated. So we always distribute them together.
+-->
+
+---
+
+## Output: Top Features on the Token
+
+```python
+[(2341, 'unknown', 7.57),
+ (14641,
+  {'label':           'Dishwasher Gasket Issues',
+   'description':     'Detects descriptions of dishwashers leaking from '
+                      'the door or bottom, often mentioning a worn, torn, '
+                      'or cracked door gasket.',
+   'confidence':      'high',
+   'mean_activation': 7.66,
+   'max_activation':  8.63,
+   'frac_nonzero':    1.0,
+   'top_examples':    ['My 18-yr-old dishwasher is leaking from the door...',
+                       ...],
+   'bottom_examples': ['Find general best practices for API versioning...',
+                       ...]},
+  7.19),
+ ...]
+```
+
+A labelled feature (**#14641**) semantically matches the prompt &mdash; with full provenance (confidence, activation stats, witnessing contexts). Feature **#2341** fired too but autointerp hasn't named it. 
+
+<!--
+The prompt was about a smelly dishwasher. The top labeled feature - #14641 - is "Dishwasher Gasket Issues", and it fires hard (7.66 mean, 8.63 max). That's the model recognizing this is a dishwasher complaint via a feature it built unsupervised. Notice we ship full provenance: top examples (what activated it during training), bottom examples (what didn't), confidence, frac_nonzero. That's there to build trust - reviewers can audit whether a label is honest. Feature #2341 also fired but autointerp couldn't confidently label it - we surface those as "unknown" rather than hide them.
+-->
+
+---
+
+<!-- _class: section -->
+
+<div class="logo"></div>
+
+<div style="position:absolute;top:50%;right:96px;transform:translateY(-50%);text-align:center;">
+<img src="../paper/images/qr_github.svg" alt="QR code to github.com/dataiku/kiji-inspector" width="160" style="background:#FFFFFA;padding:10px;border-radius:8px;" />
+<p style="margin:0.5em 0 0;font-size:0.75rem;color:rgba(10,42,31,.7);">github.com/dataiku/kiji-inspector</p>
+</div>
+
 # Demo Time
 
 ### Kiji Inspector, live
 
 <!--
-Section transition into live demo. If you have a working laptop demo, this is your cue to alt-tab. If not, the next slide has a screenshot that walks through what the demo shows. Be prepared for both - venue wifi or screen-share failures will happen. Have the screenshot ready as a fallback.
+Section transition into live demo. If you have a working laptop demo, this is your cue to alt-tab. If not, the next slide has a screenshot that walks through what the demo shows. Be prepared for both - venue wifi or screen-share failures will happen. Have the screenshot ready as a fallback. QR is on the right for anyone who wants to clone the repo and follow the live demo locally.
 -->
 
 ---
 
 ## End-to-End Demo Application
 
-![center w:850](../paper/images/demo_screenshot.png)
+![center w:850](../paper/images/new_demo.png)
 
 Interactive system surfacing SAE-derived explanations alongside agent output -- translating internal feature activations into natural-language rationales.
 
 <!--
 Walk through the screenshot: left pane is the user prompt, middle is the agent's tool choice and arguments, right pane is the Kiji Inspector explanation - the top features that fired on the decision token, with their labels and activation strengths. The whole thing runs on a single vLLM endpoint with the SAE attached as a side-car. The interesting moment for the audience: when you change the prompt subtly (the password contrast pair from earlier), the tool choice flips AND the feature explanation changes in a way that maps to the contrast. That's the live "we can see why" moment.
+-->
+
+---
+
+## Ideas for Your Use Cases of Kiji Inspector
+
+<img src="../paper/images/qr_github.svg" alt="QR code to github.com/dataiku/kiji-inspector" width="100" style="position:absolute;top:48px;right:72px;background:#FFFFFA;padding:6px;border-radius:8px;border:1px solid rgba(43,59,100,.18);" />
+
+<div class="cols" style="grid-auto-rows: 1fr; align-items: stretch;">
+
+<div class="card">
+
+<span class="badge">01</span>
+
+### Debug Agent Misbehaviour
+
+When the agent picks the *wrong* tool, read off the firing features to see what the model actually keyed on &mdash; not the story its chain-of-thought tells.
+
+</div>
+
+<div class="card">
+
+<span class="badge">02</span>
+
+### Audit Decisions for Compliance
+
+Catch agents routing on signals they shouldn't &mdash; sensitive attributes, leaked context, prompt-injected instructions. Evidence beyond input/output logs.
+
+</div>
+
+</div>
+
+<div class="cols" style="grid-auto-rows: 1fr; align-items: stretch;">
+
+<div class="card">
+
+<span class="badge">03</span>
+
+### Validate Prompt Engineering
+
+Confirm a prompt edit actually shifted the *decision-relevant* features &mdash; not just the output text on a handful of examples.
+
+</div>
+
+<div class="card">
+
+<span class="badge">04</span>
+
+### Monitor Production Drift
+
+Track feature-activation distributions over time. Alert when the agent's internal rationale moves, even if the tool-choice metrics still look fine.
+
+</div>
+
+</div>
+
+<!--
+Hand the audience four concrete ways to take Kiji Inspector home. (1) Debugging - when an agent picks the wrong tool, the SAE features tell you what the model *actually* keyed on, which often disagrees with its own chain-of-thought rationale. Way more diagnostic than re-prompting. (2) Compliance - if you need to prove your agent isn't routing on a protected attribute or a prompt-injected instruction, feature-level evidence is far stronger than I/O logs. (3) Prompt engineering validation - prompt edits often change outputs without changing the underlying decision mechanism; this lets you tell the difference. (4) Drift monitoring - feature-activation distributions are a leading indicator of behavioural change; you can detect rationale shift before the headline metrics move. Invite the audience to find their own use case - this list is a starting point, not exhaustive.
 -->
 
 ---
@@ -1341,4 +1423,3 @@ Be honest about the limits. Training cost is the big one: we used a 235B generat
 <!--
 Thank the audience. Point to the QR code - it goes straight to the GitHub repo where everything lives: code, pre-trained SAEs, paper, scenarios. Drop David's name explicitly so the joint work is clearly credited. Then open Q&A. Likely questions to prepare for: (a) "what about closed models like GPT?" - we need internal access, this is open-weights only; (b) "how much did training cost?" - rough numbers in the limitations slide; (c) "does this work for safety-relevant tools?" - yes, that's where we want it to go, the methodology is tool-agnostic; (d) "do features generalize across models?" - open research question, slide 40 lists it as future work.
 -->
-
