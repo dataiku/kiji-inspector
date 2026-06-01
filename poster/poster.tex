@@ -81,7 +81,7 @@
 % \qrcode cannot be expanded directly inside a tikz node.
 \newsavebox{\qrbox}
 \logoleft{%
-  \tikz\node[fill=white, rounded corners=6pt, inner sep=8pt]{\usebox{\qrbox}};%
+  \tikz\node[fill=white, rounded corners=4pt, inner sep=3pt]{\usebox{\qrbox}};%
 }
 
 % ====================
@@ -101,7 +101,7 @@
 \begin{document}
 
 % Render the header QR now (qrcode only works inside the document).
-\savebox{\qrbox}{\qrcode[height=4.9cm,padding]{https://github.com/dataiku/kiji-inspector}}
+\savebox{\qrbox}{\qrcode[height=7cm]{https://github.com/dataiku/kiji-inspector}}
 
 \begin{frame}[t]
 \begin{columns}[t]

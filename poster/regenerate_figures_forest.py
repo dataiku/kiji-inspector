@@ -58,9 +58,7 @@ def regenerate_charts() -> None:
     gc.bw_mode = False
     gc.dpi = 300
 
-    # Each chart's background matches the poster block it sits in, so the figure
-    # blends into the beige page instead of showing a pale rectangle. The
-    # ablation chart lives in a light-green alert card; the rest are on beige.
+    # Chart backgrounds: all charts render on beige to match the page.
     chart_bg = {"v": BEIGE}
 
     # Restyle the hardcoded white "dead: X%" bar labels (generate_charts.py:238)
@@ -125,9 +123,9 @@ def regenerate_charts() -> None:
         chart_bg["v"] = BEIGE
         gc.chart_layer_sweep(IMAGES)
 
-        plt.rcParams["axes.facecolor"] = LIGHT
-        plt.rcParams["figure.facecolor"] = LIGHT
-        chart_bg["v"] = LIGHT
+        plt.rcParams["axes.facecolor"] = BEIGE
+        plt.rcParams["figure.facecolor"] = BEIGE
+        chart_bg["v"] = BEIGE
         gc.chart_ablation(IMAGES)
     finally:
         maxes.Axes.text = orig_text
