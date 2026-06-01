@@ -9,6 +9,7 @@ Thank you to everyone who has contributed to Kiji Privacy Proxy!
 
 ## Contributors
 
+- **Tom Wiley** ([@tmwly](https://github.com/tmwly))
 - this could be you!
 
 ---
