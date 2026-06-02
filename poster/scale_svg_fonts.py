@@ -7,6 +7,7 @@ paper's source SVGs in paper/images/ are left untouched.
 
 Usage: python3 scale_svg_fonts.py <file.svg> <factor>
 """
+
 import re
 import sys
 

@@ -84,23 +84,71 @@ def chart_ablation(outdir: Path) -> None:
 
     if bw_mode:
         bar_groups = [
-            ax.bar(x - w, contrastive, w, label="Contrastive ablation",
-                   color="black", edgecolor="black", linewidth=0.5, zorder=3),
-            ax.bar(x, directed, w, label="Directed flips",
-                   color="white", edgecolor="black", linewidth=0.5, zorder=3,
-                   hatch="///"),
-            ax.bar(x + w, random_rec, w, label="Random / Recon.",
-                   color="white", edgecolor="black", linewidth=0.5, zorder=3,
-                   hatch="..."),
+            ax.bar(
+                x - w,
+                contrastive,
+                w,
+                label="Contrastive ablation",
+                color="black",
+                edgecolor="black",
+                linewidth=0.5,
+                zorder=3,
+            ),
+            ax.bar(
+                x,
+                directed,
+                w,
+                label="Directed flips",
+                color="white",
+                edgecolor="black",
+                linewidth=0.5,
+                zorder=3,
+                hatch="///",
+            ),
+            ax.bar(
+                x + w,
+                random_rec,
+                w,
+                label="Random / Recon.",
+                color="white",
+                edgecolor="black",
+                linewidth=0.5,
+                zorder=3,
+                hatch="...",
+            ),
         ]
     else:
         bar_groups = [
-            ax.bar(x - w, contrastive, w, label="Contrastive ablation",
-                   color=COLORS["accent"], edgecolor="white", linewidth=0.5, zorder=3),
-            ax.bar(x, directed, w, label="Directed flips",
-                   color=COLORS["primary"], edgecolor="white", linewidth=0.5, zorder=3),
-            ax.bar(x + w, random_rec, w, label="Random / Recon.",
-                   color=COLORS["text_light"], edgecolor="white", linewidth=0.5, zorder=3),
+            ax.bar(
+                x - w,
+                contrastive,
+                w,
+                label="Contrastive ablation",
+                color=COLORS["accent"],
+                edgecolor="white",
+                linewidth=0.5,
+                zorder=3,
+            ),
+            ax.bar(
+                x,
+                directed,
+                w,
+                label="Directed flips",
+                color=COLORS["primary"],
+                edgecolor="white",
+                linewidth=0.5,
+                zorder=3,
+            ),
+            ax.bar(
+                x + w,
+                random_rec,
+                w,
+                label="Random / Recon.",
+                color=COLORS["text_light"],
+                edgecolor="white",
+                linewidth=0.5,
+                zorder=3,
+            ),
         ]
 
     ax.set_ylabel("Prediction flip rate (%)", fontsize=13, fontweight="bold")
@@ -108,9 +156,7 @@ def chart_ablation(outdir: Path) -> None:
     ax.set_xticklabels(labels, fontsize=10)
     ax.set_ylim(0, 85)
     ax.yaxis.set_major_formatter(mticker.PercentFormatter())
-    ax.legend(
-        fontsize=11, frameon=True, fancybox=True, edgecolor=C("border"), loc="upper right"
-    )
+    ax.legend(fontsize=11, frameon=True, fancybox=True, edgecolor=C("border"), loc="upper right")
     ax.set_title(
         "Feature Ablation: Causal Evidence",
         fontsize=16,
@@ -200,10 +246,10 @@ def chart_layer_sweep(outdir: Path) -> None:
     ax1.set_xlabel("Transformer Layer", fontsize=13, fontweight="bold")
 
     # MSE line (log scale)
-    mse_style = {"color": "black", "marker": "s"} if bw_mode else {"color": COLORS["accent"], "marker": "o"}
-    ax2.plot(
-        range(len(layers)), mse, "-", linewidth=2.5, markersize=9, zorder=4, **mse_style
+    mse_style = (
+        {"color": "black", "marker": "s"} if bw_mode else {"color": COLORS["accent"], "marker": "o"}
     )
+    ax2.plot(range(len(layers)), mse, "-", linewidth=2.5, markersize=9, zorder=4, **mse_style)
     mse_label_color = "black" if bw_mode else COLORS["accent"]
     ax2.set_ylabel(
         "Reconstruction MSE (log scale)", fontsize=13, fontweight="bold", color=mse_label_color
@@ -425,9 +471,7 @@ def chart_baselines(outdir: Path) -> None:
         alpha=0.5,
         label="Random baseline",
     )
-    ax.legend(
-        fontsize=10, loc="lower right", frameon=True, fancybox=True, edgecolor=C("border")
-    )
+    ax.legend(fontsize=10, loc="lower right", frameon=True, fancybox=True, edgecolor=C("border"))
     style_ax(ax)
 
     fig.tight_layout()

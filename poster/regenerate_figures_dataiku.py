@@ -11,6 +11,7 @@ map and re-renders them to PNG with rsvg-convert.
 Run:
     uv run --no-project --with matplotlib python3 poster/regenerate_figures_dataiku.py
 """
+
 import subprocess
 import sys
 from pathlib import Path
@@ -18,12 +19,12 @@ from pathlib import Path
 # Dataiku brand palette --- DESIGN.md-documented tokens, plus dark/light shades
 # derived from them (teal darkened so white on-bar labels stay WCAG-readable).
 TEAL_BLUE = "#045067"  # @teal-blue-base
-TEAL = "#2AB1AC"       # @teal-base
-TEAL_DK = "#1f7a76"    # darkened @teal-base (white-on-bar readable)
-TEAL_DK2 = "#176b67"   # darker teal (gradient ends)
-MAGENTA = "#c51d54"    # brand accent
+TEAL = "#2AB1AC"  # @teal-base
+TEAL_DK = "#1f7a76"  # darkened @teal-base (white-on-bar readable)
+TEAL_DK2 = "#176b67"  # darker teal (gradient ends)
+MAGENTA = "#c51d54"  # brand accent
 MAGENTA_L = "#d24f7a"  # lightened brand accent
-INK = "#222222"        # @grey-base
+INK = "#222222"  # @grey-base
 
 HERE = Path(__file__).resolve().parent  # poster/
 ROOT = HERE.parent
@@ -37,7 +38,7 @@ DATAIKU_COLORS = {
     "accent_light": MAGENTA_L,
     "text": INK,
     "text_light": "#718096",  # neutral gray (kept)
-    "border": "#e2e8f0",      # neutral light gray (kept)
+    "border": "#e2e8f0",  # neutral light gray (kept)
 }
 
 
@@ -61,8 +62,10 @@ def regenerate_charts() -> None:
         if isinstance(s, str) and s.startswith("dead:"):
             kwargs["color"] = INK
             kwargs["bbox"] = dict(
-                boxstyle="round,pad=0.3", facecolor="#f7fafc",
-                edgecolor="none", alpha=0.92,
+                boxstyle="round,pad=0.3",
+                facecolor="#f7fafc",
+                edgecolor="none",
+                alpha=0.92,
             )
         return orig_text(self, *args, **kwargs)
 
