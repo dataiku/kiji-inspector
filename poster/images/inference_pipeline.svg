@@ -202,7 +202,7 @@
   <!-- ============================================================ -->
   <!-- Step labels at bottom -->
   <!-- ============================================================ -->
-  <rect x="30" y="515" width="650" height="36" rx="6" fill="#FFFEF9" stroke="#EEEDEA" stroke-width="1"/>
+  <rect x="30" y="515" width="682" height="36" rx="6" fill="#FFFEF9" stroke="#EEEDEA" stroke-width="1"/>
   <text x="45" y="538" font-size="13.5" fill="#06312E" font-weight="700">1</text>
   <text x="55" y="538" font-size="13.5" fill="#929088">Prompt</text>
   <text x="110" y="538" font-size="13.5" fill="#06312E" font-weight="700">2</text>

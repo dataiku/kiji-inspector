@@ -67,9 +67,9 @@
 
 \title{Opening the Black Box: Mechanistic Interpretability of Agent Tool Selection with Sparse Autoencoders}
 
-\author{Hannes Hapke \inst{1} \and David Cardozo \inst{1}}
+\author{Hannes Hapke \inst{1} \and David Cardozo \inst{2}}
 
-\institute[Dataiku 575 Lab]{\inst{1} 575 Lab, Dataiku Inc.\ --- Portland, OR \& Toronto, ON}
+\institute[Dataiku 575 Lab]{\inst{1} 575 Lab, Dataiku Inc., Portland, OR \quad \inst{2} 575 Lab, Dataiku Inc., Toronto, ON}
 
 % ====================
 % Logos
@@ -123,7 +123,8 @@
       {\large random ablation: \textbf{0\,\%} \quad$\cdot$\quad
               SAE round-trip: \textbf{0\,\%} \quad$\cdot$\quad
               $p = 0.002$}\\[0.3em]
-      {\normalsize \emph{up to 17.1\,\% on other contrast types.}}\\[0.4em]
+      {\normalsize \emph{also significant: single vs.\ multi-tool ---
+        17.1\,\% vs.\ 2.4\,\% baseline ($n=41$, $p=0.029$).}}\\[0.4em]
       {\footnotesize \emph{fundamental vs.\ technical analysis} (finance
        domain, 1 of 23 contrast types tested) ---
        Nemotron-3-Nano-30B, layer 20.}
@@ -247,33 +248,23 @@
 
   \end{block}
 
-  \begin{block}{Inside a Feature --- What an SAE Actually Finds}
+  \begin{block}{Inside a Feature --- Emergent, Unsupervised Concepts}
 
-    \begin{center}
-      {\Large\textbf{Feature label:}}\\[0.2em]
-      {\LARGE\textbf{\emph{``data modification intent''}}}
-    \end{center}
+    The SAE decomposes Layer-20 activations into \textbf{10\,752 features}.
+    Without contrastive supervision, named concepts emerge from raw
+    activations alone:
 
-    \vspace{0.4em}
-    {\Large\textcolor{fdark}{\textbf{$\blacktriangle$ Activates on}}}\\[0.15em]
-    {\large\texttt{set\,$\cdot$\,update\,$\cdot$\,modify\,$\cdot$\,create\,$\cdot$\,delete\,$\cdot$\,write}}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \emph{``internal knowledge retrieval''}
+      \item \emph{``data modification intent''}
+      \item \emph{``query complexity''}
+    \end{itemize}
 
-    \vspace{0.5em}
-    {\Large\textcolor{fink!55}{\textbf{$\blacktriangledown$ Suppressed by}}}\\[0.15em]
-    {\large\texttt{what\,$\cdot$\,list\,$\cdot$\,show\,$\cdot$\,describe\,$\cdot$\,find\,$\cdot$\,latest}}
-
-    \vspace{0.7em}
-    \heading{\Large Behaviour under ablation}
-
-    \large
-    \begin{tabular}{@{}r@{\,\,}c@{\,\,}l@{}}
-      Write request, feature \emph{intact}    & $\Rightarrow$ & agent picks \texttt{[file\_write]}\\[0.15em]
-      Write request, feature \emph{ablated}   & $\Rightarrow$ & agent drifts to \texttt{[file\_read]}\\
-    \end{tabular}
-
-    \vspace{0.5em}
-    {\small Features like this emerge \emph{without} contrastive supervision
-    --- the SAE learns them from raw activations alone.}
+    \vspace{0.3em}
+    Each feature carries an LLM-generated label, a token-level fuzzing
+    score (aggregate $0.912 \pm 0.008$, $p<10^{-4}$), and its row in the
+    contrastive-ablation table.
 
   \end{block}
 
@@ -283,8 +274,9 @@
             convention.
       \item Top-10 ablation is conservative; distributed decisions need
             larger sets.
-      \item Feature labels rely on Qwen3-VL-235B --- judge errors propagate
-            to rationales.
+      \item The Qwen3-VL-235B pipeline (pair generation, feature labelling,
+            fuzzing judge) is the single source of LLM supervision ---
+            model errors propagate to rationales.
     \end{itemize}
   \end{block}
 
@@ -396,7 +388,7 @@
     \vspace{0.6em}
     \normalsize
     Nemotron-3-Nano-30B (subject) \quad$\cdot$\quad
-    Qwen3-VL-235B (judge) \quad$\cdot$\quad
+    Qwen3-VL-235B (generation, labelling, judge) \quad$\cdot$\quad
     Compute by NVIDIA
 
     \vspace{0.4em}
