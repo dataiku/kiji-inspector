@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Regenerate the poster's figures in the Forest palette (poster-only).
 
 Forest = the green secondary brand palette from colors.md:

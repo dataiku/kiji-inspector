@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Regenerate the poster's figures in the Dataiku brand palette (poster-only).
 
 Charts: imports paper/generate_charts.py, overrides its COLORS dict with
