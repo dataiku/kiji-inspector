@@ -6,9 +6,10 @@ by zeroing them out during the forward pass and measuring whether the model's
 tool prediction changes.
 
 For each contrast type:
-  1. Ablate top-K contrastive features -> measure flip rate
-  2. Ablate K random features as control -> measure flip rate
-  3. Fisher's exact test comparing the two
+  1. Ablate top-K contrastive features -> measure flip rate + CATE (with bootstrap CI)
+  2. Ablate K random features as control -> measure flip rate + CATE (with bootstrap CI)
+  3. Fisher's exact test comparing the two 
+  4. One-sided Wilcoxon signed-rank test on probability shifts
 
 Usage:
     python ablation.py \
@@ -85,7 +86,6 @@ def get_tool_prediction(
 
     # Find predicted tool (unchanged logic)
     topk_ids = logits.topk(top_k, dim=-1).indices[0].tolist()
-
     predicted_tool = "unknown"
     predicted_tid = topk_ids[0]
     for tid in topk_ids:
@@ -101,7 +101,6 @@ def get_tool_prediction(
             if name == contrast_tool:
                 prob_contrast = float(probs[tid])
                 break
-    
 
     return predicted_tool, predicted_tid, prob_contrast
 
@@ -194,15 +193,19 @@ def make_ablation_hook(
 def compute_ablation_metrics(
     per_contrast: dict[str, dict],
 ) -> dict:
-    """Compute aggregate metrics across contrast types, including causal ATE,
-    bootstrap CIs, and Wilcoxon signed-rank test statistics (both per contrast
-    type and in aggregate).
+    """Compute aggregate metrics across contrast types, including causal CATE
+    (Conditional Average Treatment Effect per contrast type), bootstrap CIs,
+    and Wilcoxon signed-rank test statistics (both per contrast type and in aggregate).
     """
     from scipy.stats import fisher_exact, wilcoxon
     import numpy as np
 
     def bootstrap_ci(data: list[float], n_boot: int = 5000, alpha: float = 0.05):
-        """Non-parametric bootstrap 95% CI for the mean."""
+        """Non-parametric bootstrap 95% CI.
+    
+        Returns:
+        mean : original sample mean (point estimate)
+        lower, upper : bootstrap percentile confidence interval."""
         if not data:
             return 0.0, 0.0, 0.0
         data = np.array(data)
@@ -212,7 +215,7 @@ def compute_ablation_metrics(
         ])
         lower = np.percentile(boot_means, 100 * alpha / 2)
         upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
-        mean = float(np.mean(boot_means))
+        mean = float(np.mean(data))
         return mean, lower, upper
 
     wilcoxon_p_values = []   # for aggregate statistics
@@ -256,17 +259,21 @@ def compute_ablation_metrics(
         contrastive_deltas = deltas.get("contrastive", [])
 
         if contrastive_deltas:
-            ate, ci_lower, ci_upper = bootstrap_ci(contrastive_deltas)
+            cate, ci_lower, ci_upper = bootstrap_ci(contrastive_deltas)
             info["contrastive_ablation"].update({
-                "ATE": round(ate, 4),
-                "ATE_ci_95_lower": round(ci_lower, 4),
-                "ATE_ci_95_upper": round(ci_upper, 4),
+                "CATE": round(cate, 4),
+                "CATE_ci_95_lower": round(ci_lower, 4),
+                "CATE_ci_95_upper": round(ci_upper, 4),
             })
 
             # Wilcoxon signed-rank test (per contrast type)
-            if len(contrastive_deltas) >= 10:
+            if np.count_nonzero(contrastive_deltas) >= 10:
                 try:
-                    _, wilcoxon_p = wilcoxon(contrastive_deltas, alternative="two-sided")
+                    _, wilcoxon_p = wilcoxon(
+                        contrastive_deltas,
+                        alternative="greater",
+                        zero_method="wilcox"
+                    )
                     wilcoxon_p = float(wilcoxon_p)
                 except ValueError:
                     wilcoxon_p = None
@@ -279,13 +286,13 @@ def compute_ablation_metrics(
             if wilcoxon_p is not None:
                 wilcoxon_p_values.append(wilcoxon_p)
 
-        # Optional ATE for random / reconstruction
+        # Optional CATE for random / reconstruction
         if deltas.get("random"):
-            random_ate, _, _ = bootstrap_ci(deltas["random"])
-            info["random_ablation"]["ATE"] = round(random_ate, 4)
+            random_cate, _, _ = bootstrap_ci(deltas["random"])
+            info["random_ablation"]["CATE"] = round(random_cate, 4)
         if deltas.get("reconstruction"):
-            recon_ate, _, _ = bootstrap_ci(deltas["reconstruction"])
-            info["reconstruction_baseline"]["ATE"] = round(recon_ate, 4)
+            recon_cate, _, _ = bootstrap_ci(deltas["reconstruction"])
+            info["reconstruction_baseline"]["CATE"] = round(recon_cate, 4)
 
         # Clean up
         for key in (
@@ -312,8 +319,8 @@ def compute_ablation_metrics(
             "mean_reconstruction_flip_rate": round(
                 np.mean([v["reconstruction_baseline"]["flip_rate"] for v in tested]), 4
             ),
-            "mean_contrastive_ATE": round(
-                np.mean([v["contrastive_ablation"].get("ATE", 0) for v in tested]), 4
+            "mean_contrastive_CATE": round(
+                np.mean([v["contrastive_ablation"].get("CATE", 0) for v in tested]), 4
             ),
         }
 
