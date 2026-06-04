@@ -1,0 +1,69 @@
+% Gemini theme --- Forest (Dataiku brand secondary palette)
+% Colors sourced from colors.md. Six documented brand tokens; tints/shades are
+% xcolor mixes of those tokens (no invented hex values).
+%   Core Black   #1A1A1A  primary text
+%   Core White   #FFFEF9  background
+%   Dark Green   #06312E  deep brand (headline, titles, primary fills)
+%   Beige        #F8F4E4  warm soft fill
+%   Green        #3EDAB2  bright brand accent (rules, separators -- non-text)
+%   Light Green  #C7FFF1  light accent fill
+% Note: Green #3EDAB2 is light (~1.6:1 on white) and so is used ONLY for
+% non-text fills/separators; all text uses Dark Green #06312E or Core Black.
+
+% ====================
+% Definitions
+% ====================
+
+\definecolor{fdark} {HTML}{06312E} % Dark Green  (deep brand / text on light)
+\definecolor{fmint} {HTML}{3EDAB2} % Green       (bright accent / separators)
+\definecolor{flight}{HTML}{C7FFF1} % Light Green (light accent fill)
+\definecolor{fbeige}{HTML}{F8F4E4} % Beige       (warm soft fill)
+\definecolor{fink}  {HTML}{1A1A1A} % Core Black  (primary text)
+\definecolor{fwhite}{HTML}{FFFEF9} % Core White  (background)
+
+% ====================
+% Theme
+% ====================
+
+% Basic colors
+\setbeamercolor{palette primary}{fg=fink,bg=fbeige}
+\setbeamercolor{palette secondary}{fg=fink,bg=fbeige}
+\setbeamercolor{palette tertiary}{bg=fdark,fg=fwhite}
+\setbeamercolor{palette quaternary}{fg=fink,bg=fbeige}
+\setbeamercolor{structure}{fg=fmint}
+
+% Page background --- beige
+\setbeamercolor{background canvas}{bg=fbeige}
+\setbeamercolor{background}{bg=fbeige}
+
+% Headline
+\setbeamercolor{headline}{fg=fwhite,bg=fdark}
+\setbeamercolor{headline rule}{bg=fmint}
+
+% Block --- regular blocks sit directly on the beige page (borderless)
+\setbeamercolor{block title}{fg=fdark,bg=fbeige}
+\setbeamercolor{block separator}{bg=fmint}
+\setbeamercolor{block body}{fg=fink,bg=fbeige}
+
+% Alert Block --- dark-green title on a light-green tint
+\setbeamercolor{block title alerted}{fg=fdark,bg=flight}
+\setbeamercolor{block separator alerted}{bg=fmint}
+\setbeamercolor{block body alerted}{fg=fink,bg=flight}
+
+% Example Block --- dark-green title on beige
+\setbeamercolor{block title example}{fg=fdark,bg=fbeige}
+\setbeamercolor{block separator example}{bg=fmint}
+\setbeamercolor{block body example}{fg=fink,bg=fbeige}
+
+% Heading
+\setbeamercolor{heading}{fg=fdark}
+
+% Itemize (dark marker for contrast; mint reserved for fill bands)
+\setbeamercolor{item}{fg=fdark}
+
+% Bibliography
+\setbeamercolor{bibliography item}{fg=fink}
+\setbeamercolor{bibliography entry author}{fg=fink}
+\setbeamercolor{bibliography entry title}{fg=fink}
+\setbeamercolor{bibliography entry location}{fg=fink}
+\setbeamercolor{bibliography entry note}{fg=fink}

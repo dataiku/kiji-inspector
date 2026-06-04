@@ -60,3 +60,6 @@ Thumbs.db
 *.pdf
 *.blg
 *.out
+
+# Exceptions: keep the built poster PDF in the repo
+!poster/poster.pdf

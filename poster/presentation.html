@@ -1,0 +1,3185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opening the Black Box - Poster Presentation Companion</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================================================
+           1. Core Design System & Variables
+           ========================================================================== */
+        :root {
+            --color-primary: #06312E; /* dkutealblue */
+            --color-primary-rgb: 6, 49, 46;
+            --color-primary-light: #0A5249;
+            --color-accent: #3EDAB2; /* dkuteal accent */
+            --color-accent-rgb: 62, 218, 178;
+            --color-accent-light: #7DEBCB;
+            --color-text: #222222; /* dkuink */
+            --color-text-muted: #64748b;
+            --color-bg: #041b18; /* Application background */
+            --color-slide-bg: #FFFEF9; /* Poster board background */
+            --color-border: #14564E;
+            --color-card-bg: #06312E;
+
+            /* Poster palette (matches website/SAE Agent Tool Selection Poster.html) */
+            --dgreen:#06312E;
+            --green:#3EDAB2;
+            --lgreen:#C7FFF1;
+            --beige:#F8F4E4;
+            --white:#FFFEF9;
+            --orange:#EDAB4F;
+            --grey:#929088;
+            --lgrey:#EEEDEA;
+            --ink:#2F2E2B;
+
+            --font-display: 'DM Sans', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
+            --font-mono: 'DM Mono', monospace;
+            
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Themes (affects the application shell) */
+        body.theme-default {
+            --color-bg: #052420;
+            --color-card-bg: #06312E;
+            --color-border: #14564E;
+        }
+
+        body.theme-night {
+            --color-bg: #03130f;
+            --color-card-bg: #052420;
+            --color-border: #06312E;
+        }
+
+        body.theme-forest {
+            --color-bg: #062f22;
+            --color-card-bg: #0b4534;
+            --color-border: #145c46;
+        }
+
+        body.theme-velvet {
+            --color-bg: #2d0b3d;
+            --color-card-bg: #43125c;
+            --color-border: #5a1c7a;
+        }
+
+        /* ==========================================================================
+           2. Basic Reset & App Layout
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--color-bg);
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Header Bar */
+        header {
+            background-color: #06312E;
+            border-bottom: 1px solid #14564E;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 800;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.4);
+        }
+
+        header h1 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: #f1f5f9;
+        }
+
+        header h1 span {
+            color: var(--color-accent-light);
+            font-size: 13px;
+            font-weight: 400;
+            display: block;
+        }
+
+        /* Toolbar Controls */
+        .controls-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn {
+            background-color: #14564E;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: var(--font-display);
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition-smooth);
+        }
+
+        .btn:hover {
+            background-color: #475569;
+            color: white;
+            border-color: #64748b;
+        }
+
+        .btn-accent {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: var(--color-primary-light);
+            border-color: var(--color-primary-light);
+            box-shadow: 0 0 12px rgba(var(--color-primary-rgb), 0.3);
+        }
+
+        /* Select controls */
+        .select-input {
+            background-color: #14564E;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Main Window Split Layout */
+        .app-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ==========================================================================
+           3. Sidebar: Minimap & Navigation
+           ========================================================================== */
+        .sidebar {
+            width: 280px;
+            background-color: #052420;
+            border-right: 1px solid #06312E;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+
+        /* Minimap styles */
+        .minimap-container {
+            padding: 14px;
+            background-color: #052420;
+            border-bottom: 1px solid #06312E;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .minimap-title {
+            font-family: var(--font-display);
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .minimap-columns {
+            display: flex;
+            gap: 8px;
+            height: 150px;
+        }
+        .minimap-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .minimap-block {
+            flex: 1;
+            background-color: #06312E;
+            border: 1px solid #14564E;
+            border-radius: 4px;
+            font-size: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            font-family: var(--font-display);
+            padding: 1px 2px;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+            line-height: 1.1;
+            overflow: hidden;
+        }
+        .minimap-block:hover {
+            background-color: #14564E;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        .minimap-block.alert {
+            border-left: 2px solid #3EDAB2;
+        }
+        .minimap-block.example {
+            border-left: 2px solid #EDAB4F;
+        }
+        .minimap-hero {
+            background: linear-gradient(90deg, #3EDAB2 0%, #2bbf9a 100%);
+            color: #06312E;
+            border-radius: 5px;
+            padding: 6px 10px;
+            font-family: var(--font-display);
+            font-size: 9.5px;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+        }
+        .minimap-hero:hover { filter: brightness(1.06); }
+        .minimap-hero.active {
+            outline: 2px solid #06312E;
+            box-shadow: 0 0 10px rgba(62, 218, 178, 0.5);
+            transform: scale(1.02);
+        }
+        .minimap-block.active {
+            background-color: #06312E !important;
+            color: #ffffff !important;
+            border-color: #3EDAB2 !important;
+            border-left-width: 2.5px !important;
+            box-shadow: 0 0 8px rgba(6, 49, 46, 0.7);
+            transform: scale(1.04);
+            font-weight: 600;
+        }
+
+        .sidebar-search {
+            padding: 12px 16px;
+            border-bottom: 1px solid #06312E;
+        }
+
+        .search-box {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: #06312E;
+            border: 1px solid #14564E;
+            color: white;
+            padding: 8px 12px 8px 32px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: var(--font-body);
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .search-input:focus {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .slide-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 8px;
+        }
+
+        .slide-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .slide-list::-webkit-scrollbar-thumb {
+            background-color: #14564E;
+            border-radius: 3px;
+        }
+
+        .slide-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            margin-bottom: 4px;
+            color: #94a3b8;
+        }
+
+        .slide-list-item:hover {
+            background-color: #06312E;
+            color: #f1f5f9;
+        }
+
+        .slide-list-item.active {
+            background-color: var(--color-primary);
+            color: white;
+            font-weight: 500;
+        }
+
+        .item-number {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            background-color: #14564E;
+            color: #cbd5e0;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide-list-item.active .item-number {
+            background-color: var(--color-accent);
+            color: white;
+        }
+
+        .item-title {
+            font-size: 12.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            font-family: var(--font-display);
+        }
+
+        /* ==========================================================================
+           4. Workspace Pane (Center View)
+           ========================================================================== */
+        .workspace {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            background-color: #041b18;
+            transition: var(--transition-smooth);
+            position: relative;
+        }
+
+        .workspace-split {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+        }
+
+        /* Slide View Pane */
+        .slide-pane {
+            flex: 1.25;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            background-color: #052420;
+            border-right: 1px solid #06312E;
+            position: relative;
+        }
+
+        /* Slide Aspect Ratio Container */
+        .slide-container {
+            width: 100%;
+            max-width: 820px;
+            aspect-ratio: 16 / 10;
+            background-color: var(--color-slide-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow-premium), 0 20px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transform: scale(1);
+            transition: var(--transition-smooth);
+            border: 1px solid #14564E;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Fullscreen Slide adjustments */
+        body.fullscreen-mode .sidebar,
+        body.fullscreen-mode .notes-pane,
+        body.fullscreen-mode header,
+        body.fullscreen-mode .footer-controls {
+            display: none !important;
+        }
+
+        body.fullscreen-mode .slide-pane {
+            flex: 1;
+            width: 100vw;
+            height: 100vh;
+            padding: 0;
+            border: none;
+            background-color: black;
+        }
+
+        body.fullscreen-mode .slide-container {
+            max-width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            border: none;
+        }
+
+        .slide-page-number {
+            position: absolute;
+            bottom: 12px;
+            right: 20px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #64748b;
+            z-index: 5;
+            user-select: none;
+        }
+
+        /* ==========================================================================
+           5. Speaker Notes Pane (Right View)
+           ========================================================================== */
+        .notes-pane {
+            flex: 0.85;
+            background-color: #052420;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+
+        .notes-header {
+            background-color: #06312E;
+            border-bottom: 1px solid #14564E;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notes-title {
+            font-family: var(--font-display);
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notes-badge {
+            background-color: var(--color-accent);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
+        .notes-content-scroll {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            color: #cbd5e1;
+            font-size: 14.5px;
+            line-height: 1.55;
+        }
+
+        .notes-content-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .notes-content-scroll::-webkit-scrollbar-thumb {
+            background-color: #14564E;
+            border-radius: 3px;
+        }
+
+        .notes-section {
+            margin-bottom: 20px;
+        }
+
+        .notes-section-title {
+            font-family: var(--font-display);
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #3EDAB2;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #06312E;
+            padding-bottom: 4px;
+        }
+
+        .notes-text {
+            color: #cbd5e1;
+        }
+
+        .notes-bullet-list {
+            margin-left: 18px;
+            margin-top: 8px;
+        }
+
+        .notes-bullet-list li {
+            margin-bottom: 6px;
+            font-size: 13.5px;
+            color: #94a3b8;
+        }
+
+        /* ==========================================================================
+           6. Footer Navigation Controls
+           ========================================================================== */
+        .footer-controls {
+            background-color: #06312E;
+            border-top: 1px solid #14564E;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .progress-bar-container {
+            flex: 1;
+            margin: 0 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 6px;
+            background-color: #14564E;
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.1s linear;
+        }
+
+        .progress-counter {
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            color: #94a3b8;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background-color: #14564E;
+            border: 1px solid #475569;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            outline: none;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--color-primary);
+            border-color: var(--color-accent);
+            box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.3);
+        }
+
+        .nav-btn:disabled {
+            background-color: #06312E;
+            border-color: #14564E;
+            color: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ==========================================================================
+           7. High-Fidelity Poster Block CSS Mockups
+           ========================================================================== */
+        .poster-block {
+            background-color: var(--beige);
+            color: var(--ink);
+            border-radius: 13px;
+            border: 1px solid rgba(6, 49, 46, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'DM Sans', sans-serif;
+            text-align: left;
+        }
+        .poster-block.alert-block {
+            background-color: #ECFBF5; /* green-tinted hero card */
+            border: 1.5px solid rgba(62, 218, 178, 0.55);
+        }
+        .poster-block.example-block {
+            background-color: #FDF6EA; /* orange-tinted production card */
+            border: 1.5px solid rgba(237, 171, 79, 0.45);
+        }
+        .poster-block .block-header {
+            background-color: #06312E; /* dgreen */
+            color: var(--white);
+            padding: 11px 18px;
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.015em;
+            border-bottom: 3.5px solid #3EDAB2; /* green */
+        }
+        .poster-block.alert-block .block-header {
+            background-color: var(--green);
+            color: var(--dgreen);
+            border-bottom-color: #06312E;
+        }
+        .poster-block.example-block .block-header {
+            border-bottom-color: #EDAB4F; /* orange */
+        }
+        .poster-block .block-header .hnum {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 26px; height: 22px; padding: 0 6px; margin-right: 10px;
+            border-radius: 6px; background: var(--green); color: var(--dgreen);
+            font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+            vertical-align: middle; letter-spacing: .02em;
+        }
+        .poster-block .block-header .hnum.alt { background: #EDAB4F; }
+        .poster-block.alert-block .block-header .hnum { background: var(--dgreen); color: var(--green); }
+        .emergent-concepts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .ec-chip {
+            background: var(--dgreen); color: var(--white); border-radius: 8px;
+            padding: 7px 11px; font-size: 12.5px; font-weight: 700; letter-spacing: -.01em;
+            display: inline-flex; align-items: center; gap: 8px; opacity: .55;
+        }
+        .ec-chip::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--green); flex: none; }
+        .ec-chip.active { opacity: 1; box-shadow: 0 0 0 2px rgba(62,218,178,.5); }
+        .poster-block .block-body {
+            padding: 16px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-y: auto;
+        }
+
+        .center-align {
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+        .split-layout {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex: 1;
+            width: 100%;
+        }
+        .poster-img {
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background-color: white;
+            padding: 6px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Key Result Metrics */
+        .hero-metric {
+            font-family: var(--font-display);
+            font-size: 58px;
+            font-weight: 800;
+            color: #06312E;
+            line-height: 1;
+            margin-bottom: 4px;
+            animation: pulseGlow 2.5s infinite ease-in-out;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 0px rgba(6,49,46,0); }
+            50% { text-shadow: 0 0 10px rgba(6,49,46,0.25); }
+        }
+        .hero-desc {
+            font-size: 15px;
+            color: #222222;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+        .hero-highlight {
+            font-size: 13.5px;
+            font-style: italic;
+            color: #06312E;
+            background-color: rgba(6, 49, 46, 0.05);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3.5px solid #3EDAB2;
+            line-height: 1.4;
+        }
+        .hero-stats {
+            font-size: 11.5px;
+            color: #475569;
+            margin-bottom: 14px;
+        }
+        .interactive-toggle-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .toggle-btn {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 10.5px;
+            cursor: pointer;
+            font-family: var(--font-body);
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover {
+            background-color: #e2e8f0;
+        }
+        .toggle-btn.active {
+            background-color: #06312E;
+            color: white;
+            border-color: #06312E;
+            box-shadow: 0 2px 6px rgba(6, 49, 46, 0.25);
+        }
+        .metric-context {
+            font-size: 10px;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* Black Box shortcomings */
+        .block-text {
+            font-size: 13px;
+            line-height: 1.45;
+            color: #222222;
+            margin-bottom: 8px;
+        }
+        .shortcomings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .shortcoming-card {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .shortcoming-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.04);
+            border-color: #94a3b8;
+        }
+        .shortcoming-card.selected {
+            border-color: #C91024;
+            background-color: rgba(201, 16, 36, 0.03);
+        }
+        .shortcoming-card strong {
+            display: block;
+            font-size: 12px;
+            color: #06312E;
+            margin-bottom: 4px;
+        }
+        .shortcoming-badge {
+            display: inline-block;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .badge-red {
+            background-color: rgba(201, 16, 36, 0.08);
+            color: #C91024;
+        }
+        .shortcoming-card p {
+            font-size: 10px;
+            color: #475569;
+            line-height: 1.35;
+        }
+        .blackbox-solution {
+            background-color: rgba(6, 49, 46, 0.05);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #222222;
+            border-left: 3px solid #3EDAB2;
+            margin-top: 12px;
+            line-height: 1.4;
+        }
+
+        /* Pipeline Flow styling */
+        .pipeline-flow-interactive {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 8px;
+            margin-top: 5px;
+        }
+        .pipeline-node {
+            background-color: #e0f2fe;
+            border: 1.5px solid #0284c7;
+            border-radius: 6px;
+            padding: 6px 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+            margin: 0 2px;
+            min-width: 65px;
+        }
+        .pipeline-node.unsupervised {
+            background-color: rgba(62, 218, 178, 0.08);
+            border-color: #3EDAB2;
+        }
+        .pipeline-node.probe {
+            background-color: rgba(231, 171, 79, 0.08);
+            border-color: #E7AB4F;
+        }
+        .pipeline-node.fuzzing {
+            background-color: rgba(129, 193, 65, 0.08);
+            border-color: #81C141;
+        }
+        .pipeline-node:hover {
+            transform: scale(1.03);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+        .pipeline-node .node-title {
+            font-weight: 700;
+            font-size: 10px;
+            color: #06312E;
+        }
+        .pipeline-node .node-meta {
+            font-size: 8px;
+            color: #475569;
+            margin-top: 2px;
+        }
+        .pipeline-arrow {
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 14px;
+            user-select: none;
+        }
+        .contrastive-branch-mock {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        .branch-arrow {
+            color: #E7AB4F;
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 1;
+            animation: bounceDown 1.5s infinite;
+        }
+        @keyframes bounceDown {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(3px); }
+        }
+        .branch-card {
+            background-color: rgba(231, 171, 79, 0.05);
+            border: 1.5px solid #E7AB4F;
+            border-radius: 6px;
+            padding: 6px 12px;
+            text-align: center;
+            width: 220px;
+            transition: all 0.2s;
+        }
+        .branch-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 3px 6px rgba(231, 171, 79, 0.1);
+        }
+        .branch-card strong {
+            font-size: 10px;
+            color: #06312E;
+            display: block;
+        }
+        .branch-card span {
+            font-size: 8.5px;
+            color: #555555;
+            display: block;
+            margin-top: 1px;
+        }
+        .branch-note {
+            font-size: 7.5px;
+            color: #C91024;
+            font-style: italic;
+            font-weight: 600;
+            margin-top: 1px;
+        }
+        .pipeline-detail-box {
+            background-color: #f1f5f9;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 10.5px;
+            color: #14564E;
+            min-height: 38px;
+            margin-top: 8px;
+            border-left: 3px solid #94a3b8;
+            line-height: 1.3;
+        }
+        .pipeline-caption {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 6px;
+            line-height: 1.25;
+        }
+
+        /* Layer selector widget */
+        .layer-selector-widget {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+        .widget-intro {
+            font-size: 11.5px;
+            color: #475569;
+        }
+        .layer-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        .layer-btn {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            padding: 6px 2px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .layer-btn:hover {
+            background-color: #e2e8f0;
+        }
+        .layer-btn.active {
+            background-color: #06312E;
+            color: white;
+            border-color: #06312E;
+            box-shadow: 0 2px 6px rgba(6, 49, 46, 0.2);
+        }
+        .layer-btn.alert-btn.active {
+            background-color: #C91024;
+            border-color: #C91024;
+            box-shadow: 0 2px 6px rgba(201, 16, 36, 0.25);
+        }
+        .layer-info-card {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 10.5px;
+            color: #14564E;
+            line-height: 1.35;
+            min-height: 60px;
+        }
+        .block-caption {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 8px;
+            line-height: 1.25;
+        }
+
+        /* SAE hyperparams table */
+        .poster-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+        }
+        .poster-table tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background-color 0.2s;
+        }
+        .poster-table tr:hover {
+            background-color: #f8fafc;
+        }
+        .poster-table td {
+            padding: 6px 8px;
+            font-size: 11px;
+            color: #222222;
+        }
+        .poster-table td:first-child {
+            font-family: var(--font-display);
+            color: #06312E;
+            font-weight: 600;
+        }
+        .poster-table td:last-child {
+            text-align: right;
+            font-weight: 700;
+        }
+        .math-tooltip {
+            background-color: #f1f5f9;
+            border-left: 3px solid #3EDAB2;
+            padding: 6px 8px;
+            border-radius: 0 4px 4px 0;
+            font-size: 10px;
+            color: #475569;
+            margin-top: 10px;
+            min-height: 38px;
+            line-height: 1.3;
+        }
+
+        /* Feature inside block */
+        .feature-label-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .label-heading {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 700;
+            font-family: var(--font-display);
+        }
+        .label-value {
+            font-size: 14.5px;
+            font-weight: 700;
+            font-style: italic;
+            color: #06312E;
+        }
+        .feature-behavior-card {
+            flex: 1;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: left;
+        }
+        .card-subtitle {
+            font-family: var(--font-display);
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .green-text {
+            color: #81C141 !important;
+        }
+        .red-text {
+            color: #C91024 !important;
+        }
+        .token-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+        .tag-token {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        .tag-token.green {
+            background-color: rgba(129, 193, 65, 0.08);
+            color: #3b6615;
+            border: 1px solid rgba(129, 193, 65, 0.2);
+        }
+        .tag-token.red {
+            background-color: rgba(201, 16, 36, 0.06);
+            color: #94101b;
+            border: 1px solid rgba(201, 16, 36, 0.15);
+        }
+        .ablation-simulation-widget {
+            margin-top: 10px;
+            background-color: #f1f5f9;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        .simulation-screen {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: var(--font-body);
+        }
+        .simulation-prompt {
+            font-size: 10px;
+            color: #475569;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .simulation-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sim-path {
+            font-size: 10px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .sim-toggle-btn {
+            padding: 3px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            cursor: pointer;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+        }
+        .sim-toggle-btn.active-state {
+            background-color: #81C141;
+            color: white;
+        }
+        .sim-toggle-btn.ablated-state {
+            background-color: #C91024;
+            color: white;
+        }
+        .sim-routing {
+            font-size: 10.5px;
+        }
+
+        /* Limitations block */
+        .limitations-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 5px;
+            text-align: left;
+        }
+        .limit-item {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .limit-icon {
+            font-size: 16px;
+            color: #C91024;
+            line-height: 1;
+            font-weight: 700;
+        }
+        .limit-desc strong {
+            font-size: 12px;
+            color: #06312E;
+            margin-bottom: 1px;
+            display: block;
+        }
+        .limit-desc p {
+            font-size: 10px;
+            color: #475569;
+            line-height: 1.35;
+            margin: 0;
+        }
+
+        /* Production playground */
+        .demo-playground-widget {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+        .playground-prompts {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .prompt-pill {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #14564E;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .prompt-pill:hover {
+            background-color: #e2e8f0;
+        }
+        .playground-output {
+            background-color: #03130f;
+            color: #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-family: var(--font-mono);
+            font-size: 8.5px;
+            line-height: 1.35;
+            min-height: 90px;
+            border: 1px solid #06312E;
+        }
+
+        /* Fuzzing bar chart */
+        .fuzzing-chart-widget {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-top: 4px;
+            text-align: left;
+        }
+        .fuzzing-bar-container {
+            display: flex;
+            height: 28px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        .fuzzing-bar-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 9.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .fuzzing-bar-segment:hover {
+            filter: brightness(1.1);
+            transform: scaleY(1.03);
+        }
+        .fuzzing-bar-segment.excellent {
+            background-color: #81C141; /* dkugreen */
+        }
+        .fuzzing-bar-segment.good {
+            background-color: #E7AB4F; /* dkuwarn */
+        }
+        .fuzzing-bar-segment.poor {
+            background-color: #C91024; /* dkured */
+        }
+        .fuzzing-info-panel {
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 10px;
+            color: #475569;
+            min-height: 45px;
+            border-left: 3px solid #94a3b8;
+            line-height: 1.3;
+        }
+        .bullet-list-tight {
+            margin-left: 12px;
+            font-size: 10.5px;
+            color: #222222;
+            flex: 0.8;
+            text-align: left;
+        }
+        .bullet-list-tight li {
+            margin-bottom: 3px;
+        }
+        .text-explanation {
+            font-size: 9.5px;
+            color: #475569;
+            line-height: 1.3;
+            flex: 1.2;
+            text-align: left;
+        }
+
+        /* Ablation details widget */
+        .ablation-details-widget {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+        .ablation-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .ablation-pill {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .ablation-pill:hover {
+            background-color: #e2e8f0;
+        }
+        .ablation-pill.active {
+            background-color: #06312E;
+            color: white;
+            border-color: #06312E;
+        }
+        .ablation-info-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 10px;
+            color: #14564E;
+            line-height: 1.35;
+            min-height: 65px;
+        }
+
+        /* Code & Paper layouts */
+        .qr-container-mock {
+            flex: 0.85;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .qr-code-box {
+            background-color: white;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            width: 105px;
+            height: 105px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .qr-code-box:has(img)::before,
+        .qr-code-box:has(img)::after { display: none; }
+        .qr-mock-pixels {
+            width: 90px;
+            height: 90px;
+            background-image: 
+                radial-gradient(circle, #000 25%, transparent 26%),
+                radial-gradient(circle, #000 25%, transparent 26%);
+            background-size: 6px 6px;
+            background-position: 0 0, 3px 3px;
+            opacity: 0.85;
+        }
+        .qr-code-box::before {
+            content: '';
+            position: absolute;
+            top: 10px; left: 10px;
+            width: 20px; height: 20px;
+            border: 3.5px solid #000;
+            background-color: white;
+        }
+        .qr-code-box::after {
+            content: '';
+            position: absolute;
+            bottom: 10px; right: 10px;
+            width: 20px; height: 20px;
+            border: 3.5px solid #000;
+            background-color: white;
+        }
+        .qr-container-mock strong {
+            font-size: 9px;
+            color: #06312E;
+        }
+        .code-links-list {
+            flex: 1.15;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+        .repo-url {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #06312E;
+            background-color: rgba(6, 49, 46, 0.05);
+            padding: 5px 8px;
+            border-radius: 4px;
+            border: 1px dashed rgba(6, 49, 46, 0.35);
+            text-align: center;
+        }
+        .meta-info-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+        .meta-info-box strong {
+            font-size: 9px;
+            color: #64748b;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .meta-info-box ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        .meta-info-box li {
+            font-size: 8.5px;
+            color: #14564E;
+            margin-bottom: 1px;
+        }
+        .references-citation-box {
+            background-color: #f1f5f9;
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+        .references-citation-box strong {
+            font-size: 9px;
+            color: #64748b;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .references-list {
+            margin-left: 10px;
+            font-size: 8px;
+            color: #475569;
+        }
+
+        /* Poster overview elements */
+        .poster-overview-container {
+            background-color: var(--white);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+            width: 100%;
+            color: var(--ink);
+        }
+        .hero-mock {
+            background-color: #06312E;
+            color: var(--white);
+            border-radius: 5px;
+            padding: 7px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hero-mock .hm-num {
+            font-family: var(--font-display);
+            font-size: 22px; font-weight: 800; color: var(--green); line-height: 1;
+            background: rgba(62,218,178,.12); border-radius: 5px; padding: 4px 8px;
+        }
+        .hero-mock .hm-txt { font-size: 9px; line-height: 1.3; color: var(--lgreen); }
+        .hero-mock .hm-txt b { color: var(--green); }
+        .poster-header-mock {
+            background-color: #06312E;
+            color: white;
+            padding: 8px 12px;
+            text-align: center;
+            border-radius: 5px;
+            border-bottom: 3px solid #3EDAB2;
+        }
+        .poster-header-mock h1 {
+            font-size: 12px;
+            margin: 0;
+            font-family: var(--font-display);
+            line-height: 1.25;
+            font-weight: 700;
+        }
+        .poster-header-mock .authors-mock {
+            font-size: 8px;
+            margin-top: 2px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .poster-columns-mock {
+            display: flex;
+            gap: 6px;
+            flex: 1;
+            width: 100%;
+        }
+        .column-mock {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .block-mock {
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            border-top: 2px solid #06312E;
+            border-radius: 3px;
+            padding: 4px;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #06312E;
+            text-align: center;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            line-height: 1.15;
+        }
+        .block-mock.alert-mock {
+            background-color: rgba(62, 218, 178, 0.10);
+            border-top-color: #3EDAB2;
+        }
+        .block-mock.example-mock {
+            background-color: rgba(237, 171, 79, 0.10);
+            border-top-color: #EDAB4F;
+        }
+        
+        /* Math Blocks & Equations Styling */
+        .math-block-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            text-align: left;
+            width: 100%;
+        }
+        .math-card {
+            background-color: rgba(15, 23, 42, 0.6);
+            border-left: 3px solid var(--color-accent);
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+        .math-equation {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #f1f5f9;
+            margin-bottom: 2px;
+        }
+        .math-explanation {
+            font-size: 9px;
+            color: #94a3b8;
+        }
+        
+        /* Baseline Tabs & Tables */
+        .baseline-toggle-container, .math-toggle-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .baseline-toggle-btn, .math-toggle-btn {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 10px;
+            font-family: var(--font-display);
+            font-weight: 600;
+            background-color: #06312E;
+            border: 1px solid #14564E;
+            color: #94a3b8;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            text-align: center;
+        }
+        .baseline-toggle-btn.active, .math-toggle-btn.active {
+            background-color: var(--color-primary);
+            border-color: var(--color-accent);
+            color: white;
+        }
+        
+        .baseline-table, .ablation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            font-size: 9px;
+            color: #e2e8f0;
+            text-align: left;
+        }
+        .baseline-table th, .baseline-table td,
+        .ablation-table th, .ablation-table td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #14564E;
+        }
+        .baseline-table th, .ablation-table th {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: var(--color-accent-light);
+            background-color: rgba(6, 49, 46, 0.2);
+        }
+        .baseline-table tr:hover, .ablation-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+        .baseline-view, .math-view {
+            width: 100%;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .hidden-view {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="theme-default">
+
+    <!-- Header bar -->
+    <header>
+        <div class="header-title-area">
+            <div class="header-logo">k</div>
+            <h1>
+                Kiji Inspector - Poster Presentation Companion
+                <span>Opening the Black Box: Mechanistic Interpretability of Agent Tool Selection</span>
+            </h1>
+        </div>
+        <div class="controls-toolbar">
+            <!-- Theme selector -->
+            <select id="themeSelector" class="select-input" onchange="changeTheme(this.value)">
+                <option value="default">Theme: Obsidian Shell</option>
+                <option value="night">Theme: Slate Void</option>
+                <option value="forest">Theme: Forest Green</option>
+                <option value="velvet">Theme: Velvet Purple</option>
+            </select>
+            
+            <button class="btn" onclick="togglePresenterMode()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Toggle Notes
+            </button>
+            <button class="btn" onclick="spawnPresenterWindow()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line></svg>
+                Dual Screen Mode
+            </button>
+            <button class="btn btn-accent" onclick="enterFullscreen()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                Fullscreen Presenter (F)
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Splitting -->
+    <div class="app-body">
+        
+        <!-- Sidebar Navigation -->
+        <div class="sidebar" id="sidebar">
+            <!-- Poster Minimap Component -->
+            <div class="minimap-container">
+                <div class="minimap-title">Poster Minimap Layout</div>
+                <div class="minimap-hero alert" id="mini-block-1" onclick="showSlide(1)">Key Result — 10.1% causal flip</div>
+                <div class="minimap-columns four">
+                    <div class="minimap-column">
+                        <div class="minimap-block" id="mini-block-2" onclick="showSlide(2)">01 Black Box</div>
+                        <div class="minimap-block" id="mini-block-3" onclick="showSlide(3)">02 Pipeline</div>
+                        <div class="minimap-block" id="mini-block-4" onclick="showSlide(4)">03 Right Layer</div>
+                    </div>
+                    <div class="minimap-column">
+                        <div class="minimap-block" id="mini-block-5" onclick="showSlide(5)">04 JumpReLU</div>
+                        <div class="minimap-block" id="mini-block-6" onclick="showSlide(6)">05 Inside a Feature</div>
+                    </div>
+                    <div class="minimap-column">
+                        <div class="minimap-block example" id="mini-block-7" onclick="showSlide(7)">06 Production</div>
+                        <div class="minimap-block" id="mini-block-8" onclick="showSlide(8)">07 Label Quality</div>
+                        <div class="minimap-block" id="mini-block-9" onclick="showSlide(9)">! Scope</div>
+                    </div>
+                    <div class="minimap-column">
+                        <div class="minimap-block alert" id="mini-block-10" onclick="showSlide(10)">08 Causal</div>
+                        <div class="minimap-block" id="mini-block-11" onclick="showSlide(11)">↗ Code & Paper</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-search">
+                <div class="search-box">
+                    <svg class="search-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" class="search-input" id="slideSearch" placeholder="Search sections & scripts..." onkeyup="filterSlides()">
+                </div>
+            </div>
+            <div class="slide-list" id="slideList">
+                <!-- Built dynamically -->
+            </div>
+        </div>
+
+        <!-- Presenter Workspace -->
+        <div class="workspace">
+            <div class="workspace-split">
+                
+                <!-- Left Slide Pane -->
+                <div class="slide-pane">
+                    <div class="slide-container" id="slideContainer">
+                        <div class="slide-body" id="slideBody">
+                            <!-- Injected poster block HTML mockup -->
+                        </div>
+                        <div class="slide-page-number" id="slidePageNum">1 / 12</div>
+                    </div>
+                </div>
+
+                <!-- Right Speaker Notes Pane -->
+                <div class="notes-pane" id="notesPane">
+                    <div class="notes-header">
+                        <div class="notes-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            PRESENTER SCRIPTS & CUES
+                        </div>
+                        <span class="notes-badge" id="notesSlideTag">Overview</span>
+                    </div>
+                    <div class="notes-content-scroll" id="notesContent">
+                        <!-- Injected notes -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation Footer -->
+    <div class="footer-controls">
+        <button class="btn" onclick="toggleSidebar()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            Toggle Sidebar
+        </button>
+
+        <div class="progress-bar-container">
+            <div class="progress-track" onclick="jumpToProgress(event)">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-counter" id="progressCounter">1 / 12</div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-btn" id="prevBtn" onclick="prevSlide()" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button class="nav-btn" id="nextBtn" onclick="nextSlide()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+       8. Slides Content Database (Poster Blocks Mockups & Presenter Scripts)
+       ========================================================================== -->
+    <script>
+        const SLIDES_DATA = [
+            {
+                title: "Poster Overview (Introduction)",
+                class: "overview",
+                html: `
+                    <div class="poster-overview-container">
+                        <div class="poster-header-mock">
+                            <img src="website/assets/575lab_white_full.png" alt="Dataiku | 575 Lab" style="height:18px;width:auto;display:block;margin:0 auto 5px;">
+                            <h1>Opening the Black Box: Mechanistic Interpretability of Agent Tool Selection with Sparse Autoencoders</h1>
+                            <p class="authors-mock">Hannes Hapke<sup>1</sup> & David Cardozo<sup>1</sup> &ensp;&middot;&ensp; <sup>1</sup>575 Lab, Dataiku Inc. (Portland, OR & Toronto, ON)</p>
+                        </div>
+                        <div class="hero-mock">
+                            <span class="hm-num">10.1%</span>
+                            <span class="hm-txt"><b>Key Result</b> &mdash; agent tool choices reverse when 10 SAE features are ablated; controls flat at 0% (p&nbsp;=&nbsp;0.002).</span>
+                        </div>
+                        <div class="poster-columns-mock">
+                            <div class="column-mock">
+                                <div class="block-mock">01 · The Tool-Selection Black Box</div>
+                                <div class="block-mock">02 · Pipeline</div>
+                                <div class="block-mock">03 · Pick the Right Layer</div>
+                            </div>
+                            <div class="column-mock">
+                                <div class="block-mock">04 · JumpReLU Sparse Autoencoder</div>
+                                <div class="block-mock">05 · Inside a Feature</div>
+                            </div>
+                            <div class="column-mock">
+                                <div class="block-mock example-mock">06 · Why It Matters in Production</div>
+                                <div class="block-mock">07 · Feature Label Quality</div>
+                                <div class="block-mock">!&nbsp; · Scope & Limitations</div>
+                            </div>
+                            <div class="column-mock">
+                                <div class="block-mock alert-mock">08 · Causal Ablation</div>
+                                <div class="block-mock">↗&nbsp; · Code & Paper</div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"Hi! I am presenting our work on opening the black box of AI agents. We built a mechanistic interpretability pipeline to dissect the activations at the exact token where an LLM commits to calling a tool. By training a Sparse Autoencoder, we can decode dense activations into human-interpretable concepts and causally prove that these features drive routing choices."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Our poster is structured in three columns. Column 1 (left) establishes the motivation: agent choices are opaque, and current methods like prompt engineering or Chain-of-Thought are correlational or confabulated. We sweep layers to bypass Mixture-of-Experts routing noise at Layer 32 and target Layer 20. Column 2 (middle) details our unsupervised JumpReLU SAE architecture and shows an individual 'data modification intent' feature. Column 3 (right) presents our evaluation: token-level fuzzing to validate semantic labels and causal ablation to map decision boundaries."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"We target Nemotron-3-Nano-30B (hidden dimension of 2,688) post-residual at Layer 20, just before the expert routing layers start. We train a JumpReLU SAE with a dictionary size of 10,752. Contrastive prompt pairs are introduced only post-hoc to measure effect size via Cohen's d. Standard unsupervised baselines like PCA + k-means fail completely to align with tool boundaries (NMI = 0.225), proving that tool-selection signals are low-variance directions masked by syntactic and semantic background noise. Labelling accuracy is validated via token-level fuzzing."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Wave your hand across the physical poster to indicate the 3 columns: motivation (Col 1), SAE mechanics (Col 2), and validation results (Col 3).</li>
+                            <li>Establish eye contact with the attendee, pointing at the title block and the Dataiku 575 Lab logo.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> What model families did you test?<br><strong>A:</strong> We tested Nemotron-3-Nano-30B for activations, and Qwen3-VL-235B as our judge. The complete pipeline is open source on GitHub.</p>
+                    </div>
+                `
+            },
+            {
+                title: "Key Result — Causal Choice Flips",
+                class: "block-1",
+                html: `
+                    <div class="poster-block alert-block">
+                        <div class="block-header">Key Result &mdash; Causal, Not Just Correlated</div>
+                        <div class="block-body center-align">
+                            <div class="hero-metric">10.1%</div>
+                            <div class="hero-desc">of agent tool choices <strong>reverse</strong> when 10 SAE features are ablated.</div>
+                            <div class="hero-highlight">Removing a handful of features <strong>causally changes</strong> the agent's tool choice.</div>
+                            <div class="hero-stats">
+                                <span>random ablation: <strong>0%</strong></span> &ensp;&middot;&ensp;
+                                <span>SAE round-trip: <strong>0%</strong></span> &ensp;&middot;&ensp;
+                                <span>p = 0.002</span>
+                            </div>
+                            <div class="interactive-toggle-container">
+                                <button class="toggle-btn active" onclick="toggleMetric(this, '10.1%', 'fundamental vs. technical analysis (finance domain, 1 of 23 contrast types tested) &mdash; Nemotron-3-Nano-30B (52 layers), probed at layer 20.', '0%', '0%', '0.002')">Finance Contrast</button>
+                                <button class="toggle-btn" onclick="toggleMetric(this, '17.1%', 'single vs. multi-tool contrast (tool type domain, layer 20) &mdash; Nemotron-3-Nano-30B (52 layers), probed at layer 20.', '2.4%', '2.4%', '0.029')">Tool Count Contrast</button>
+                            </div>
+                            <div class="metric-context" id="metricContext">fundamental vs. technical analysis (finance domain, 1 of 23 contrast types tested) &mdash; Nemotron-3-Nano-30B (52 layers), probed at layer 20.</div>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"Our headline result is direct causal evidence: ablating just 10 key SAE features reverses 10.1% of the agent's tool choices in our financial dataset. Under random control ablations and autoencoder round-trips, the flip rate is 0.0%. This gives a p-value of 0.002, demonstrating that these SAE directions are causally active."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the top of Column 1. This alert block highlights the causal impact of our SAE latents. By performing contrastive probing, we identify the top 10 features representing routing directions. When we ablate them, 10.1% of the agent's selections flip from one tool to another. If you click the 'Tool Count Contrast' toggle on this screen, you can see that on single-vs-multi-tool decisions, the flip rate is even higher, reaching 17.1%. Because our control baselines show 0% or near-zero flips, we know this is a genuine causal signal rather than reconstruction noise."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"For the fundamental vs. technical contrast (n=89), contrastive ablation flipped 10.1% of choices (9.0% directed toward the contrast tool), compared to 0% for random features and 0% for SAE round-trips. For single vs. multi-tool (n=41), it flipped 17.1% vs. 2.4% for controls. Fisher's exact test gives p-values of 0.002 and 0.029 respectively. This confirms the causal impact is far above the reconstruction noise floor."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point at the big 10.1% text on the physical poster (top-left block of Column 1).</li>
+                            <li>Use the visual toggle on screen to show both the 10.1% and 17.1% metrics, explaining the difference in domains.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> Why only 10 features ablated?<br><strong>A:</strong> We wanted to see if sparse representations govern routing. Ablating just 10 features out of 10,752 is a very conservative mask, proving localized circuit causal efficacy."</p>
+                    </div>
+                `
+            },
+            {
+                title: "01 · The Tool-Selection Black Box",
+                class: "block-2",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum">01</span>The Tool-Selection Black Box</div>
+                        <div class="block-body">
+                            <div class="baseline-toggle-container">
+                                <button class="baseline-toggle-btn active" onclick="toggleBaselineView(this, 'shortcomings')">Method Shortcomings</button>
+                                <button class="baseline-toggle-btn" onclick="toggleBaselineView(this, 'baselines')">Baseline Comparisons</button>
+                            </div>
+                            
+                            <div id="view-shortcomings" class="baseline-view">
+                                <p class="block-text">Modern AI agents autonomously pick among databases, code, web search, and sub-agents. When the agent chooses, <em>why</em> it chose remains opaque.</p>
+                                <div class="shortcomings-grid">
+                                    <div class="shortcoming-card selected" onclick="highlightShortcoming(this)">
+                                        <strong>Prompt Engineering</strong>
+                                        <span class="shortcoming-badge badge-red">Correlational</span>
+                                        <p>Trial-and-error changes to text inputs; does not clarify internal latent representations.</p>
+                                    </div>
+                                    <div class="shortcoming-card" onclick="highlightShortcoming(this)">
+                                        <strong>Behavioural Testing</strong>
+                                        <span class="shortcoming-badge badge-red">I/O Only</span>
+                                        <p>Input/output evaluations ignore the underlying circuit states and decision vectors.</p>
+                                    </div>
+                                    <div class="shortcoming-card" onclick="highlightShortcoming(this)">
+                                        <strong>Chain-of-Thought</strong>
+                                        <span class="shortcoming-badge badge-red">Confabulated</span>
+                                        <p>Generated reasoning narratives can be plausible post-hoc rationalisations, not actual mechanisms.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="view-baselines" class="baseline-view hidden-view">
+                                <p class="block-text">Evaluating raw layer-20 activations (841,282 vectors across 32 tools) reveals that unsupervised linear models fail to separate tool routing representations.</p>
+                                <table class="baseline-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Method</th>
+                                            <th>Metric</th>
+                                            <th>Value</th>
+                                            <th>Key Characteristic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Linear Probe</strong></td>
+                                            <td>Accuracy / F1</td>
+                                            <td>0.796 &plusmn; 0.001 / 0.765</td>
+                                            <td>Supervised (GroupKFold). High performance, but provides zero interpretability.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>PCA + k-means</strong></td>
+                                            <td>Purity / NMI / ARI</td>
+                                            <td>0.175 / 0.225 / 0.068</td>
+                                            <td>Unsupervised. Background syntax/semantics drown out tool routing signals.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>JumpReLU SAE (Ours)</strong></td>
+                                            <td>Fuzzing Acc / MSE</td>
+                                            <td>0.912 &plusmn; 0.008 / 0.574</td>
+                                            <td>Unsupervised. Recovers clean, interpretable, and causally active concepts.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="blackbox-solution">
+                                <strong>Our Focus:</strong> We open the black box at the token where the model commits to a tool and decompose its hidden state into human-readable features.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"AI agents choose tools dynamically, but explaining these choices is difficult. Existing techniques like prompt engineering, behavioural testing, and Chain-of-Thought fall short because they are correlational, input-output only, or confabulated. We target the exact token representing the tool commit, analysing internal activations directly."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the second block in Column 1. Why do we need mechanistic interpretability for tool selection? If we change the prompt or analyse outputs, we treat the model as a black box. Even Chain-of-Thought is unreliable; the model might output a very plausible justification, but its actual vector math could be using different pathways. Our baseline table compares how well standard models extract this routing representation. While a linear probe scores 79.6% accuracy, PCA + k-means fails completely (NMI = 0.225, ARI = 0.068), showing that tool signals are low-variance directions masked by syntactic and semantic background noise. The SAE successfully decomposes these dense activations."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"The linear probe baseline uses 5-fold GroupKFold cross-validation on 841,282 activations across 32 tools, achieving a macro F1 of 0.765. The PCA baseline uses 50 components and k-means with 32 clusters, resulting in an Adjusted Rand Index (ARI) of only 0.068. The first 50 components explain only 48% of the total activation variance. This confirms that unsupervised linear projections like PCA fail to isolate routing concepts because background syntax and semantic noise drown out the signal. The SAE projects the activations into a higher-dimensional space where sparsity separates these overlapping representations."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the shortcomings block in Column 1 of the physical poster.</li>
+                            <li>Toggle between the 'Method Shortcomings' and 'Baseline Comparisons' tabs on screen to walk the listener through the PCA and linear probe stats.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> Why does PCA fail to cluster the tools?<br><strong>A:</strong> Tool routing is a low-variance direction. Background prompt syntax and general semantics occupy the primary principal components, masking the routing signals."</p>
+                    </div>
+                `
+            },
+            {
+                title: "02 · Pipeline",
+                class: "block-3",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum">02</span>Pipeline</div>
+                        <div class="block-body">
+                            <div class="pipeline-flow-interactive">
+                                <div class="pipeline-node" onmouseover="showPipelineDetail('activations')" onmouseout="hidePipelineDetail()">
+                                    <div class="node-title">Activations</div>
+                                    <div class="node-meta">1M @ layer 20</div>
+                                </div>
+                                <div class="pipeline-arrow">&rarr;</div>
+                                <div class="pipeline-node unsupervised" onmouseover="showPipelineDetail('training')" onmouseout="hidePipelineDetail()">
+                                    <div class="node-title">SAE Training</div>
+                                    <div class="node-meta">10,752 feats</div>
+                                </div>
+                                <div class="pipeline-arrow">&rarr;</div>
+                                <div class="pipeline-node unsupervised" onmouseover="showPipelineDetail('features')" onmouseout="hidePipelineDetail()">
+                                    <div class="node-title">SAE Features</div>
+                                    <div class="node-meta">Latent Space</div>
+                                </div>
+                                <div class="pipeline-arrow">&rarr;</div>
+                                <div class="pipeline-node probe" onmouseover="showPipelineDetail('probe')" onmouseout="hidePipelineDetail()">
+                                    <div class="node-title">Probe</div>
+                                    <div class="node-meta">Cohen's d</div>
+                                </div>
+                                <div class="pipeline-arrow">&rarr;</div>
+                                <div class="pipeline-node fuzzing" onmouseover="showPipelineDetail('fuzzing')" onmouseout="hidePipelineDetail()">
+                                    <div class="node-title">Fuzzing</div>
+                                    <div class="node-meta">Token A/B</div>
+                                </div>
+                            </div>
+                            
+                            <div class="contrastive-branch-mock" onmouseover="showPipelineDetail('contrastive')" onmouseout="hidePipelineDetail()">
+                                <div class="branch-arrow">&uarr;</div>
+                                <div class="branch-card">
+                                    <strong>Contrastive Pairs</strong>
+                                    <span>500K &middot; 5 domains</span>
+                                    <div class="branch-note">enters here, not at training</div>
+                                </div>
+                            </div>
+
+                            <div class="pipeline-detail-box" id="pipelineDetailBox">
+                                Hover over any pipeline node to inspect detailed methodology stages.
+                            </div>
+                            
+                            <p class="pipeline-caption"><strong>The SAE is trained without contrastive pairs.</strong> Pairs enter only at the probe step to surface which pre-existing features carry decision-relevant signal &mdash; never as a training signal.</p>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"Our pipeline trains the SAE completely unsupervised on 1 million activations. Crucially, contrastive prompt pairs are never used as training supervision. They are introduced only post-hoc during the probe step to identify which pre-existing features correspond to tool selections, preventing feature collapse."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the pipeline flowchart on Column 1. We start by gathering residual activations. Then we train the JumpReLU SAE unsupervised. The dictionary learning has no concept of contrastive pairs or labels. Only after training do we introduce contrastive pairs to compute Cohen's d effect sizes. This separates feature extraction from evaluation, preserving the model's natural activation decomposition. Finally, we run token-level fuzzing to score label validation."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Activations are collected from Layer 20 of Nemotron-3-Nano (30B parameters). We use 1,000,000 activations for unsupervised training. The probe step introduces 500,000 contrastive pairs spanning 37 contrast types across 5 domains (e.g. fundamental vs. technical); 23 of these types are later tested in the ablation study. Cohen's d is calculated for each feature: d = (mean_1 - mean_2) / std_pooled. Features with d > 0.8 are identified as decision-relevant. Token-level fuzzing evaluates 402 features using 4,422 examples."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the Pipeline block in the lower half of Column 1.</li>
+                            <li>Hover your cursor over each node in the interactive diagram to walk the audience through the stages.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> Why not train contrastive directions directly?<br><strong>A:</strong> Contrastive training forces the model to find specific decision boundaries but ignores other monosemantic concepts, which degrades overall interpretability."</p>
+                    </div>
+                `
+            },
+            {
+                title: "03 · Pick the Right Layer — Not the MoE Ones",
+                class: "block-4",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum">03</span>Pick the Right Layer — Not the MoE Ones</div>
+                        <div class="block-body split-layout">
+                            <div class="chart-container-mock" style="width: 48%;">
+                                <img src="website/assets/chart_layer_sweep.png" alt="Layer Sweep" class="poster-img" style="max-height: 200px;">
+                            </div>
+                            <div class="layer-selector-widget" style="width: 48%;">
+                                <p class="widget-intro">Select a layer to view its reconstruction characteristics:</p>
+                                <div class="layer-buttons">
+                                    <button class="layer-btn" onclick="selectLayer(this, 8, '85.3%', '0.10%', '0.031', 'Early layer. Low reconstruction error, but high-level routing concepts are not yet formulated.')">L8</button>
+                                    <button class="layer-btn" onclick="selectLayer(this, 16, '63.2%', '0.85%', '0.333', 'Middle layer. Routing features are forming but are not fully crystallized.')">L16</button>
+                                    <button class="layer-btn active" onclick="selectLayer(this, 20, '81.2%', '0.19%', '0.574', '<strong>Optimal Selection.</strong> Sits just before the MoE routing stacks. Clean representations, 81.2% alive features.')">L20</button>
+                                    <button class="layer-btn alert-btn" onclick="selectLayer(this, 32, '69.5%', '2.00%', '1524.0', '<strong>Mixture of Experts Layer.</strong> Reconstruction MSE explodes by &gt;500&times; due to sparse expert routing noise.')">L32</button>
+                                </div>
+                                <div class="layer-info-card" id="layerInfoCard">
+                                    <strong>Layer 20 (Selected):</strong><br>
+                                    Alive features: 81.2% | Dead: 0.19% | MSE: 0.574<br>
+                                    Optimal layer. Sits right before the MoE blocks. Clean representations, 81.2% alive features.
+                                </div>
+                            </div>
+                        </div>
+                        <p class="block-caption"><strong>A single SAE cannot decompose MoE layers.</strong> Reconstruction MSE explodes by &gt;500&times; at layers 32 and 44 (sparse expert routing); layer 20 sits just before the MoE stack.</p>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"We performed a layer sweep across Nemotron's residual stream. Deep layers 32 and 44 contain Mixture-of-Experts routing, causing the reconstruction error to explode by over 500x. We target Layer 20, which sits just before the MoE stack, giving us a clean 0.574 MSE and 81.2% alive features."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the layer sweep chart at the bottom of Column 1. AI agents often use Mixture-of-Experts architectures like Nemotron. Expert routing introduces expert-specific activations that a standard dense autoencoder fails to reconstruct, causing MSE to explode. By selecting Layer 20—which is the final dense attention block before routing—we avoid the MoE noise while capturing fully formed tool routing concepts."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Nemotron-3-Nano-30B is a hybrid MoE model where expert routing begins at Layer 32 (3B active parameters per token out of 30B total). We sweep layers 8, 16, 20, 32, and 44. At Layer 8, MSE is 0.031 but features are unformed. At Layer 20, MSE is 0.574 and alive features are 81.2%. At Layer 32, MSE explodes to 1,524.0 (a 2,655x increase!) because a single dense SAE cannot model the discrete expert routing paths. Probing post-residual at Layer 20 captures the aggregated representations before they split into expert pathways."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the bottom of Column 1 on the physical poster.</li>
+                            <li>Click L32 and L20 in the interactive layer selector widget to show the massive reconstruction error difference.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> What exactly causes the 500x MSE spike at Layer 32?<br><strong>A:</strong> The MoE router selectively routes tokens to different expert networks. This routing creates discontinuities in the activation space that a single linear-decoder SAE cannot reconstruct."</p>
+                    </div>
+                `
+            },
+            {
+                title: "04 · JumpReLU Sparse Autoencoder",
+                class: "block-5",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum">04</span>JumpReLU Sparse Autoencoder</div>
+                        <div class="block-body split-layout">
+                            <div class="chart-container-mock" style="width: 48%;">
+                                <img src="website/assets/sae_architecture.svg" alt="SAE Architecture" class="poster-img" style="max-height: 180px;">
+                            </div>
+                            <div class="table-container" style="width: 48%;">
+                                <div class="math-toggle-container">
+                                    <button class="math-toggle-btn active" onclick="toggleJumpReLUMode(this, 'hyperparams')">Hyperparams</button>
+                                    <button class="math-toggle-btn" onclick="toggleJumpReLUMode(this, 'equations')">Equations</button>
+                                </div>
+                                
+                                <div id="jump-hyperparams" class="math-view">
+                                    <table class="poster-table">
+                                        <tr onmouseover="highlightMath('dictionary')" onmouseout="clearMath()">
+                                            <td><strong>Dictionary M</strong></td>
+                                            <td>10,752 (4&times; dim)</td>
+                                        </tr>
+                                        <tr onmouseover="highlightMath('activations')" onmouseout="clearMath()">
+                                            <td><strong>Activations</strong></td>
+                                            <td>1,000,000</td>
+                                        </tr>
+                                        <tr onmouseover="highlightMath('mse')" onmouseout="clearMath()">
+                                            <td><strong>MSE</strong></td>
+                                            <td>0.574</td>
+                                        </tr>
+                                        <tr onmouseover="highlightMath('alive')" onmouseout="clearMath()">
+                                            <td><strong>Alive Rate</strong></td>
+                                            <td>81.2%</td>
+                                        </tr>
+                                        <tr onmouseover="highlightMath('active')" onmouseout="clearMath()">
+                                            <td><strong>L0 Active</strong></td>
+                                            <td>668 &plusmn; 26 (6.2%)</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <div id="jump-equations" class="math-view hidden-view">
+                                    <div class="math-block-container">
+                                        <div class="math-card">
+                                            <div class="math-equation">&pi;<sub>i</sub>(x) = W<sub>enc,i</sub>(x - b<sub>dec</sub>) + b<sub>enc,i</sub></div>
+                                            <div class="math-explanation">Pre-activation (Encoder Projection)</div>
+                                        </div>
+                                        <div class="math-card">
+                                            <div class="math-equation">f<sub>i</sub>(x) = JumpReLU<sub>&theta;<sub>i</sub></sub>(&pi;<sub>i</sub>(x)) = &pi;<sub>i</sub>(x) &middot; H(&pi;<sub>i</sub>(x) - &theta;<sub>i</sub>)</div>
+                                            <div class="math-explanation">Feature Activations (Exact Sparsity)</div>
+                                        </div>
+                                        <div class="math-card">
+                                            <div class="math-equation">x&#770; = W<sub>dec</sub> f + b<sub>dec</sub></div>
+                                            <div class="math-explanation">Decoder Reconstruction</div>
+                                        </div>
+                                        <div class="math-card">
+                                            <div class="math-equation">L(x) = ||x - x&#770;(f(x))||<sub>2</sub><sup>2</sup> + &lambda; ||f(x)||<sub>0</sub></div>
+                                            <div class="math-explanation">Loss (Reconstruction + L0 penalty)</div>
+                                        </div>
+                                        <div class="math-card">
+                                            <div class="math-equation">L&#770;<sub>sparse</sub>(x) = &sum;<sub>i=1</sub><sup>M</sup> ReLU(tanh((&pi;<sub>i</sub>(x) - &theta;<sub>i</sub>) / &epsilon;))</div>
+                                            <div class="math-explanation">Tanh Sparsity Surrogate (&epsilon; = 0.001)</div>
+                                        </div>
+                                        <div class="math-card">
+                                            <div class="math-equation">&part;&#771;/&part;&theta;<sub>i</sub> JumpReLU<sub>&theta;<sub>i</sub></sub>(z) = -(&theta;<sub>i</sub>/&epsilon;) K((z - &theta;<sub>i</sub>)/&epsilon;)<br>&part;&#771;/&part;&theta;<sub>i</sub> H(z - &theta;<sub>i</sub>) = -(1/&epsilon;) K((z - &theta;<sub>i</sub>)/&epsilon;)</div>
+                                            <div class="math-explanation">Threshold Pseudo-gradients (rectangular kernel K)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="math-tooltip" id="mathTooltip">
+                                    Hover over table rows to inspect hyperparameter mathematical details.
+                                </div>
+                            </div>
+                        </div>
+                        <p class="block-caption">JumpReLU thresholds &theta;<sub>i</sub> produce <em>exact</em> zeros (true sparsity), trained with a smooth &tanh; surrogate to resolve non-differentiable step boundaries.</p>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"We implement a JumpReLU SAE. Standard L1-penalized autoencoders shrink active features, reducing reconstruction quality. JumpReLU resolves this by learning a threshold theta for each latent. Features below theta are set to exact zero, while active features bypass shrinkage, yielding clean, sparse latents."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Let's move to the top of Column 2. We train an overcomplete dictionary with a latent multiplier of 4, yielding 10,752 dimensions. Our reconstruction MSE is 0.574, and alive feature rate is high at 81.2%. The L0 active density shows that on average only 6.2% of the features activate per token. This confirms that JumpReLU successfully enforces sparsity without killing off feature dimensions."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Let's review the JumpReLU math. Pre-activations are computed via linear projection of centered inputs. The activation uses the Heaviside step function H, creating a discontinuous step at the learnable thresholds. The loss function includes an L0 penalty, which we approximate during training using a smooth tanh surrogate with bandwidth 0.001. This allows gradient flow during backward passes. Hyperparameters: batch size 8,192, lr 3e-4 with 5% warmup, and sparsity coefficient lambda = 5e-3."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the top of Column 2 on the physical poster.</li>
+                            <li>Toggle between the 'Hyperparams' and 'Equations' tabs on the screen widget to walk through the math.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> How does the tanh surrogate work?<br><strong>A:</strong> The derivative of Heaviside step is zero everywhere except at the step. We approximate the step as ReLU(tanh((pi - theta)/epsilon)), allowing gradients to flow to the thresholds theta during training."</p>
+                    </div>
+                `
+            },
+            {
+                title: "05 · Inside a Feature — Emergent, Unsupervised Concepts",
+                class: "block-6",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum">05</span>Inside a Feature &mdash; Emergent, Unsupervised Concepts</div>
+                        <div class="block-body">
+                            <p class="block-text" style="margin-bottom: 8px;">The SAE decomposes Layer-20 activations into <strong>10,752 features</strong>. Without contrastive supervision, named concepts emerge from raw activations alone:</p>
+                            <div class="emergent-concepts">
+                                <span class="ec-chip">"internal knowledge retrieval"</span>
+                                <span class="ec-chip active">"data modification intent"</span>
+                                <span class="ec-chip">"query complexity"</span>
+                            </div>
+                            <div class="feature-label-box">
+                                <span class="label-heading">Inspecting feature:</span>
+                                <span class="label-value">"data modification intent" &middot; fuzzing 0.912 &plusmn; 0.008 (p &lt; 10⁻⁴)</span>
+                            </div>
+                            <div class="split-layout" style="margin-top: 10px;">
+                                <div class="feature-behavior-card">
+                                    <div class="card-subtitle green-text">&blacktriangle; Activates on</div>
+                                    <div class="token-tags">
+                                        <span class="tag-token green">set</span>
+                                        <span class="tag-token green">update</span>
+                                        <span class="tag-token green">modify</span>
+                                        <span class="tag-token green">create</span>
+                                        <span class="tag-token green">delete</span>
+                                        <span class="tag-token green">write</span>
+                                    </div>
+                                </div>
+                                <div class="feature-behavior-card">
+                                    <div class="card-subtitle red-text">&blacktriangledown; Suppressed by</div>
+                                    <div class="token-tags">
+                                        <span class="tag-token red">what</span>
+                                        <span class="tag-token red">list</span>
+                                        <span class="tag-token red">show</span>
+                                        <span class="tag-token red">describe</span>
+                                        <span class="tag-token red">find</span>
+                                        <span class="tag-token red">latest</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ablation-simulation-widget">
+                                <strong style="font-size: 11.5px; display: block; margin-bottom: 6px;">Ablation Simulation:</strong>
+                                <div class="simulation-screen">
+                                    <div class="simulation-prompt">
+                                        <strong>User Prompt:</strong> "Create a backup log, update section 4 and write status."
+                                    </div>
+                                    <div class="simulation-result">
+                                        <div class="sim-path">
+                                            <span>Feature 244 State:</span>
+                                            <button class="sim-toggle-btn active-state" id="simAblateBtn" onclick="toggleSimAblation()">Intact (Normal)</button>
+                                        </div>
+                                        <div class="sim-routing" id="simRoutingResult">
+                                            <span>Agent Action:</span>
+                                            <strong class="green-text">[file_write]</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="block-caption">Features like this emerge unsupervised from raw activations, representing clean semantic concepts.</p>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"Here is an example feature we discovered, labelled 'data modification intent'. It activates on tokens like set, update, write, and is suppressed by query tokens like what, list. When intact, a write query routes to file_write; when ablated, the agent drifts to file_read, proving causal dependency."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the middle block of Column 2. Here we show what a monosemantic feature looks like. Feature 244 represents data modification intent. It activates strongly on action-oriented write commands, but is suppressed by read commands. Let's test this causally. If the feature is intact, the model routes a write request to the file_write tool. But if we ablate this single feature, the activation vector shifts and the model drifts to the file_read tool. This demonstrates that a single SAE latent is causally necessary for this routing decision."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Feature 244 has a high Cohen's d of 1.8 in the query-vs-mutate contrast. Activating tokens are 'set', 'update', 'modify', 'create', 'delete', and 'write'. Suppressed tokens are 'what', 'list', 'show', 'describe', 'find', and 'latest'. Ablating Feature 244 shifts the representation vector along the decision boundary, reducing the score of the [file_write] tool and causing the model to output the [file_read] tool token. This localized circuit control is a key proof of representation causality."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the middle of Column 2 on the physical poster.</li>
+                            <li>Click the 'Intact (Normal)' button on screen to demonstrate the activation flip from write to read in the interactive simulation.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> Was this feature trained to recognize write actions?<br><strong>A:</strong> No, the training was fully unsupervised. The SAE discovered this concept entirely from raw network activations."</p>
+                    </div>
+                `
+            },
+            {
+                title: "06 · Why It Matters in Production",
+                class: "block-8",
+                html: `
+                    <div class="poster-block example-block">
+                        <div class="block-header"><span class="hnum">06</span>Why It Matters in Production</div>
+                        <div class="block-body">
+                            <div class="split-layout">
+                                <div class="chart-container-mock" style="width: 48%;">
+                                    <img src="website/assets/inference_pipeline.svg" alt="Inference Pipeline" class="poster-img" style="max-height: 180px;">
+                                </div>
+                                <div class="demo-playground-widget" style="width: 48%;">
+                                    <p class="widget-intro">Click a prompt to simulate real-time explainability:</p>
+                                    <div class="playground-prompts">
+                                        <button class="prompt-pill" onclick="runPlaygroundPrompt('update')">"Update account status for UID 521"</button>
+                                        <button class="prompt-pill" onclick="runPlaygroundPrompt('search')">"Search the web for local tech meetups"</button>
+                                        <button class="prompt-pill" onclick="runPlaygroundPrompt('math')">"Calculate the derivative of x^2 + 5x"</button>
+                                    </div>
+                                    <div class="playground-output" id="playgroundOutput">
+                                        Click a sample prompt above to simulate inference...
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="block-caption"><strong>No extra LLM call is required at runtime to generate explainability rationalisations!</strong> Every tool call carries a top-K feature explanation, providing a debug surface and future anomaly detection.</p>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"Our framework is ready for production. At inference, we project hidden states through the SAE encoder—which takes under 1ms—and map active latents directly to explanations. Every tool call ships with a rationale without requiring an extra LLM call, acting as a real-time debugging surface."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"At the bottom of Column 2, we present our production engineering application. Most interpretability projects remain academic offline studies. We show that because SAE projection is computationally cheap, it can run during live inference. When the user query runs, we extract active features and append their labels to the tool output. This gives developers an audit log of why the model selected a tool. It also serves as a fingerprint to flag anomalies when activation patterns deviate from normal routing parameters."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"The SAE projection runs in O(n * M) time: a matrix multiplication of 2,688 to 10,752 dimensions. On modern hardware, this takes less than 1ms, which is negligible compared to the ~30ms per token generation time of the model. We store the feature labels in a simple hash map. During inference, we identify the top K active features and look up their labels to compile a natural-language report with zero extra text generation costs."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the bottom of Column 2 on the physical poster.</li>
+                            <li>Use the query playground on screen, clicking each query type to show how explanations are generated in real-time.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> What is the latency overhead of running this in production?<br><strong>A:</strong> Under 1 millisecond. The projection is a single dense-to-sparse matrix multiplication, adding negligible overhead to the forward pass."</p>
+                    </div>
+                `
+            },
+            {
+                title: "07 · Feature Label Quality",
+                class: "block-9",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum">07</span>Feature Label Quality</div>
+                        <div class="block-body">
+                            <div class="fuzzing-chart-widget">
+                                <strong style="margin-bottom: 6px; display: block; font-size: 11.5px;">Label Scoring Tiers (Click Tiers to Inspect):</strong>
+                                <div class="fuzzing-bar-container">
+                                    <div class="fuzzing-bar-segment excellent" style="width: 84.3%;" onclick="showFuzzingTier('excellent', '84.3%', 'Label matches exactly. Tokens match semantic intent with &gt;0.8 correlation. Example: label \'data modification\' triggers on \'set\', \'update\', \'write\'.')">
+                                        84.3% Excellent
+                                    </div>
+                                    <div class="fuzzing-bar-segment good" style="width: 9.4%;" onclick="showFuzzingTier('good', '9.4%', 'Label is mostly correct but slightly too narrow or broad. Example: label \'SQL queries\' triggers on database actions but also general code blocks.')">
+                                        9.4% Good
+                                    </div>
+                                    <div class="fuzzing-bar-segment poor" style="width: 6.3%;" onclick="showFuzzingTier('poor', '6.2%', 'Label fails validation. False positive. Example: label \'financial growth\' triggers on arbitrary numeric calculations.')">
+                                        6.2% Poor
+                                    </div>
+                                </div>
+                                <div class="fuzzing-info-panel" id="fuzzingInfoPanel">
+                                    Click a segment in the bar chart above to inspect validation tiers and examples.
+                                </div>
+                            </div>
+                            <div class="split-layout" style="margin-top: 10px;">
+                                <ul class="bullet-list-tight">
+                                    <li><strong>Combined score:</strong> 0.912 &plusmn; 0.008 (p &lt; 10<sup>-4</sup>)</li>
+                                    <li><strong>Token accuracy:</strong> 0.906 &plusmn; 0.007</li>
+                                </ul>
+                                <p class="text-explanation">Token-level evaluation is critical. Prompt-level validation alone overestimates label validity by overlooking cases where a feature fires for the wrong reason.</p>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"To validate our labels, we designed a token-level fuzzing framework. We generated 4,422 A/B examples across 402 features. 84.3% of Qwen-generated labels are validated as 'Excellent', with a high combined validation accuracy of 0.912."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Let's move to Column 3, top block. How do we verify that feature explanations are accurate? If we just look at the prompts, we miss fine-grained token associations. We fuzzed prompts at the token level, modifying triggering tokens to see if the feature turns off. Our scoring system classifies 84.3% of the labels as Excellent. This validates our auto-labelling pipeline and confirms that Qwen-generated rationales correspond to true feature activations."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Our combined validation score is 0.912 &plusmn; 0.008 (p < 10^-4 vs. 0.5 random baseline), with a token-level accuracy of 0.906 &plusmn; 0.007. The scoring weights token-level accuracy at 70% and prompt-level accuracy at 30%. The quality tier distribution is: Excellent (>0.8) at 84.3% (339 features), Good (0.6-0.8) at 9.4% (38 features), and Poor (<0.6) at 6.2% (25 features). Crucially, a Kruskal-Wallis test showed no statistical difference in validation accuracy across the LLM judge's self-assessed confidence tiers (p = 1.0), meaning that judge confidence is completely ungrounded and token fuzzing is necessary."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the top of Column 3 on the physical poster.</li>
+                            <li>Click on the stacked bar segments on screen to explain the Excellent, Good, and Poor validation categories.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> Why is judge confidence uncorrelated with actual accuracy?<br><strong>A:</strong> Judges tend to be overconfident on simple semantic queries and underconfident on abstract syntax features. The Kruskal-Wallis test (p = 1.0) shows we cannot rely on self-assessed confidence metrics for quality control."</p>
+                    </div>
+                `
+            },
+            {
+                title: "!  · Scope & Limitations",
+                class: "block-7",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum alt">!</span>Scope & Limitations</div>
+                        <div class="block-body">
+                            <div class="limitations-container">
+                                <div class="limit-item">
+                                    <div class="limit-icon">&otimes;</div>
+                                    <div class="limit-desc">
+                                        <strong>Architecture Scope:</strong>
+                                        <p>Evaluated on Nemotron-3-Nano-30B, residual stream layer 20, and a specific ChatML decision token layout. Portability to other models remains future work.</p>
+                                    </div>
+                                </div>
+                                <div class="limit-item">
+                                    <div class="limit-icon">&otimes;</div>
+                                    <div class="limit-desc">
+                                        <strong>Conservative Ablation:</strong>
+                                        <p>Ablating only the top 10 contrastive features is a highly conservative threshold. Distributed or complex routing circuits may require larger ablation masks.</p>
+                                    </div>
+                                </div>
+                                <div class="limit-item">
+                                    <div class="limit-icon">&otimes;</div>
+                                    <div class="limit-desc">
+                                        <strong>LLM Auto-labeller Bias:</strong>
+                                        <p>Feature semantic labels are generated via Qwen3-VL-235B. Errors or biases in the judge model will propagate to the generated rationales.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"We maintain strict rigor regarding limitations. Our current evaluation is restricted to Nemotron-3-Nano layer 20. We use a conservative top-10 ablation boundary, and our semantic explanations rely on a Qwen3-VL-235B judge model, meaning judge biases could propagate."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the bottom-middle block of Column 2. We outline the scope of this benchmark. First, the analysis targets Layer 20 of Nemotron-3-Nano. We need to test if these routing concepts generalise to other families like Llama or Mistral. Second, our top-10 ablation focus is conservative. If routing is highly distributed, a top-10 mask will not trigger a flip. Finally, because we use Qwen3-VL to label and validate features, any labelling inaccuracies can affect our explanation system. We are addressing these limits in our future research plan."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Let's discuss the limitations technically. The decision-token convention is prompt-format dependent. The top-10 features ablated represent only 1.5% of active features (since L0 = 668). For highly distributed representations, a much larger ablation mask (e.g. top 50 or 100 features) would be needed. Additionally, automated labelling by Qwen3-VL-235B introduces judge-model dependencies. However, our token-level fuzzing validates these labels independently, catching systematic description biases."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the bottom of Column 2 on the physical poster.</li>
+                            <li>Maintain a professional, objective tone when discussing constraints.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> How do you plan to handle judge labelling errors?<br><strong>A:</strong> We validate Qwen's labels using token fuzzing, which scores label quality and identifies systematic auto-labelling errors."</p>
+                    </div>
+                `
+            },
+            {
+                title: "08 · Causal Ablation",
+                class: "block-10",
+                html: `
+                    <div class="poster-block alert-block">
+                        <div class="block-header"><span class="hnum">08</span>Causal Ablation</div>
+                        <div class="block-body split-layout">
+                            <div class="chart-container-mock" style="width: 48%;">
+                                <img src="website/assets/chart_ablation.svg" alt="Ablation Chart" class="poster-img" style="max-height: 200px;">
+                            </div>
+                            <div class="ablation-details-widget" style="width: 48%;">
+                                <strong style="font-size: 11.5px;">Spectrum of Causal Involvement:</strong>
+                                <div class="ablation-selector">
+                                    <div class="ablation-pill active" onclick="showAblationDetail(this, 'sparse', '<strong>Works: Sparse Circuits (10.1% to 17.1% flips):</strong><br>Specific contrasts like <em>fundamental</em> vs <em>technical</em> finance (10.1% flip) or <em>single</em> vs <em>multi-tool</em> choices (17.1% flip) are controlled by localized, sparse circuits.')">Localized Circuit</div>
+                                    <div class="ablation-pill" onclick="showAblationDetail(this, 'distributed', '<strong>Null Results: Distributed Circuits (0% flips):</strong><br>9 of 23 contrast types showed zero flips. This proves those choices are represented distributively across a wide circuit, rather than a localized set of 10 features.')">Distributed representation</div>
+                                    <div class="ablation-pill" onclick="showAblationDetail(this, 'noise', '<strong>Noise Baseline: SAE Round-Trip:</strong><br>Random ablation matches the SAE round-trip distortion (0% for the finance contrast; ~13% aggregate across 23 types). Contrastive flips sit above this noise floor, proving they are signal — not reconstruction artefacts.')">Noise baseline</div>
+                                </div>
+                                <div class="ablation-info-box" id="ablationInfoBox">
+                                    Select a category above to investigate details.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 8px; width: 100%;">
+                            <table class="ablation-table">
+                                <thead>
+                                    <tr>
+                                        <th>Contrast Type</th>
+                                        <th>n</th>
+                                        <th>Contr. Flip</th>
+                                        <th>Directed</th>
+                                        <th>Rand/Recon</th>
+                                        <th>p-value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>fundamental vs. technical</strong></td>
+                                        <td>89</td>
+                                        <td>10.1%</td>
+                                        <td><strong>9.0%</strong></td>
+                                        <td>0.0%</td>
+                                        <td><strong>p = 0.002</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>single vs. multi-tool</strong></td>
+                                        <td>41</td>
+                                        <td>17.1%</td>
+                                        <td>2.4%</td>
+                                        <td>2.4%</td>
+                                        <td><strong>p = 0.029</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>query vs. mutate</td>
+                                        <td>9</td>
+                                        <td>77.8%</td>
+                                        <td>0.0%</td>
+                                        <td>33.3%</td>
+                                        <td>p = 0.077</td>
+                                    </tr>
+                                    <tr>
+                                        <td>single-stock vs. portfolio</td>
+                                        <td>65</td>
+                                        <td>10.8%</td>
+                                        <td>0.0%</td>
+                                        <td>6.2%</td>
+                                        <td>p = 0.265</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <p class="block-caption"><strong>Ablating SAE features changes tool decisions &mdash; random features do not.</strong> The contrastive flip is above the noise floor, confirming the causal effect is real.</p>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"We map the boundaries of causal ablation. While localized decisions like financial contrasts show a 10.1% flip rate, 9 out of 23 contrast types show a 0% flip rate, indicating they are represented distributively. Controls show 0% flips, confirming our signal is genuine."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the middle block of Column 3. We show that causal routing behaves as a spectrum. Localized decisions flip easily when the top 10 features are ablated. But in 9 of our 23 contrast categories, we see zero flips. This null result shows that those decisions are distributed redundantly across the network and are robust to localized changes. This is a key boundary for mechanistic interpretability, showing that agent decisions are heterogeneous."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Let's examine the ablation results table on Column 3. We ablate the top-10 contrastive features across 100 pairs per contrast type. For fundamental vs. technical (n=89), contrastive ablation flips 10.1% of choices (9.0% directed) with a p-value of 0.002. For single-vs-multi-tool (n=41), it flips 17.1% (p=0.029). 9 of 23 contrast types show 0% flip rate, meaning those routing choices are distributed. Crucially, the random ablation flip rate matches the SAE round-trip reconstruction distortion rate (e.g. 0.0% for finance, 2.4% for tool count), proving that zeroing 10 random features adds no noise beyond the baseline reconstruction, validating our design."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Point to the middle alert block on Column 3.</li>
+                            <li>Click the ablation selector buttons on screen to display the details of localized vs. distributed representation boundaries.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> What is the significance of the reconstruction-only baseline?<br><strong>A:</strong> It represents the noise floor. Since random ablation matches the reconstruction distortion exactly, any additional flip rate from contrastive ablation is a true causal effect of those specific features."</p>
+                    </div>
+                `
+            },
+            {
+                title: "↗  · Code & Paper",
+                class: "block-11",
+                html: `
+                    <div class="poster-block">
+                        <div class="block-header"><span class="hnum alt">↗</span>Code &amp; Paper</div>
+                        <div class="block-body split-layout">
+                            <div class="qr-container-mock" style="width: 40%;">
+                                <div class="qr-code-box">
+                                    <img src="website/assets/qr-kiji.svg" alt="QR code to paper and code" style="width:100%;height:100%;display:block;border-radius:6px;background:#FFFEF9;padding:6px;">
+                                </div>
+                                <strong>Scan for paper + code</strong>
+                            </div>
+                            <div class="code-links-list" style="width: 56%;">
+                                <span class="repo-url">github.com/dataiku/kiji-inspector</span>
+                                <div class="meta-info-box">
+                                    <strong>Environment Details:</strong>
+                                    <ul>
+                                        <li>subject &middot; Nemotron-3-Nano-30B</li>
+                                        <li>gen·label·judge &middot; Qwen3-VL-235B</li>
+                                        <li>compute &middot; NVIDIA · 4×GB200</li>
+                                    </ul>
+                                </div>
+                                <div class="references-citation-box">
+                                    <strong>References:</strong>
+                                    <ol class="references-list">
+                                        <li>Bricken et al. (2023) &middot; Monosemanticity</li>
+                                        <li>Rajamanoharan et al. (2024) &middot; JumpReLU</li>
+                                        <li>Juang et al. (2024) &middot; Autointerp</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                notes: `
+                    <div class="notes-section">
+                        <div class="notes-section-title">The 30-Second Pitch</div>
+                        <p class="notes-text">"To wrap up, our codebase, activation hooks, and datasets are open source at github.com/dataiku/kiji-inspector. We build on prior work in JumpReLU and automated interpretation. Hannes and I are happy to answer any questions or discuss potential collaborations!"</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">2-Minute Walkthrough</div>
+                        <p class="notes-text">"Look at the bottom of Column 3. Everything we've built is open source. The repository contains our vLLM activation hooks, the JumpReLU training pipeline, and the fuzzing evaluation harness. We build on key foundations: Bricken's monosemanticity, JumpReLU sparse thresholds, and Juang's automated labelling. We want to thank NVIDIA for compute support. Thank you for your time, and we look forward to your questions!"</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">5-Minute Technical Deep-Dive</div>
+                        <p class="notes-text">"Our experiments were run on a GB200 NVL4 cluster with 4x B200 GPUs. The repository contains code under sae-inference-server/ to serve real-time tool explainability with latency under 1ms. The active hooks are registered using standard forward hooks under PyTorch. References: [1] Bricken et al. (2023) for autoencoders, [2] Rajamanoharan et al. (2024) for Heaviside JumpReLU with smooth tanh sparsity, and [3] Juang et al. (2024) for auto-labelling verification."</p>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Presenter Physical Cues</div>
+                        <ul class="notes-bullet-list">
+                            <li>Gesture to the QR code at the bottom right of the poster (Column 3).</li>
+                            <li>Close with a professional, welcoming posture, offering a nod.</li>
+                        </ul>
+                    </div>
+                    <div class="notes-section">
+                        <div class="notes-section-title">Q&A Prep</div>
+                        <p class="notes-text"><strong>Q:</strong> Can I run this locally?<br><strong>A:</strong> Yes, the repository contains a walkthrough script to extract activations and run inference on standard consumer GPUs."</p>
+                    </div>
+                `
+            }
+        ];
+
+        // ==========================================================================
+        // 9. Interactive Presenter Logic
+        // ==========================================================================
+        let currentSlideIndex = 0;
+        let presenterWindow = null;
+
+        // Initialize App
+        document.addEventListener("DOMContentLoaded", () => {
+            renderSlideList();
+            showSlide(0);
+            
+            // Register Keyboard Navigation
+            document.addEventListener("keydown", (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                
+                if (e.key === "ArrowRight" || e.key === "Space" || e.key === "PageDown") {
+                    nextSlide();
+                } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+                    prevSlide();
+                } else if (e.key === "f" || e.key === "F") {
+                    enterFullscreen();
+                }
+            });
+
+            // Listen for localStorage changes (sync Presenter Window if popped out)
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'kiji_presentation_slide_index') {
+                    const index = parseInt(e.newValue, 10);
+                    if (!isNaN(index) && index !== currentSlideIndex) {
+                        showSlide(index, false); // Avoid infinite loop sync
+                    }
+                }
+            });
+        });
+
+        // Render Slide List in Sidebar
+        function renderSlideList() {
+            const listContainer = document.getElementById("slideList");
+            listContainer.innerHTML = "";
+            SLIDES_DATA.forEach((slide, idx) => {
+                const item = document.createElement("div");
+                item.className = "slide-list-item";
+                item.id = `slide-item-${idx}`;
+                item.onclick = () => showSlide(idx);
+                item.innerHTML = `
+                    <span class="item-number">${idx}</span>
+                    <span class="item-title">${slide.title}</span>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        // Show specific slide index
+        function showSlide(index, syncWindow = true) {
+            if (index < 0 || index >= SLIDES_DATA.length) return;
+            
+            // Remove active state from old item
+            const oldActive = document.querySelector(".slide-list-item.active");
+            if (oldActive) oldActive.classList.remove("active");
+            
+            currentSlideIndex = index;
+            
+            // Add active state to new list item
+            const newActive = document.getElementById(`slide-item-${index}`);
+            if (newActive) {
+                newActive.classList.add("active");
+                newActive.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
+            
+            // Update Slide Container contents and class
+            const slide = SLIDES_DATA[index];
+            const slideContainer = document.getElementById("slideContainer");
+            slideContainer.className = "slide-container " + (slide.class || "");
+            
+            const slideBody = document.getElementById("slideBody");
+            slideBody.innerHTML = slide.html;
+            
+            // Update Page Number
+            document.getElementById("slidePageNum").innerText = `${index} / ${SLIDES_DATA.length - 1}`;
+            if (index === 0) {
+                document.getElementById("slidePageNum").innerText = "Overview";
+            }
+            
+            // Update Notes
+            document.getElementById("notesSlideTag").innerText = index === 0 ? "Overview" : `Block ${index}`;
+            document.getElementById("notesContent").innerHTML = slide.notes;
+            
+            // Update Navigation Buttons state
+            document.getElementById("prevBtn").disabled = (index === 0);
+            document.getElementById("nextBtn").disabled = (index === SLIDES_DATA.length - 1);
+            
+            // Update Progress Bar
+            const percent = (index / (SLIDES_DATA.length - 1)) * 100;
+            document.getElementById("progressFill").style.width = `${percent}%`;
+            document.getElementById("progressCounter").innerText = `${index} / ${SLIDES_DATA.length - 1}`;
+            
+            // Update Poster Minimap Highlighting
+            updateMinimap(index);
+            
+            // Sync to localStorage
+            if (syncWindow) {
+                localStorage.setItem('kiji_presentation_slide_index', index.toString());
+            }
+
+            // Run minor delay layouts for dynamic widget initialization
+            setTimeout(() => {
+                if (index === 4) selectLayer(document.querySelector('.layer-btn.active'), 20, '81.2%', '0.19%', '0.574', '<strong>Optimal Selection.</strong> Sits just before the MoE routing stacks. Clean representations, 81.2% alive features.');
+                if (index === 10) showAblationDetail(document.querySelector('.ablation-pill.active'), 'sparse', '<strong>Works: Sparse Circuits (10.1% to 17.1% flips):</strong><br>Specific contrasts like <em>fundamental</em> vs <em>technical</em> finance (10.1% flip) or <em>single</em> vs <em>multi-tool</em> choices (17.1% flip) are controlled by localized, sparse circuits.');
+                if (index === 8) showFuzzingTier('excellent', '84.3%', 'Label matches exactly. Tokens match semantic intent with &gt;0.8 correlation. Example: label \'data modification\' triggers on \'set\', \'update\', \'write\'.');
+            }, 50);
+        }
+
+        // Slide control functions
+        function nextSlide() {
+            if (currentSlideIndex < SLIDES_DATA.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+            }
+        }
+
+        // Progress bar click navigation
+        function jumpToProgress(event) {
+            const track = event.currentTarget;
+            const rect = track.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const width = rect.width;
+            const fraction = clickX / width;
+            const targetIndex = Math.round(fraction * (SLIDES_DATA.length - 1));
+            showSlide(Math.min(Math.max(targetIndex, 0), SLIDES_DATA.length - 1));
+        }
+
+        // Sidebar Visibility Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            if (sidebar.style.display === "none") {
+                sidebar.style.display = "flex";
+            } else {
+                sidebar.style.display = "none";
+            }
+        }
+
+        // Presenter Mode / Notes Pane Toggle
+        function togglePresenterMode() {
+            const notes = document.getElementById("notesPane");
+            if (notes.style.display === "none") {
+                notes.style.display = "flex";
+            } else {
+                notes.style.display = "none";
+            }
+        }
+
+        // Update Minimap block highlights
+        function updateMinimap(index) {
+            document.querySelectorAll('.minimap-block, .minimap-hero').forEach(b => b.classList.remove('active'));
+            if (index === 0) {
+                document.querySelectorAll('.minimap-block, .minimap-hero').forEach(b => b.classList.add('active'));
+            } else if (index >= 1 && index <= 11) {
+                const activeBlock = document.getElementById(`mini-block-${index}`);
+                if (activeBlock) activeBlock.classList.add('active');
+            }
+        }
+
+        // Spawns Presenter View in Dual-screen Mode
+        function spawnPresenterWindow() {
+            const w = window.open("", "PresenterWindow", "width=800,height=600");
+            presenterWindow = w;
+            w.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <title>Kiji Presenter - Notes View</title>
+                    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+                    <style>
+                        body {
+                            background-color: #052420;
+                            color: #f1f5f9;
+                            font-family: 'DM Sans', sans-serif;
+                            padding: 30px;
+                            margin: 0;
+                            display: flex;
+                            flex-direction: column;
+                            height: 90vh;
+                        }
+                        h1 {
+                            font-family: 'DM Sans', sans-serif;
+                            font-size: 20px;
+                            border-bottom: 1px solid #14564E;
+                            padding-bottom: 12px;
+                            margin-bottom: 20px;
+                            color: #cbd5e1;
+                            display: flex;
+                            justify-content: space-between;
+                        }
+                        #badge {
+                            background-color: #06312E;
+                            font-size: 11px;
+                            padding: 2px 8px;
+                            border-radius: 12px;
+                            color: white;
+                        }
+                        #content {
+                            flex: 1;
+                            font-size: 18px;
+                            line-height: 1.6;
+                            overflow-y: auto;
+                        }
+                        .notes-section {
+                            margin-bottom: 24px;
+                        }
+                        .notes-section-title {
+                            font-family: 'DM Sans', sans-serif;
+                            font-size: 13px;
+                            font-weight: 700;
+                            color: #3EDAB2;
+                            text-transform: uppercase;
+                            margin-bottom: 10px;
+                            letter-spacing: 0.05em;
+                            border-bottom: 1px solid #06312E;
+                            padding-bottom: 4px;
+                        }
+                        .notes-bullet-list {
+                            margin-left: 20px;
+                            color: #94a3b8;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Kiji Inspector Presenter Script <span id="badge">Block 1</span></h1>
+                    <div id="content"></div>
+                    <script>
+                        function updateNotes() {
+                            const slideIndex = parseInt(localStorage.getItem('kiji_presentation_slide_index') || '0', 10);
+                            const slidesData = ${JSON.stringify(SLIDES_DATA)};
+                            const slide = slidesData[slideIndex];
+                            document.getElementById('badge').innerText = slideIndex === 0 ? 'Overview' : 'Block ' + slideIndex + ' of ' + (slidesData.length - 1);
+                            document.getElementById('content').innerHTML = slide.notes;
+                        }
+                        window.addEventListener('storage', (e) => {
+                            if (e.key === 'kiji_presentation_slide_index') {
+                                updateNotes();
+                            }
+                        });
+                        updateNotes();
+                    <\/script>
+                </body>
+                </html>
+            `);
+            w.document.close();
+        }
+
+        // Fullscreen Presenter Mode
+        function enterFullscreen() {
+            const slideContainer = document.getElementById("slideContainer");
+            if (document.body.classList.contains("fullscreen-mode")) {
+                document.body.classList.remove("fullscreen-mode");
+                if (document.exitFullscreen) document.exitFullscreen();
+            } else {
+                document.body.classList.add("fullscreen-mode");
+                const slidePane = document.querySelector(".slide-pane");
+                if (slidePane.requestFullscreen) {
+                    slidePane.requestFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        // Handle native fullscreen changes (ESC key exit)
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove("fullscreen-mode");
+            }
+        });
+
+        // Theme modifier
+        function changeTheme(theme) {
+            document.body.className = `theme-${theme}`;
+        }
+
+        // Search Section filtering
+        function filterSlides() {
+            const query = document.getElementById("slideSearch").value.toLowerCase();
+            SLIDES_DATA.forEach((slide, idx) => {
+                const item = document.getElementById(`slide-item-${idx}`);
+                const matchTitle = slide.title.toLowerCase().includes(query);
+                const matchNotes = slide.notes.toLowerCase().includes(query);
+                
+                if (matchTitle || matchNotes) {
+                    item.style.display = "flex";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+
+        // ==========================================================================
+        // 10. Interactive Widgets Callbacks (Global Scope)
+        // ==========================================================================
+        function toggleMetric(btn, value, context, controlVal, roundTrip, pVal) {
+            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const metricElement = document.querySelector('.hero-metric');
+            metricElement.innerText = value;
+            
+            document.getElementById('metricContext').innerText = context;
+            
+            const stats = document.querySelector('.hero-stats');
+            stats.innerHTML = `
+                <span>random ablation: <strong>${controlVal}</strong></span> &ensp;&middot;&ensp;
+                <span>SAE round-trip: <strong>${roundTrip}</strong></span> &ensp;&middot;&ensp;
+                <span>p = ${pVal}</span>
+            `;
+        }
+
+        function highlightShortcoming(card) {
+            document.querySelectorAll('.shortcoming-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        }
+
+        function toggleBaselineView(btn, viewType) {
+            btn.parentElement.querySelectorAll('.baseline-toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const shortcomings = document.getElementById('view-shortcomings');
+            const baselines = document.getElementById('view-baselines');
+            
+            if (viewType === 'shortcomings') {
+                if (shortcomings) shortcomings.classList.remove('hidden-view');
+                if (baselines) baselines.classList.add('hidden-view');
+            } else {
+                if (shortcomings) shortcomings.classList.add('hidden-view');
+                if (baselines) baselines.classList.remove('hidden-view');
+            }
+        }
+        
+        function toggleJumpReLUMode(btn, viewType) {
+            btn.parentElement.querySelectorAll('.math-toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const hyperparams = document.getElementById('jump-hyperparams');
+            const equations = document.getElementById('jump-equations');
+            
+            if (viewType === 'hyperparams') {
+                if (hyperparams) hyperparams.classList.remove('hidden-view');
+                if (equations) equations.classList.add('hidden-view');
+            } else {
+                if (hyperparams) hyperparams.classList.add('hidden-view');
+                if (equations) equations.classList.remove('hidden-view');
+            }
+        }
+
+        function showPipelineDetail(stage) {
+            const box = document.getElementById('pipelineDetailBox');
+            let text = '';
+            let color = '#94a3b8';
+            
+            if (stage === 'activations') {
+                text = '<strong>1. Activations:</strong> Gather 1 million activations from Layer 20 of Nemotron-3-Nano during inference forward passes.';
+                color = '#0284c7';
+            } else if (stage === 'training') {
+                text = '<strong>2. SAE Training:</strong> Train JumpReLU Sparse Autoencoder unsupervised on activations to learn the model\'s natural representation language.';
+                color = '#3EDAB2';
+            } else if (stage === 'features') {
+                text = '<strong>3. SAE Features:</strong> Decompose dense layer activations into a dictionary of 10,752 sparse, monosemantic latent concept channels.';
+                color = '#3EDAB2';
+            } else if (stage === 'probe') {
+                text = '<strong>4. Probe (Cohen\'s d):</strong> Bring in 500K contrastive prompt pairs post-hoc to measure effect sizes and surface routing-relevant features.';
+                color = '#E7AB4F';
+            } else if (stage === 'fuzzing') {
+                text = '<strong>5. Token Fuzzing:</strong> Apply token-level A/B testing (fuzzing) to score feature label reliability under adversarial prompt edits.';
+                color = '#81C141';
+            } else if (stage === 'contrastive') {
+                text = '<strong>Contrastive Pairs:</strong> 500,000 generated prompt pairs (growth vs. value, read vs. write). Bypass training to prevent dict bias.';
+                color = '#E7AB4F';
+            }
+            
+            box.innerHTML = text;
+            box.style.borderLeftColor = color;
+        }
+
+        function hidePipelineDetail() {
+            const box = document.getElementById('pipelineDetailBox');
+            box.innerHTML = 'Hover over any pipeline node to inspect detailed methodology stages.';
+            box.style.borderLeftColor = '#94a3b8';
+        }
+
+        function selectLayer(btn, layerNum, alive, dead, mse, desc) {
+            document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const card = document.getElementById('layerInfoCard');
+            card.innerHTML = `<strong>Layer ${layerNum}:</strong><br>Alive features: ${alive} | Dead: ${dead} | MSE: ${mse}<br>${desc}`;
+        }
+
+        function highlightMath(type) {
+            const box = document.getElementById('mathTooltip');
+            let text = '';
+            
+            if (type === 'dictionary') {
+                text = '<strong>Dictionary Overcompleteness:</strong> factor of 4. Residual stream R^2688 to latents R^10752.';
+            } else if (type === 'activations') {
+                text = '<strong>Activations:</strong> 1,000,000 token activations sampled from agent conversations.';
+            } else if (type === 'mse') {
+                text = '<strong>MSE:</strong> 0.574 reconstruction error. Measures feature representation fidelity.';
+            } else if (type === 'alive') {
+                text = '<strong>Alive Features:</strong> 81.2% features fire at least once. Low dead rates (0.19%) represent high dictionary coverage.';
+            } else if (type === 'active') {
+                text = '<strong>L0 Sparsity Density:</strong> 668 &plusmn; 26 features active per token, meaning only 6.2% of the dictionary is active per forward pass.';
+            }
+            
+            box.innerHTML = text;
+        }
+
+        function clearMath() {
+            document.getElementById('mathTooltip').innerHTML = 'Hover over table rows to inspect hyperparameter mathematical details.';
+        }
+
+        let simAblated = false;
+        function toggleSimAblation() {
+            simAblated = !simAblated;
+            const btn = document.getElementById('simAblateBtn');
+            const routing = document.getElementById('simRoutingResult');
+            
+            if (simAblated) {
+                btn.innerText = 'Ablated (Ablation Active)';
+                btn.className = 'sim-toggle-btn ablated-state';
+                routing.innerHTML = 'Agent Action: <strong class="red-text">[file_read]</strong> <span style="font-size:8.5px;color:#64748b;">(Drifts from write to read!)</span>';
+            } else {
+                btn.innerText = 'Intact (Normal)';
+                btn.className = 'sim-toggle-btn active-state';
+                routing.innerHTML = 'Agent Action: <strong class="green-text">[file_write]</strong>';
+            }
+        }
+
+        function runPlaygroundPrompt(type) {
+            const output = document.getElementById('playgroundOutput');
+            
+            if (type === 'update') {
+                output.innerHTML = `<strong>Query:</strong> "Update account status for UID 521"<br>
+<strong>Action:</strong> <span class="green-text">[db_modify_tool]</span><br>
+<strong>Active SAE Latents:</strong><br>
+&middot; Feature 244 (d=1.8): "data modification intent"<br>
+&middot; Feature 908 (d=1.1): "database focus"<br>
+<strong>Generated Rationale:</strong> "The agent chose [db_modify_tool] because the query updates account records (Feature 244) and interacts with a database (Feature 908)."`;
+            } else if (type === 'search') {
+                output.innerHTML = `<strong>Query:</strong> "Search the web for local tech meetups"<br>
+<strong>Action:</strong> <span class="green-text">[web_search_tool]</span><br>
+<strong>Active SAE Latents:</strong><br>
+&middot; Feature 105 (d=1.5): "information seeking intent"<br>
+&middot; Feature 432 (d=1.2): "external query focus"<br>
+<strong>Generated Rationale:</strong> "The agent chose [web_search_tool] because the query seeks local information (Feature 105) requiring an external search (Feature 432)."`;
+            } else if (type === 'math') {
+                output.innerHTML = `<strong>Query:</strong> "Calculate the derivative of x^2 + 5x"<br>
+<strong>Action:</strong> <span class="green-text">[python_interpreter]</span><br>
+<strong>Active SAE Latents:</strong><br>
+&middot; Feature 567 (d=2.1): "mathematical notation focus"<br>
+&middot; Feature 302 (d=1.4): "code evaluation request"<br>
+<strong>Generated Rationale:</strong> "The agent chose [python_interpreter] because the query involves mathematical equations (Feature 567) and requires symbolic execution (Feature 302)."`;
+            }
+        }
+
+        function showFuzzingTier(tier, val, desc) {
+            const panel = document.getElementById('fuzzingInfoPanel');
+            let color = '#94a3b8';
+            if (tier === 'excellent') color = '#81C141';
+            else if (tier === 'good') color = '#E7AB4F';
+            else if (tier === 'poor') color = '#C91024';
+            
+            panel.innerHTML = `<strong>Tier: ${tier.toUpperCase()} (${val})</strong><br>${desc}`;
+            panel.style.borderLeftColor = color;
+        }
+
+        function showAblationDetail(pill, type, desc) {
+            document.querySelectorAll('.ablation-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            document.getElementById('ablationInfoBox').innerHTML = desc;
+        }
+    </script>
+</body>
+</html>
