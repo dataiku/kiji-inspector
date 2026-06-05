@@ -23,8 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "torch>=2.10.0",
-    "torchvision>=0.25.0",
+    "torch>=2.10.0,<=2.11.0",
+    "torchvision>=0.25.0,<=0.26.0",
     "numpy>=1.26.0",
     "tqdm>=4.66.0",
     "pyarrow>=15.0.0",
@@ -37,13 +37,37 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-full = [
+gemini = [
     "torch>=2.11.0",
     "torchvision>=0.26.0",
     "transformers>=5.0.0",
     "accelerate>=1.13.0",
-    "vllm==0.20.1"
+    "vllm==0.20.1",
 ]
+
+nemotron = [
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "causal-conv1d==1.6.2.post1",
+    "mamba-ssm==2.3.2.post1",
+    "safetensors>=0.7.0",
+    "sentencepiece>=0.2.1",
+    "accelerate>=1.13.0",
+    "transformers>=5.0.0",
+    "vllm==0.19.1",
+]
+
+
+[tool.uv]
+no-build-isolation-package = ["causal-conv1d", "mamba-ssm"]
+conflicts = [
+    [
+        { extra = "gemini" },
+        { extra = "nemotron" },
+    ],
+]
+
+
 
 [dependency-groups]
 dev = [
@@ -93,17 +117,10 @@ changelog_start_rev = "kiji-inspector-v0.0.1"
 
 
 [[tool.uv.index]]
-name = "pytorch-cu130"
-url = "https://download.pytorch.org/whl/cu130"
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [tool.uv.sources]
-torch = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-torchvision = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-torchaudio = [
-  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-]
+torch = { index = "pytorch-cu128", extra = "nemotron" }
+torchvision = { index = "pytorch-cu128", extra = "nemotron" }
