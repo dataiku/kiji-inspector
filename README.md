@@ -2,7 +2,7 @@
 # Kiji Inspector: Mechanistic Interpretability for AI Agent Tool Selection
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/dataiku/kiji-inspector/main/static/kiji_inspector_inverted.png" alt="Kiji Inspector" width="300">
+  <img src="https://raw.githubusercontent.com/dataiku/kiji-inspector/main/static/kiji_inspector_workflow.png" alt="Kiji Inspector Workflow" width="600">
 
   <p>
     <a href="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-core.yml"><img src="https://github.com/dataiku/kiji-inspector/actions/workflows/ci-core.yml/badge.svg" alt="CI Core"></a>
@@ -14,7 +14,7 @@
 
   <p>
     <img src="https://img.shields.io/badge/python-%3E%3D3.10-3776AB?logo=python&logoColor=white" alt="Python Version">
-    <a href="https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/Kiji_Colab_Notebook.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
+    <a href="https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/quickstart_colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
   </p>
 
   <p>
@@ -95,6 +95,17 @@ The apply script installs every `*.patch` file under [patches](patches/) in lexi
 - `03_support_gemma3_models.patch`
 
 Additional workflow details live in [patches/README_PATCH.md](patches/README_PATCH.md).
+
+---
+
+## 📓 Examples
+
+Two end-to-end notebooks demonstrate the library. Both run on Colab — the first works on a free T4, the second needs an A100 high-RAM runtime.
+
+| Notebook | What it shows | Open |
+|---|---|---|
+| [`quickstart_colab.ipynb`](demo/quickstart_colab.ipynb) | Minimal walkthrough: capture a hidden state from `google/gemma-4-E4B-it` via a forward hook, load a pretrained SAE with `SAE.from_pretrained`, and describe the top features firing on a single prompt. Also covers the vLLM extraction path. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/quickstart_colab.ipynb) |
+| [`home_repair_colab.ipynb`](demo/home_repair/home_repair_colab.ipynb) | Full agent demo: a Nemotron-3-Nano-30B home repair advisor calls four tools across three appliance problems, the residual stream is captured at every decision point, and a trained JumpReLU SAE decomposes those activations into themed features. Includes the interactive `index.html` viewer served from Colab. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/home_repair/home_repair_colab.ipynb) |
 
 ---
 

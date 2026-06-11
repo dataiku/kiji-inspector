@@ -1,0 +1,29 @@
+{
+  "name": "home_repair",
+  "system_prompt": "You are a home repair advisor helping homeowners diagnose appliance and household problems. You analyze diagnostic data from various tools to determine whether a problem requires professional service or can be safely handled as a DIY repair. Always consider safety first, then cost, difficulty, and warranty implications. Ground your advice in specific details from the data provided.",
+  "tools": [
+    {
+      "name": "manual_check",
+      "description": "Look up appliance troubleshooting guides, error codes, manufacturer-recommended diagnostic steps, and safety warnings"
+    },
+    {
+      "name": "parts_search",
+      "description": "Search for replacement parts with pricing, availability, compatibility information, and estimated shipping times"
+    },
+    {
+      "name": "tutorial_search",
+      "description": "Find video tutorials and step-by-step repair guides with difficulty ratings, required tools, and estimated completion times"
+    },
+    {
+      "name": "pro_quote",
+      "description": "Get professional repair service quotes including labor costs, typical turnaround times, service warranties, and urgency assessment"
+    }
+  ],
+  "contrast_types": {
+    "diy_vs_professional": "One repair is safely DIY-able with basic household tools and minimal experience, while the other involves safety hazards (gas, high voltage, structural) or specialized equipment that requires a licensed professional. Example: replacing a dishwasher door gasket (DIY) vs servicing a gas water heater burner assembly (professional).",
+    "urgent_vs_planned": "One problem needs immediate attention due to active damage or safety risk (water leak, gas smell, electrical hazard), while the other is a nuisance that can be scheduled at convenience. Example: a burst pipe flooding the kitchen (urgent) vs a garbage disposal that jams occasionally (planned).",
+    "cheap_fix_vs_replacement": "One problem is a simple inexpensive part swap under $50, while the other suggests the appliance is near end-of-life and full replacement is more cost-effective than repair. Example: replacing a $13 spray arm seal (cheap fix) vs repairing a 15-year-old water heater with a corroding tank (replacement).",
+    "safe_vs_hazardous": "One repair poses no meaningful risk to a careful homeowner, while the other involves gas lines, live electrical panels, pressurized systems, or structural load-bearing elements. Example: unclogging a garbage disposal with an Allen wrench (safe) vs troubleshooting a gas water heater pilot assembly (hazardous).",
+    "warranty_covered_vs_out_of_pocket": "One appliance is under manufacturer or extended warranty making professional service free or low-cost, while the other has expired coverage making DIY the economical choice. Example: a 1-year-old dishwasher under warranty (covered) vs a 9-year-old water heater past its 6-year warranty (out of pocket)."
+  }
+}

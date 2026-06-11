@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" font-family="Helvetica Neue, Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3EDAB2"></polygon>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#929088"></polygon>
+    </marker>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#06312E" flood-opacity="0.12"></feDropShadow>
+    </filter>
+    <linearGradient id="grad-primary" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06312E"></stop>
+      <stop offset="100%" stop-color="#06312E"></stop>
+    </linearGradient>
+    <linearGradient id="grad-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06312E"></stop>
+      <stop offset="100%" stop-color="#06312E"></stop>
+    </linearGradient>
+    <linearGradient id="grad-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06312E"></stop>
+      <stop offset="100%" stop-color="#06312E"></stop>
+    </linearGradient>
+  </defs>
+
+  
+  <rect width="1100" height="560" fill="#F8F4E4" rx="8"></rect>
+  
+  <rect width="1100" height="4" fill="url(#grad-accent)" rx="2"></rect>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="30" y="55" width="160" height="80" rx="10" fill="#FFFEF9" stroke="#EEEDEA" stroke-width="1.5"></rect>
+  </g>
+  <text x="110" y="86" text-anchor="middle" font-size="14.9" fill="#929088" font-weight="600" letter-spacing="0.5">USER PROMPT</text>
+  <text x="110" y="108" text-anchor="middle" font-size="16.2" fill="#1A1A1A" font-style="italic">&#34;Analyze our Q3</text>
+  <text x="110" y="123" text-anchor="middle" font-size="16.2" fill="#1A1A1A" font-style="italic">revenue trends&#34;</text>
+
+  
+  <line x1="190" y1="95" x2="213" y2="95" stroke="#3EDAB2" stroke-width="2" marker-end="url(#arrow)"></line>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="220" y="30" width="200" height="210" rx="12" fill="url(#grad-primary)"></rect>
+  </g>
+  <text x="320" y="58" text-anchor="middle" font-size="18.9" fill="#ffffff" font-weight="700">Nemotron-3 Nano</text>
+  <text x="320" y="75" text-anchor="middle" font-size="14.9" fill="#cbd5e0">30B params, 52 layers</text>
+
+  
+  <rect x="250" y="90" width="140" height="22" rx="4" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1"></rect>
+  <text x="320" y="105" text-anchor="middle" font-size="13.5" fill="#cbd5e0">Layers 1-19</text>
+
+  <rect x="250" y="118" width="140" height="28" rx="4" fill="#06312E" fill-opacity="0.9" stroke="#06312E" stroke-width="1.5"></rect>
+  <text x="320" y="137" text-anchor="middle" font-size="16.2" fill="#ffffff" font-weight="700">Layer 20</text>
+
+  <rect x="250" y="152" width="140" height="22" rx="4" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1"></rect>
+  <text x="320" y="167" text-anchor="middle" font-size="13.5" fill="#cbd5e0">Layers 21-52</text>
+
+  
+  <text x="320" y="198" text-anchor="middle" font-size="13.5" fill="#cbd5e0">Encoder forward pass</text>
+  <text x="320" y="213" text-anchor="middle" font-size="13.5" fill="#3EDAB2" font-weight="600">Extract at decision token</text>
+  <text x="320" y="228" text-anchor="middle" font-size="13.5" fill="#cbd5e0" font-style="italic">&#34;I&#39;ll use the &#39;&#34;</text>
+
+  
+  <line x1="420" y1="95" x2="473" y2="95" stroke="#3EDAB2" stroke-width="2.5" marker-end="url(#arrow)"></line>
+  <text x="446" y="84" text-anchor="middle" font-size="12.2" fill="#06312E" font-weight="600">extract</text>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="480" y="60" width="160" height="70" rx="10" fill="#FFFEF9" stroke="#3EDAB2" stroke-width="1.5"></rect>
+  </g>
+  <text x="560" y="84" text-anchor="middle" font-size="14.9" fill="#929088" font-weight="600" letter-spacing="0.5">ACTIVATION</text>
+  <text x="560" y="102" text-anchor="middle" font-size="17.6" fill="#06312E" font-weight="700">2,688-dim vector</text>
+  <text x="560" y="118" text-anchor="middle" font-size="13.5" fill="#929088">dense, float16</text>
+
+  
+  <line x1="560" y1="130" x2="560" y2="178" stroke="#3EDAB2" stroke-width="2" marker-end="url(#arrow)"></line>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="480" y="185" width="160" height="90" rx="12" fill="url(#grad-accent)"></rect>
+  </g>
+  <text x="560" y="212" text-anchor="middle" font-size="18.9" fill="#ffffff" font-weight="700">SAE Encoder</text>
+  <text x="560" y="230" text-anchor="middle" font-size="14.9" fill="#ffffff" fill-opacity="0.9">JumpReLU activation</text>
+  <text x="560" y="248" text-anchor="middle" font-size="13.5" fill="#ffffff" fill-opacity="0.8">learnable thresholds</text>
+  <text x="560" y="264" text-anchor="middle" font-size="13.5" fill="#ffffff" fill-opacity="0.8">2,688 → 10,752</text>
+
+  
+  <line x1="560" y1="275" x2="560" y2="318" stroke="#3EDAB2" stroke-width="2" marker-end="url(#arrow)"></line>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="460" y="325" width="200" height="85" rx="10" fill="#FFFEF9" stroke="#EEEDEA" stroke-width="1.5"></rect>
+  </g>
+  <text x="560" y="348" text-anchor="middle" font-size="14.9" fill="#929088" font-weight="600" letter-spacing="0.5">SPARSE VECTOR</text>
+  <text x="560" y="367" text-anchor="middle" font-size="17.6" fill="#06312E" font-weight="700">10,752 dimensions</text>
+  <text x="560" y="385" text-anchor="middle" font-size="13.5" fill="#929088">~94% zeros, ~668 active</text>
+
+  
+  <g transform="translate(475, 392)">
+    
+    <rect width="170" height="6" rx="3" fill="#cbd5e0"></rect>
+    
+    <rect x="8" width="2" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="23" width="2" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="31" width="3" height="6" rx="1" fill="#06312E" opacity="0.7"></rect>
+    <rect x="52" width="2" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="67" width="3" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="78" width="2" height="6" rx="1" fill="#06312E" opacity="0.5"></rect>
+    <rect x="95" width="3" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="110" width="2" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="128" width="2" height="6" rx="1" fill="#06312E" opacity="0.6"></rect>
+    <rect x="142" width="3" height="6" rx="1" fill="#06312E"></rect>
+    <rect x="160" width="2" height="6" rx="1" fill="#06312E"></rect>
+  </g>
+
+  
+  <line x1="660" y1="365" x2="708" y2="365" stroke="#3EDAB2" stroke-width="2" marker-end="url(#arrow)"></line>
+  <text x="684" y="356" text-anchor="middle" font-size="12.2" fill="#06312E" font-weight="600">rank</text>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="715" y="325" width="150" height="75" rx="10" fill="url(#grad-primary)"></rect>
+  </g>
+  <text x="790" y="348" text-anchor="middle" font-size="14.9" fill="#cbd5e0" font-weight="600" letter-spacing="0.5">TOP-K FEATURES</text>
+  <text x="790" y="368" text-anchor="middle" font-size="16.2" fill="#ffffff" font-weight="700">Most active dims</text>
+  <text x="790" y="386" text-anchor="middle" font-size="13.5" fill="#cbd5e0">ranked by activation</text>
+
+  
+  <line x1="865" y1="365" x2="908" y2="365" stroke="#3EDAB2" stroke-width="2" marker-end="url(#arrow)"></line>
+  <text x="891" y="356" text-anchor="middle" font-size="12.2" fill="#06312E" font-weight="600">look up</text>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="915" y="285" width="160" height="170" rx="12" fill="url(#grad-teal)"></rect>
+  </g>
+  <text x="995" y="310" text-anchor="middle" font-size="16.2" fill="#ffffff" font-weight="700">FEATURE THEMES</text>
+  <text x="995" y="327" text-anchor="middle" font-size="13.5" fill="#ffffff" fill-opacity="0.8">pre-computed labels</text>
+
+  
+  <rect x="930" y="340" width="130" height="24" rx="5" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1"></rect>
+  <text x="995" y="356" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="600">&#34;internal data access&#34;</text>
+
+  <rect x="930" y="370" width="130" height="24" rx="5" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1"></rect>
+  <text x="995" y="386" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="600">&#34;financial analysis&#34;</text>
+
+  <rect x="930" y="400" width="130" height="24" rx="5" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1"></rect>
+  <text x="995" y="416" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="600">&#34;temporal reasoning&#34;</text>
+
+  <rect x="930" y="430" width="130" height="15" rx="4" fill="#ffffff" fill-opacity="0.1"></rect>
+  <text x="995" y="441" text-anchor="middle" font-size="12.2" fill="#ffffff" fill-opacity="0.6">...</text>
+
+  
+  
+  
+  <g filter="url(#shadow)">
+    <rect x="715" y="515" width="360" height="36" rx="8" fill="#FFFEF9" stroke="#3EDAB2" stroke-width="1.5"></rect>
+  </g>
+  <text x="895" y="538" text-anchor="middle" font-size="14.9" fill="#06312E" font-weight="600">Output: natural-language decision explanation</text>
+
+  
+  <path d="M 995 455 L 995 475 L 895 475 L 895 515" stroke="#3EDAB2" stroke-width="1.5" fill="none" marker-end="url(#arrow-gray)"></path>
+
+  
+  
+  
+  <circle cx="110" cy="42" r="11" fill="#06312E"></circle>
+  <text x="110" y="46" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">1</text>
+
+  <circle cx="320" cy="20" r="11" fill="#06312E"></circle>
+  <text x="320" y="24" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">2</text>
+
+  <circle cx="560" cy="48" r="11" fill="#06312E"></circle>
+  <text x="560" y="52" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">3</text>
+
+  <circle cx="560" cy="178" r="11" fill="#06312E"></circle>
+  <text x="560" y="182" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">4</text>
+
+  <circle cx="560" cy="318" r="11" fill="#06312E"></circle>
+  <text x="560" y="322" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">5</text>
+
+  <circle cx="790" cy="318" r="11" fill="#06312E"></circle>
+  <text x="790" y="322" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">6</text>
+
+  <circle cx="995" cy="278" r="11" fill="#06312E"></circle>
+  <text x="995" y="282" text-anchor="middle" font-size="13.5" fill="#ffffff" font-weight="700">7</text>
+
+  
+  
+  
+  <rect x="30" y="515" width="682" height="36" rx="6" fill="#FFFEF9" stroke="#EEEDEA" stroke-width="1"></rect>
+  <text x="45" y="538" font-size="13.5" fill="#06312E" font-weight="700">1</text>
+  <text x="55" y="538" font-size="13.5" fill="#929088">Prompt</text>
+  <text x="110" y="538" font-size="13.5" fill="#06312E" font-weight="700">2</text>
+  <text x="120" y="538" font-size="13.5" fill="#929088">Encode</text>
+  <text x="185" y="538" font-size="13.5" fill="#06312E" font-weight="700">3</text>
+  <text x="195" y="538" font-size="13.5" fill="#929088">Extract layer 20</text>
+  <text x="305" y="538" font-size="13.5" fill="#06312E" font-weight="700">4</text>
+  <text x="315" y="538" font-size="13.5" fill="#929088">SAE encode</text>
+  <text x="400" y="538" font-size="13.5" fill="#06312E" font-weight="700">5</text>
+  <text x="410" y="538" font-size="13.5" fill="#929088">Sparse vector</text>
+  <text x="505" y="538" font-size="13.5" fill="#06312E" font-weight="700">6</text>
+  <text x="515" y="538" font-size="13.5" fill="#929088">Rank top-K</text>
+  <text x="600" y="538" font-size="13.5" fill="#06312E" font-weight="700">7</text>
+  <text x="610" y="538" font-size="13.5" fill="#929088">Theme lookup</text>
+</svg>

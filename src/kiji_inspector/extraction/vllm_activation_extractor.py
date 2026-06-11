@@ -66,6 +66,7 @@ class VLLMActivationExtractor:
             gpu_memory_utilization=config.gpu_memory_utilization,
             tensor_parallel_size=config.tensor_parallel_size,
             max_model_len=config.max_model_len,
+            max_num_seqs=512,
             extract_activation_layers=tuple(config.layers),
             # compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
             disable_log_stats=True,
