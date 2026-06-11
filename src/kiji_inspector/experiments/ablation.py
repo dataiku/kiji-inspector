@@ -8,7 +8,7 @@ tool prediction changes.
 For each contrast type:
   1. Ablate top-K contrastive features -> measure flip rate + CATE (with bootstrap CI)
   2. Ablate K random features as control -> measure flip rate + CATE (with bootstrap CI)
-  3. Fisher's exact test comparing the two 
+  3. Fisher's exact test comparing the two
   4. One-sided Wilcoxon signed-rank test on probability shifts
 
 Usage:
@@ -73,7 +73,7 @@ def get_tool_prediction(
     prompt: str,
     input_device: torch.device,
     token_to_tool: dict[int, str],
-    contrast_tool: str | None = None,   # NEW
+    contrast_tool: str | None = None,  # NEW
     top_k: int = 10,
 ) -> tuple[str, int, float]:
     """Run the full model and return (tool_name, token_id, prob_contrast_tool)."""
@@ -190,6 +190,7 @@ def make_ablation_hook(
 # Metrics (Enhanced with Causal Inference + Wilcoxon + Aggregate Stats)
 # ---------------------------------------------------------------------------
 
+
 def compute_ablation_metrics(
     per_contrast: dict[str, dict],
 ) -> dict:
@@ -197,30 +198,29 @@ def compute_ablation_metrics(
     (Conditional Average Treatment Effect per contrast type), bootstrap CIs,
     and Wilcoxon signed-rank test statistics (both per contrast type and in aggregate).
     """
-    from scipy.stats import fisher_exact, wilcoxon
     import numpy as np
+    from scipy.stats import fisher_exact, wilcoxon
 
     def bootstrap_ci(data: list[float], n_boot: int = 5000, alpha: float = 0.05):
         """Non-parametric bootstrap 95% CI.
-    
+
         Returns:
         mean : original sample mean (point estimate)
         lower, upper : bootstrap percentile confidence interval."""
         if not data:
             return 0.0, 0.0, 0.0
         data = np.array(data)
-        boot_means = np.array([
-            np.mean(np.random.choice(data, size=len(data), replace=True))
-            for _ in range(n_boot)
-        ])
+        boot_means = np.array(
+            [np.mean(np.random.choice(data, size=len(data), replace=True)) for _ in range(n_boot)]
+        )
         lower = np.percentile(boot_means, 100 * alpha / 2)
         upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
         mean = float(np.mean(data))
         return mean, lower, upper
 
-    wilcoxon_p_values = []   # for aggregate statistics
+    wilcoxon_p_values = []  # for aggregate statistics
 
-    for ct_key, info in per_contrast.items():
+    for _ct_key, info in per_contrast.items():
         n = info.get("n_tested", 0)
         if n == 0:
             continue
@@ -260,19 +260,19 @@ def compute_ablation_metrics(
 
         if contrastive_deltas:
             cate, ci_lower, ci_upper = bootstrap_ci(contrastive_deltas)
-            info["contrastive_ablation"].update({
-                "CATE": round(cate, 4),
-                "CATE_ci_95_lower": round(ci_lower, 4),
-                "CATE_ci_95_upper": round(ci_upper, 4),
-            })
+            info["contrastive_ablation"].update(
+                {
+                    "CATE": round(cate, 4),
+                    "CATE_ci_95_lower": round(ci_lower, 4),
+                    "CATE_ci_95_upper": round(ci_upper, 4),
+                }
+            )
 
             # Wilcoxon signed-rank test (per contrast type)
             if np.count_nonzero(contrastive_deltas) >= 10:
                 try:
                     _, wilcoxon_p = wilcoxon(
-                        contrastive_deltas,
-                        alternative="greater",
-                        zero_method="wilcox"
+                        contrastive_deltas, alternative="greater", zero_method="wilcox"
                     )
                     wilcoxon_p = float(wilcoxon_p)
                 except ValueError:
@@ -280,7 +280,9 @@ def compute_ablation_metrics(
             else:
                 wilcoxon_p = None
 
-            info["contrastive_ablation"]["wilcoxon_p_value"] = round(wilcoxon_p, 6) if wilcoxon_p is not None else None
+            info["contrastive_ablation"]["wilcoxon_p_value"] = (
+                round(wilcoxon_p, 6) if wilcoxon_p is not None else None
+            )
 
             # Collect for aggregate
             if wilcoxon_p is not None:
@@ -296,8 +298,11 @@ def compute_ablation_metrics(
 
         # Clean up
         for key in (
-            "contrastive_flips", "contrastive_directed_flips", "random_flips",
-            "reconstruction_flips", "contrastive_feature_indices",
+            "contrastive_flips",
+            "contrastive_directed_flips",
+            "random_flips",
+            "reconstruction_flips",
+            "contrastive_feature_indices",
             "n_random_features",
         ):
             info.pop(key, None)
@@ -339,6 +344,7 @@ def compute_ablation_metrics(
         agg = {}
 
     return {"per_contrast_type": per_contrast, "aggregate": agg}
+
 
 # ---------------------------------------------------------------------------
 # Main experiment
@@ -514,8 +520,7 @@ def run_ablation_experiment(
 
             # Baseline (no ablation)
             baseline_tool, baseline_tid, baseline_prob_contrast = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool,
-                contrast_tool=contrast_tool
+                model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
 
             if baseline_tool == "unknown":
@@ -532,8 +537,7 @@ def run_ablation_experiment(
                 make_ablation_hook(sae, feature_indices=None)
             )
             recon_tool, recon_tid, recon_prob_contrast = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool,
-                contrast_tool=contrast_tool
+                model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
             if recon_tid != baseline_tid:
@@ -544,8 +548,7 @@ def run_ablation_experiment(
                 make_ablation_hook(sae, contrastive_indices)
             )
             ablated_tool, ablated_tid, ablated_prob_contrast = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool,
-                contrast_tool=contrast_tool
+                model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
             if ablated_tid != baseline_tid:
@@ -558,8 +561,7 @@ def run_ablation_experiment(
                 make_ablation_hook(sae, random_indices)
             )
             rand_tool, rand_tid, rand_prob_contrast = get_tool_prediction(
-                model, tokenizer, prompt, input_device, token_to_tool,
-                contrast_tool=contrast_tool
+                model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
             if rand_tid != baseline_tid:
@@ -580,7 +582,7 @@ def run_ablation_experiment(
             "reconstruction_flips": reconstruction_flips,
             "contrastive_feature_indices": contrastive_indices,
             "n_random_features": len(random_indices),
-            "prob_deltas": prob_deltas,          # ← this is the key new data
+            "prob_deltas": prob_deltas,  # ← this is the key new data
         }
 
         # ... (the rest of the diagnostics print remains unchanged)
