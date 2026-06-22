@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opening the Black Box — Research Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#1A1A1A;
+    --white:#FFFEF9;
+    --dgreen:#06312E;
+    --beige:#F8F4E4;
+    --green:#3EDAB2;
+    --lgreen:#C7FFF1;
+    --orange:#EDAB4F;
+    --blue:#7092F2;
+    --grey:#929088;
+    --lgrey:#EEEDEA;
+    --ink:#2F2E2B;
+
+    --POSTER-W:2487px;
+    --POSTER-H:1865px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html,body{height:100%;}
+  body{
+    background:#0c0c0b;
+    font-family:'DM Sans',sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* ---- scaling stage ---- */
+  #stage{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  #poster{
+    width:var(--POSTER-W);
+    height:var(--POSTER-H);
+    background:var(--white);
+    flex:none;
+    transform-origin:center center;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* ============ TYPOGRAPHY HELPERS ============ */
+  .mono{font-family:'DM Mono',monospace;}
+  .eyebrow{
+    font-family:'DM Mono',monospace;
+    font-size:14px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--green);font-weight:500;
+  }
+
+  /* ============ HEADER BAND ============ */
+  header{
+    background:var(--dgreen);
+    color:var(--white);
+    padding:30px 54px 30px;
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:46px;
+    align-items:center;
+    position:relative;
+  }
+  header::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+    background:var(--green);
+  }
+  .qr-block{display:flex;flex-direction:column;align-items:center;gap:10px;width:188px;}
+  .qr-block img{width:188px;height:188px;display:block;border-radius:8px;background:var(--white);padding:8px;}
+  .qr-block .qr-cap{
+    font-family:'DM Mono',monospace;font-size:12.5px;letter-spacing:.04em;
+    color:var(--lgreen);text-align:center;line-height:1.35;
+  }
+  .title-zone{min-width:0;}
+  .venue-tag{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:'DM Mono',monospace;font-size:14px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--green);margin-bottom:16px;
+  }
+  .venue-tag .dot{width:9px;height:9px;background:var(--green);border-radius:50%;}
+  h1{
+    font-size:46px;line-height:1.06;font-weight:700;letter-spacing:-.018em;
+    color:var(--white);text-wrap:balance;max-width:26ch;
+  }
+  h1 .accent{color:var(--green);}
+  .authors{
+    margin-top:16px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 22px;
+    font-size:21px;font-weight:500;color:var(--lgreen);
+  }
+  .authors > span{white-space:nowrap;}
+  .authors .sup{font-size:13px;vertical-align:super;color:var(--green);}
+  .affil{
+    margin-top:8px;font-family:'DM Mono',monospace;font-size:14.5px;
+    color:#9cc7bf;letter-spacing:.02em;
+  }
+  .affil sup{color:var(--green);font-size:.72em;}
+  .header-right{
+    align-self:stretch;display:flex;flex-direction:column;justify-content:space-between;
+    text-align:right;border-left:1px solid rgba(199,255,241,.18);padding-left:42px;height:100%;
+    min-width:296px;
+  }
+  .header-right .lab{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-.01em;}
+  .header-right .lab span{color:var(--green);}
+  .header-right .brand-logo{width:252px;height:auto;display:block;margin-left:auto;}
+  .header-right .tagline{
+    font-family:'DM Mono',monospace;font-size:14px;line-height:1.5;color:#9cc7bf;
+    letter-spacing:.01em;text-align:right;
+  }
+  .header-right .credits{
+    font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.55;color:#7ba79f;text-align:right;
+  }
+  .header-right .credits b{color:var(--lgreen);font-weight:500;white-space:nowrap;}
+
+  /* ============ BODY GRID ============ */
+  .body{
+    flex:1;
+    padding:18px 60px 14px;
+    display:flex;flex-direction:column;gap:16px;
+    min-height:0;
+  }
+
+  /* ---- hero key result ---- */
+  .hero{
+    background:var(--dgreen);
+    border-radius:14px;
+    display:grid;grid-template-columns:auto 1fr;align-items:center;
+    overflow:hidden;
+  }
+  .hero .num-wrap{
+    background:var(--green);
+    padding:22px 44px;display:flex;flex-direction:column;justify-content:center;
+    align-items:flex-start;min-width:420px;
+  }
+  .hero .num-wrap .lbl{
+    font-family:'DM Mono',monospace;font-size:14px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--dgreen);font-weight:500;margin-bottom:6px;opacity:.85;
+  }
+  .hero .num{
+    font-size:104px;line-height:.9;font-weight:800;color:var(--dgreen);letter-spacing:-.04em;
+  }
+  .hero .num small{font-size:52px;font-weight:700;vertical-align:top;line-height:1;}
+  .hero .num-sub{
+    margin-top:10px;font-size:18px;font-weight:600;color:var(--dgreen);max-width:30ch;line-height:1.2;
+  }
+  .hero .copy{padding:26px 46px;color:var(--white);}
+  .hero .copy .big{
+    font-size:26px;line-height:1.34;font-weight:600;letter-spacing:-.01em;color:var(--white);
+    text-wrap:balance;
+  }
+  .hero .copy .big b{color:var(--green);}
+  .hero .stats{
+    margin-top:24px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;
+    font-family:'DM Mono',monospace;font-size:15px;color:var(--lgreen);
+  }
+  .hero .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(199,255,241,.08);border:1px solid rgba(62,218,178,.35);
+    padding:7px 13px;border-radius:7px;letter-spacing:.01em;white-space:nowrap;
+  }
+  .hero .chip b{color:var(--green);font-weight:500;}
+  .hero .also-sig{
+    margin-top:13px;font-family:'DM Mono',monospace;font-size:15px;line-height:1.4;
+    color:var(--lgreen);letter-spacing:.005em;
+  }
+  .hero .also-sig em{font-style:italic;color:#9cc7bf;}
+  .hero .also-sig b{color:var(--green);font-weight:500;font-style:normal;}
+
+  /* ---- columns ---- */
+  .cols{
+    flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;min-height:0;
+  }
+  .col{display:flex;flex-direction:column;gap:11px;min-width:0;}
+  .col > .card{flex:1 1 auto;}
+
+  .card{
+    background:var(--beige);
+    border-radius:13px;
+    padding:14px 24px 15px;
+    position:relative;
+  }
+  .card.dk{background:var(--dgreen);color:var(--lgreen);}
+  .card.dk h2{color:var(--white);}
+  .card.dk .eyebrow{color:var(--green);}
+
+  .sechead{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;}
+  .snum{
+    font-family:'DM Mono',monospace;font-size:15px;font-weight:500;
+    color:var(--green);background:var(--dgreen);
+    width:34px;height:26px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+    flex:none;letter-spacing:.02em;
+  }
+  h2{
+    font-size:21px;font-weight:700;color:var(--dgreen);letter-spacing:-.015em;line-height:1.12;
+    text-wrap:balance;
+  }
+  .card p{font-size:15px;line-height:1.4;color:var(--ink);text-wrap:pretty;}
+  .card.dk p{color:var(--lgreen);}
+  .card p + p{margin-top:9px;}
+  .lead{font-size:16.5px;}
+  .muted{color:var(--grey);}
+
+  /* bullet list */
+  ul.ticks{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:4px;}
+  ul.ticks li{
+    position:relative;padding-left:24px;font-size:15.5px;line-height:1.38;color:var(--ink);
+  }
+  ul.ticks li::before{
+    content:"";position:absolute;left:2px;top:8px;width:9px;height:9px;
+    background:var(--green);border-radius:2px;
+  }
+  ul.ticks li b{color:var(--dgreen);font-weight:600;}
+  .card.dk ul.ticks li{color:var(--lgreen);}
+
+  .fignote{
+    margin-top:13px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.5;
+    color:var(--grey);letter-spacing:.005em;
+  }
+  .card.dk .fignote{color:#7ba79f;}
+  .fignote b{color:var(--dgreen);font-weight:500;}
+  .card.dk .fignote b{color:var(--green);}
+
+  /* ---- pipeline diagram ---- */
+  .pipe{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
+  .pipe-row{display:flex;align-items:stretch;gap:8px;}
+  .stage-box{
+    flex:1;background:var(--white);border:1.5px solid var(--dgreen);border-radius:9px;
+    padding:11px 12px;display:flex;flex-direction:column;gap:3px;min-width:0;
+  }
+  .stage-box .sb-t{font-size:14.5px;font-weight:700;color:var(--dgreen);line-height:1.1;}
+  .stage-box .sb-d{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--grey);line-height:1.35;}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--green);font-size:22px;font-weight:700;width:18px;flex:none;}
+  .probe-box{background:var(--green);border-color:var(--green);}
+  .probe-box .sb-t,.probe-box .sb-d{color:var(--dgreen);}
+  .pairs-note{
+    margin-top:4px;background:rgba(237,171,79,.16);border:1px dashed var(--orange);
+    border-radius:8px;padding:9px 12px;display:flex;gap:10px;align-items:center;
+  }
+  .pairs-note .pn-pulse{width:11px;height:11px;border-radius:50%;background:var(--orange);flex:none;}
+  .pairs-note .pn-t{font-size:13.5px;line-height:1.3;color:var(--ink);}
+  .pairs-note .pn-t b{color:#9a6a16;font-weight:700;}
+
+  /* ---- stat table ---- */
+  .stat-table{display:flex;flex-direction:column;margin-top:4px;border-radius:9px;overflow:hidden;border:1px solid rgba(6,49,46,.14);}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 14px;background:var(--white);}
+  .stat-row:nth-child(even){background:#fffdf2;}
+  .stat-row .k{font-size:15px;color:var(--ink);}
+  .stat-row .v{font-family:'DM Mono',monospace;font-size:15.5px;font-weight:500;color:var(--dgreen);white-space:nowrap;}
+  .stat-row .v em{font-style:normal;color:var(--green);}
+
+  /* ---- bar charts ---- */
+  .chart{margin-top:8px;display:flex;flex-direction:column;gap:11px;}
+  .bar-item{display:flex;flex-direction:column;gap:4px;}
+  .bar-top{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;}
+  .bar-top .bl{color:var(--ink);font-weight:500;}
+  .bar-top .bv{font-family:'DM Mono',monospace;font-weight:500;color:var(--dgreen);}
+  .bar-track{height:18px;background:var(--lgrey);border-radius:5px;overflow:hidden;position:relative;}
+  .bar-fill{height:100%;border-radius:5px;background:var(--green);}
+  .bar-fill.gr{background:var(--green);}
+  .bar-fill.mut{background:var(--grey);}
+  .bar-fill.or{background:var(--orange);}
+  .bar-fill.dk{background:var(--dgreen);}
+
+  /* MSE columns */
+  .figimg{width:auto;max-width:96%;max-height:198px;height:auto;display:block;margin:8px auto 0;border-radius:8px;border:1px solid rgba(6,49,46,.1);}
+  .figimg.wide{max-width:100%;}
+  .figimg.plain{border:none;border-radius:0;}
+  .mse{display:flex;align-items:flex-end;gap:12px;height:124px;margin-top:8px;padding-top:12px;}
+  .mse-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%;}
+  .mse-bar{width:100%;max-width:46px;background:var(--grey);border-radius:6px 6px 0 0;position:relative;}
+  .mse-bar.hi{background:var(--green);}
+  .mse-bar.boom{background:var(--dgreen);}
+  .mse-val{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink);white-space:nowrap;}
+  .mse-bar.boom + .mse-val,.mse-bar.boom ~ .mse-val{color:var(--dgreen);font-weight:500;}
+  .mse-x{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--ink);}
+  .mse-x.hi{color:var(--green);font-weight:500;background:var(--dgreen);padding:1px 7px;border-radius:5px;}
+
+  /* ---- donut ---- */
+  .donut-wrap{display:flex;align-items:center;gap:20px;margin-top:6px;}
+  .donut{width:150px;height:150px;flex:none;position:relative;}
+  .donut .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+  .donut .ctr .pct{font-size:31px;font-weight:800;color:var(--dgreen);line-height:1;letter-spacing:-.02em;}
+  .donut .ctr .cl{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-top:3px;}
+  .legend{display:flex;flex-direction:column;gap:9px;}
+  .legend .li{display:flex;align-items:center;gap:10px;font-size:15px;}
+  .legend .sw{width:14px;height:14px;border-radius:4px;flex:none;}
+  .legend .li .lv{font-family:'DM Mono',monospace;color:var(--dgreen);font-weight:500;margin-left:auto;padding-left:14px;}
+
+  /* ---- feature box ---- */
+  .feat-label{
+    display:flex;align-items:center;gap:12px;background:var(--dgreen);border-radius:9px;
+    padding:13px 16px;margin-bottom:13px;
+  }
+  .feat-label .fl-tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);}
+  .feat-label .fl-name{font-size:19px;font-weight:700;color:var(--white);line-height:1.1;}
+  .concepts{display:flex;flex-direction:column;gap:10px;margin:14px 0;}
+  .concept{
+    background:var(--dgreen);color:var(--white);border-radius:9px;padding:13px 17px;
+    font-size:18px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:12px;
+  }
+  .concept::before{content:"";width:9px;height:9px;border-radius:2px;background:var(--green);flex:none;}
+  .tokrow{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;}
+  .tokrow .tr-h{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+  .tokrow .tr-h .ic{width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;flex:none;}
+  .tokrow.up .tr-h{color:var(--dgreen);} .tokrow.up .ic{background:var(--green);color:var(--dgreen);}
+  .tokrow.dn .tr-h{color:#8a8276;} .tokrow.dn .ic{background:var(--lgrey);color:var(--grey);}
+  .toks{display:flex;flex-wrap:wrap;gap:6px;padding-left:30px;}
+  .tok{font-family:'DM Mono',monospace;font-size:13px;padding:3px 9px;border-radius:6px;background:var(--white);border:1px solid rgba(6,49,46,.12);color:var(--ink);}
+  .tokrow.up .tok{background:var(--lgreen);border-color:rgba(62,218,178,.5);color:var(--dgreen);}
+  .ablation-flow{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+  .abl{display:flex;align-items:center;gap:10px;font-size:14px;background:var(--white);border-radius:8px;padding:9px 12px;border:1px solid rgba(6,49,46,.1);}
+  .abl .st{flex:1;color:var(--ink);line-height:1.25;}
+  .abl .st b{color:var(--dgreen);}
+  .abl .res{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+  .abl.ok .res{background:var(--lgreen);color:var(--dgreen);}
+  .abl.bad .res{background:rgba(237,171,79,.2);color:#9a6a16;}
+
+  /* ---- production flow ---- */
+  .prodflow{display:flex;align-items:stretch;gap:7px;margin-top:6px;}
+  .pf-box{flex:1;background:rgba(199,255,241,.12);border:1px solid rgba(62,218,178,.4);border-radius:8px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:3px;justify-content:center;}
+  .pf-box .pf-t{font-size:13px;font-weight:700;color:var(--white);line-height:1.12;}
+  .pf-box .pf-d{font-family:'DM Mono',monospace;font-size:10.5px;color:#9cc7bf;line-height:1.3;}
+  .pf-arrow{display:flex;align-items:center;color:var(--green);font-size:18px;font-weight:700;flex:none;}
+  .badge-noLLM{display:inline-flex;align-items:center;gap:8px;margin-top:13px;background:var(--green);color:var(--dgreen);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;padding:7px 13px;border-radius:7px;letter-spacing:.01em;}
+
+  /* ---- code & paper ---- */
+  .repo{display:flex;align-items:center;gap:10px;background:var(--dgreen);border-radius:9px;padding:12px 15px;margin-top:4px;}
+  .repo .gh{width:26px;height:26px;flex:none;}
+  .repo .url{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--green);font-weight:500;word-break:normal;white-space:nowrap;}
+  .code-qr{display:flex;gap:15px;align-items:center;margin-top:16px;}
+  .code-qr img{width:122px;height:122px;flex:none;border-radius:8px;background:#FFFEF9;padding:7px;display:block;}
+  .code-qr-t{font-size:14.5px;line-height:1.44;color:var(--lgreen);}
+  .code-qr-t b{color:var(--green);font-weight:600;}
+  .repo-desc{font-size:14.5px;line-height:1.44;color:var(--lgreen);margin-top:13px;}
+  .reflist .ri{font-size:13.5px;line-height:1.4;margin-top:8px;padding-left:18px;text-indent:-18px;color:#9cc7bf;}
+  .reflist .ri i{font-style:italic;color:var(--lgreen);}
+  .modelrow{display:flex;flex-direction:column;gap:7px;margin-top:13px;}
+  .modelrow .mr{display:flex;align-items:baseline;gap:8px;font-size:13.5px;}
+  .modelrow .mr .role{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);min-width:62px;flex:none;}
+  .modelrow .mr .nm{color:var(--dgreen);font-weight:600;}
+  .refs{margin-top:13px;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.55;color:var(--grey);}
+  .refs b{color:var(--dgreen);font-weight:500;}
+
+  /* ---- inline concept pills (sec 05) ---- */
+  .concept-pills{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0;}
+  .cpill{background:var(--dgreen);color:var(--white);border-radius:7px;padding:7px 12px;font-size:14.5px;font-weight:600;letter-spacing:-.005em;display:flex;align-items:center;gap:8px;}
+  .cpill::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--green);flex:none;}
+
+  /* ---- RAFT / Responsible AI card ---- */
+  .raft-stack{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
+  .raft-item{display:flex;gap:11px;align-items:flex-start;}
+  .raft-ic{width:27px;height:27px;border-radius:7px;background:var(--green);color:var(--dgreen);font-family:'DM Mono',monospace;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:1px;}
+  .raft-body .rt{font-size:15.5px;font-weight:700;color:var(--dgreen);line-height:1.15;}
+  .raft-body .rd{font-size:14px;line-height:1.34;color:var(--ink);margin-top:1px;}
+
+  /* ============ FOOTER ============ */
+  footer{
+    background:var(--dgreen);color:var(--lgreen);
+    padding:16px 54px;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;
+    font-family:'DM Mono',monospace;font-size:14px;letter-spacing:.02em;
+  }
+  footer .fl{display:flex;align-items:center;gap:14px;}
+  footer .fl .sq{width:12px;height:12px;background:var(--green);border-radius:3px;}
+  footer .fl b{color:var(--white);font-weight:500;}
+  footer .fr{color:#9cc7bf;}
+  footer .fr a{color:var(--green);text-decoration:none;}
+
+  /* ============ PRINT ============ */
+  /* PDF page = full board (48in × 36in, 4:3 landscape). Board is 2487×1865px; zoom 1.853 → 48in × 36in exactly, edge-to-edge, no borders. Single page. */
+  @page{size:48in 36in;margin:0;}
+  @media print{
+    html,body{background:#FFFEF9;width:48in;height:36in;overflow:hidden;margin:0;}
+    #stage{position:static;display:flex;align-items:center;justify-content:center;width:48in;height:36in;overflow:hidden;background:#FFFEF9;}
+    #poster{transform:none!important;zoom:1.853;box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#06312E"/>
+    <rect x="30" y="30" width="40" height="40" rx="6" fill="#3EDAB2"/>
+    <text x="50" y="58" font-family="DM Sans, sans-serif" font-size="22" font-weight="800" fill="#06312E" text-anchor="middle">SAE</text>
+  </svg>
+</template>
+<div id="stage">
+  <div id="poster" data-screen-label="Poster">
+
+    <!-- ============ HEADER ============ -->
+    <header>
+      <div class="qr-block">
+        <img src="assets/qr-kiji.svg" alt="QR code to paper and code repository">
+        <div class="qr-cap">Scan for paper&nbsp;+&nbsp;code</div>
+      </div>
+
+      <div class="title-zone">
+        <span class="venue-tag"><span class="dot"></span>Mechanistic Interpretability · Agentic AI</span>
+        <h1>Opening the Black Box: Mechanistic Interpretability of <span class="accent">Agent Tool Selection</span> with Sparse Autoencoders</h1>
+        <div class="authors">
+          <span>David Cardozo<span class="sup">1</span></span>
+          <span>Hannes Hapke<span class="sup">1</span></span>
+          <span>Carlos Huisa<span class="sup">2</span></span>
+          <span>Triveni Gandhi<span class="sup">3</span></span>
+        </div>
+        <div class="affil"><sup>1</sup>&nbsp;575 Lab, Dataiku Inc. — Portland, OR &amp; Toronto, ON &nbsp;·&nbsp; <sup>2</sup>&nbsp;Dataiku Inc. — Austin, TX &nbsp;·&nbsp; <sup>3</sup>&nbsp;Dataiku Inc. — New York, NY</div>
+      </div>
+
+      <div class="header-right">
+        <img class="brand-logo" src="assets/575lab_white_full.png" alt="Dataiku | 575 Lab">
+        <div class="tagline">Mechanistic<br>Interpretability<br>for AI Agents</div>
+        <div class="credits">
+          subject &nbsp;<b>Nemotron-3-Nano-30B</b><br>
+          gen·label·judge &nbsp;<b>Qwen3-VL-235B</b><br>
+          compute &nbsp;<b>NVIDIA · 4×GB200</b>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ BODY ============ -->
+    <div class="body">
+
+      <!-- HERO KEY RESULT -->
+      <div class="hero">
+        <div class="num-wrap">
+          <div class="lbl">Key Result — causal, not just correlated</div>
+          <div class="num">12.8%</div>
+          <div class="num-sub">of agent tool choices reverse when 10 SAE features are ablated.</div>
+        </div>
+        <div class="copy">
+          <div class="big">Removing a handful of features <b>causally changes</b> the agent's tool choice — controls stay flat at zero.</div>
+          <div class="stats">
+            <span class="chip">random ablation <b>0%</b></span>
+            <span class="chip">SAE round-trip <b>0%</b></span>
+            <span class="chip">p <b>= 0.002</b></span>
+          </div>
+          <div class="also-sig"><em>also significant:</em> single vs. multi-tool — <b>17.1%</b> vs. <b>2.4%</b> baseline (n&nbsp;=&nbsp;41, p&nbsp;=&nbsp;0.029).</div>
+          <div class="fignote" style="color:#7ba79f;margin-top:12px;">shallow vs. deep (tool selection, 1 of 23 contrast types tested) — Nemotron-3-Nano-30B (52 layers), probed at layer 20.</div>
+        </div>
+      </div>
+
+      <!-- 4 COLUMNS -->
+      <div class="cols">
+
+        <!-- ===== COLUMN 1 ===== -->
+        <div class="col">
+
+          <div class="card">
+            <div class="sechead"><span class="snum">01</span><h2>The Tool-Selection Black Box</h2></div>
+            <p class="lead">Modern AI agents autonomously pick among databases, code, web search, and sub-agents. <b style="color:var(--dgreen)">When</b> the agent chooses is observable — <b style="color:var(--dgreen)">why</b> it chose remains opaque.</p>
+            <ul class="ticks" style="margin-top:11px;">
+              <li><b>Prompt engineering</b> — correlational, not causal.</li>
+              <li><b>Behavioural testing</b> — input/output only.</li>
+              <li><b>Chain-of-thought</b> — plausible, often confabulated.</li>
+            </ul>
+            <p style="margin-top:11px;">We open the box at the token where the model <b style="color:var(--dgreen)">commits to a tool</b>, decomposing its hidden state into human-readable features.</p>
+          </div>
+
+          <div class="card">
+            <div class="sechead"><span class="snum">02</span><h2>Pipeline</h2></div>
+            <img class="figimg wide" style="max-height:250px;" src="assets/training_pipeline.svg" alt="Training pipeline: contrastive pair generation (500K pairs, 5 domains) → formatted prompt at decision token → Nemotron-3 Nano subject model (extract layer 20) → 1M hidden states → unsupervised JumpReLU SAE training → 10,752 sparse features → contrastive analysis (Cohen's d) and LLM feature interpretation (Qwen3 235B)">
+            <div class="fignote"><b>Fig 1.</b> The SAE is trained <b>unsupervised</b> on raw activations. Contrastive pairs enter only at the post-hoc probe (Cohen's d) — never as a training signal.</div>
+          </div>
+
+          <div class="card">
+            <div class="sechead"><span class="snum">03</span><h2>Pick the Right Layer — Not the MoE Ones</h2></div>
+            <p>Nemotron-3-Nano-30B is a <b style="color:var(--dgreen)">52-layer</b> model. A single SAE cannot decompose its MoE layers — reconstruction MSE explodes by <b style="color:var(--dgreen)">&gt;500×</b> at the sparse-routed expert layers.</p>
+            <img class="figimg" src="assets/chart_layer_sweep.png" alt="Layer sweep: alive features (bars) and reconstruction MSE (log-scale line) across transformer layers 8, 16, 20, 32, 44">
+            <div class="fignote"><b>Fig 2.</b> Bars = alive features; line = reconstruction MSE (log). At the MoE layers MSE jumps to <b>1,524</b> (L32) and <b>508</b> (L44) — vs. <b>0.574</b> at layer 20. Layer 20 sits just before the MoE stack with <b>81.2% alive features</b>.</div>
+          </div>
+
+        </div>
+
+        <!-- ===== COLUMN 2 ===== -->
+        <div class="col">
+
+          <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div class="sechead"><span class="snum">04</span><h2>JumpReLU Sparse Autoencoder</h2></div>
+            <p>An overcomplete dictionary that decomposes hidden states into <b style="color:var(--dgreen)">monosemantic</b> features. JumpReLU thresholds <em style="font-style:italic;">θ<sub>i</sub></em> produce exact zeros — true sparsity — trained with a smooth tanh surrogate.</p>
+            <img class="figimg wide" src="assets/sae_architecture.svg" alt="JumpReLU SAE architecture: input x (d=2,688) → center → W_enc encode → pre-activation (d=10,752) → JumpReLU z·H(z−θ) with learnable per-feature thresholds → sparse features (~668 active) → W_dec decode → reconstruction; loss = MSE + tanh-smoothed L0 sparsity; shared b_dec, unit-norm W_dec, ~58M trainable parameters">
+            <div class="stat-table">
+              <div class="stat-row"><span class="k">Dictionary size M</span><span class="v">10,752 <em>(4× hidden)</em></span></div>
+              <div class="stat-row"><span class="k">Activations trained on</span><span class="v">1,000,000</span></div>
+              <div class="stat-row"><span class="k">Reconstruction MSE</span><span class="v">0.574</span></div>
+              <div class="stat-row"><span class="k">Alive features</span><span class="v">81.2%</span></div>
+              <div class="stat-row"><span class="k">Active per input</span><span class="v">668 ± 26 <em>(6.2%)</em></span></div>
+            </div>
+            <div class="fignote"><b>Fig 3.</b> Encode → JumpReLU (exact zeros) → decode, with shared b<sub>dec</sub> and unit-norm W<sub>dec</sub>. ~58M trainable parameters; loss = MSE + tanh-smoothed L0.</div>
+          </div>
+
+          <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div class="sechead"><span class="snum">05</span><h2>Inside a Feature — Emergent, Unsupervised Concepts</h2></div>
+            <p>The SAE decomposes Layer-20 activations into <b style="color:var(--dgreen)">10,752 features</b>. Without contrastive supervision, named concepts emerge from raw activations alone:</p>
+            <div class="concept-pills">
+              <span class="cpill">“internal knowledge retrieval”</span>
+              <span class="cpill">“data modification intent”</span>
+              <span class="cpill">“query complexity”</span>
+            </div>
+            <p>Each feature carries an <b style="color:var(--dgreen)">LLM-generated label</b>, a token-level fuzzing score (aggregate 0.912 ± 0.008, p &lt; 10⁻⁴), and its row in the contrastive-ablation table.</p>
+          </div>
+
+          <div class="card dk">
+            <div class="sechead"><span class="snum" style="background:var(--green);">!</span><h2>Scope &amp; Limitations</h2></div>
+            <ul class="ticks">
+              <li>One model, one layer, one decision-token convention.</li>
+              <li>Top-10 ablation is conservative; distributed decisions need larger sets.</li>
+              <li>Labels rely on Qwen3-VL-235B — its errors propagate to rationales.</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- ===== COLUMN 3 ===== -->
+        <div class="col">
+
+          <div class="card">
+            <div class="sechead"><span class="snum">06</span><h2>Strong Focus on Production</h2></div>
+            <p>Every tool call ships with a rationale. At inference, the top-K active features at the decision token map to pre-computed labels — <b style="color:var(--dgreen)">no extra LLM call.</b></p>
+            <img class="figimg wide" style="max-height:234px;" src="assets/inference_pipeline.svg" alt="Inference pipeline: user prompt → Nemotron-3 Nano (extract at layer 20 decision token) → activation vector → SAE encoder → sparse vector → top-K features → pre-computed feature themes → natural-language decision explanation">
+            <span class="badge-noLLM">✓ &nbsp;human-readable explanation shipped with every tool call</span>
+            <div class="fignote"><b>Fig 4.</b> Top-K active features map to pre-computed theme labels at the decision token — a debugging surface for deployed agents and a foundation for anomaly detection.</div>
+          </div>
+
+          <div class="card">
+            <div class="sechead"><span class="snum">07</span><h2>Feature Label Quality</h2></div>
+            <img class="figimg wide plain" src="assets/chart_fuzzing_bar.svg" alt="Feature label quality: 84.3% excellent (score > 0.8), 9.4% good, 6.2% poor">
+            <div class="stat-table" style="margin-top:13px;">
+              <div class="stat-row"><span class="k">Combined score</span><span class="v">0.912 ± 0.008</span></div>
+            </div>
+            <div class="fignote"><b>Fig 5.</b> 402 features · 4,422 A/B examples; combined score weights token-level 0.7 vs. prompt-level 0.3 (p &lt; 10⁻⁴ vs. 0.5). Token-level evaluation catches labels right for the wrong reasons.</div>
+          </div>
+
+          <div class="card">
+            <div class="sechead"><span class="snum">RAI</span><h2>Responsible AI Motivation</h2></div>
+            <p>Transparency of agent decisions underpins trust as AI regulation expands. We ground this work in the <b style="color:var(--dgreen)">RAFT framework</b> [Gandhi 2025] — a lightweight value-criteria-indicator approach to Responsible AI.</p>
+            <div class="raft-stack">
+              <div class="raft-item"><span class="raft-ic">R</span><div class="raft-body"><div class="rt">Reliable &amp; Secure</div><div class="rd">Consistent across the lifecycle; data and models secure, privacy-enhancing.</div></div></div>
+              <div class="raft-item"><span class="raft-ic">F</span><div class="raft-body"><div class="rt">Fair &amp; Human-Centric</div><div class="rd">Minimizes bias; supports human determination and choice.</div></div></div>
+              <div class="raft-item"><span class="raft-ic">A</span><div class="raft-body"><div class="rt">Accountable &amp; Governed</div><div class="rd">Lifecycle ownership documented for oversight and control.</div></div></div>
+              <div class="raft-item"><span class="raft-ic">T</span><div class="raft-body"><div class="rt">Transparent &amp; Explainable</div><div class="rd">AI use disclosed to users; inputs and outputs explained.</div></div></div>
+            </div>
+            <div class="fignote"><b>This work</b> adds a mechanistic-interpretability indicator under the Transparent value.</div>
+          </div>
+
+        </div>
+
+        <!-- ===== COLUMN 4 ===== -->
+        <div class="col">
+
+          <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div class="sechead"><span class="snum">08</span><h2>Causal Ablation</h2></div>
+            <p class="muted" style="font-size:14.5px;margin-bottom:4px;">Prediction-flip rate by contrast type — significance shown per group.</p>
+            <img class="figimg wide" src="assets/chart_ablation.svg" alt="Causal ablation: prediction-flip rate (%) across contrast types — fundamental vs. technical (p=0.002), single vs. multi-tool (p=0.029), and others; contrastive features vs. random and round-trip controls">
+            <ul class="ticks" style="margin-top:13px;">
+              <li><b>Works:</b> fundamental vs. technical — 10.1% flip, controls 0% (p = 0.002).</li>
+              <li><b>Works:</b> single vs. multi-tool — 17.1% vs. 2.4% baseline (n = 41, p = 0.029).</li>
+              <li><b>Null:</b> 9 of 23 contrast types show zero flip — encoded distributively, not in a sparse circuit.</li>
+            </ul>
+            <div class="fignote"><b>Why it's real:</b> random-ablation flip equals SAE round-trip distortion across all 23 types. The contrastive flip sits <b>above this noise floor</b> — from the specific features removed, not encode/decode artefacts.</div>
+          </div>
+
+          <div class="card">
+            <div class="sechead"><span class="snum">09</span><h2>CATE Scaling — Distributed Causal Encoding</h2></div>
+            <p>Targeted activation patching across expanding feature sets (Top 10/20/30) measures the <b style="color:var(--dgreen)">Conditional Average Treatment Effect</b>. The staircase rise signals abstract tool parameters governed by <b style="color:var(--dgreen)">distributed causal circuits</b>, not localized bottlenecks.</p>
+            <img class="figimg plain" style="width:auto;max-width:100%;max-height:255px;margin:8px auto 0;" src="assets/chart_cate_scaling.svg" alt="CATE (delta probability %) by contrast type across Top-10, Top-20, and Top-30 feature interventions; a staircase rise in effect size with intervention size across contrast types including single_vs_batch and specific_vs_broad">
+            <div class="fignote"><b>Fig 6.</b> CATE (Δ Prob %) by contrast type across Top-10 / 20 / 30 feature interventions; 500 prompts. The staircase rise with intervention size signals distributed causal encoding. All trajectories clear the Wilcoxon signed-rank test at <b>p &lt; 0.001</b>.</div>
+          </div>
+
+          <div class="card dk" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div class="sechead"><span class="snum" style="background:var(--green);">↗</span><h2>Code &amp; Paper</h2></div>
+            <div class="repo">
+              <svg class="gh" viewBox="0 0 24 24" fill="#3EDAB2"><path d="M12 .5C5.37.5 0 5.78 0 12.29c0 5.21 3.44 9.63 8.2 11.19.6.11.82-.25.82-.57v-2c-3.34.71-4.04-1.58-4.04-1.58-.55-1.37-1.34-1.74-1.34-1.74-1.09-.73.08-.72.08-.72 1.21.08 1.84 1.22 1.84 1.22 1.07 1.8 2.81 1.28 3.5.98.11-.76.42-1.28.76-1.58-2.67-.3-5.47-1.31-5.47-5.83 0-1.29.47-2.34 1.24-3.17-.12-.3-.54-1.5.12-3.13 0 0 1.01-.32 3.3 1.21a11.5 11.5 0 0 1 6 0c2.29-1.53 3.3-1.21 3.3-1.21.66 1.63.24 2.83.12 3.13.77.83 1.23 1.88 1.23 3.17 0 4.53-2.8 5.53-5.48 5.82.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12.01 12.01 0 0 0 24 12.29C24 5.78 18.63.5 12 .5z"/></svg>
+              <span class="url">github.com/dataiku/kiji-inspector</span>
+            </div>
+            <div class="repo-desc">Full paper, trained SAE weights, feature dashboard, and reproduction scripts.</div>
+          </div>
+
+        </div>
+
+      </div><!-- /cols -->
+    </div><!-- /body -->
+
+    <!-- ============ FOOTER ============ -->
+    <footer>
+      <div class="fl"><span class="sq"></span><b>github.com/dataiku/kiji-inspector</b> &nbsp;·&nbsp; Mechanistic Interpretability for AI Agents</div>
+      <div class="fr"><a href="/cdn-cgi/l/email-protection#b3d7d2c5dad79dd0d2c1d7dcc9dcf3d7d2c7d2dad8c69dd0dcde"><span class="__cf_email__" data-cfemail="1175706778753f727063757e6b7e5175706570787a643f727e7c">[email&#160;protected]</span></a> &nbsp;·&nbsp; <a href="/cdn-cgi/l/email-protection#cda5aca3a3a8bee3a5acbda6a88da9acb9aca4a6b8e3aea2a0"><span class="__cf_email__" data-cfemail="076f6669696274296f66776c6247636673666e6c722964686a">[email&#160;protected]</span></a></div>
+    </footer>
+
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  (function(){
+    var poster = document.getElementById('poster');
+    function fit(){
+      var pad = 0;
+      var sw = window.innerWidth / poster.offsetWidth;
+      var sh = window.innerHeight / poster.offsetHeight;
+      var s = Math.min(sw, sh);
+      poster.style.transform = 'scale(' + s + ')';
+    }
+    window.addEventListener('resize', fit);
+    if (document.fonts && document.fonts.ready){ document.fonts.ready.then(fit); }
+    window.addEventListener('load', fit);
+    fit();
+  })();
+</script>
+</body>
+</html>
