@@ -62,6 +62,8 @@ I'll use the
 
 The last token of this prompt is the **decision token**. At this position, the model's hidden state encodes its full "reasoning" about which tool to name next. By extracting activations at exactly this point, we capture the model's internal decision state before it commits to a specific tool.
 
+> **Reasoning models (e.g. Qwen/Qwen3.6-35B-A3B):** the chat template may open a `<think>` block in the generation prompt, which would place the prefill (and therefore the decision token) *inside* the reasoning span. Pass `--no-thinking` to the pipeline to request `enable_thinking=False` from the chat template and close any `<think>` block the template still opens, so the decision token sits at the final-answer position.
+
 ### Supported Model Formats
 
 The `build_agent_prompt()` function supports four chat templates:
@@ -102,7 +104,9 @@ The extractor auto-detects the model's internal structure to find the layer list
 
 | Architecture | Layer Path |
 |-------------|-----------|
-| Llama / Nemotron | `model.model.layers` |
+| Llama / Nemotron / Qwen (incl. Qwen3.6 via `AutoModelForCausalLM`) | `model.model.layers` |
+| Qwen3.5/3.6 `ForConditionalGeneration` wrapper | `model.model.language_model.layers` |
+| Gemma3 multimodal | `model.language_model.model.layers` |
 | NemotronH | `model.backbone.layers` or `model.backbone.decoder.layers` |
 | GPT-NeoX | `model.transformer.h` |
 | GPT-2 | `model.transformer.layers` |

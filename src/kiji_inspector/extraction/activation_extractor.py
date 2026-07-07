@@ -159,6 +159,7 @@ class ActivationExtractor:
             "language_model.model.embed_tokens",
             "language_model.embed_tokens",
             "model.embed_tokens",
+            "model.language_model.embed_tokens",
             "backbone.embed_tokens",
             "backbone.embedding",
             "transformer.wte",
@@ -189,6 +190,14 @@ class ActivationExtractor:
         # Standard Llama/Nemotron/Gemma architecture
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers
+        # Qwen3.5/3.6 ForConditionalGeneration (transformers >= 5.x):
+        # outer model wraps a composite model whose text stack lives at
+        # model.model.language_model.layers.  (AutoModelForCausalLM loads
+        # the ForCausalLM variant with model.model.layers, handled above.)
+        if hasattr(self.model, "model") and hasattr(self.model.model, "language_model"):
+            inner_lm = self.model.model.language_model
+            if hasattr(inner_lm, "layers"):
+                return inner_lm.layers
         # NemotronH architecture uses 'backbone' instead of 'model'
         if hasattr(self.model, "backbone"):
             backbone = self.model.backbone
@@ -222,8 +231,9 @@ class ActivationExtractor:
         raise AttributeError(
             f"Cannot locate transformer layers for {type(self.model).__name__}. "
             "Supported architectures: LlamaForCausalLM, Qwen2ForCausalLM, "
-            "MistralForCausalLM, NemotronForCausalLM, NemotronHForCausalLM, "
-            "GPTNeoXForCausalLM, and others using model.model.layers. "
+            "Qwen3_5MoeForCausalLM, MistralForCausalLM, NemotronForCausalLM, "
+            "NemotronHForCausalLM, GPTNeoXForCausalLM, and others using "
+            "model.model.layers. "
             f"Model structure: {[attr for attr in dir(self.model) if not attr.startswith('_')]}"
         )
 

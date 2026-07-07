@@ -26,6 +26,8 @@ def build_agent_prompt_from_tokenizer(
     tools: list[dict],
     user_request: str,
     assistant_prefill: str = "I'll use the ",
+    chat_template_kwargs: dict[str, Any] | None = None,
+    close_think_block: bool = False,
 ) -> str:
     """Build a prompt using the tokenizer's native chat template.
 
@@ -39,6 +41,15 @@ def build_agent_prompt_from_tokenizer(
         user_request: The user's message.
         assistant_prefill: Text to prepend to the assistant turn
             (creates a "prefill" so we extract at the decision point).
+        chat_template_kwargs: Extra keyword arguments forwarded to
+            ``tokenizer.apply_chat_template`` (e.g.
+            ``{"enable_thinking": False}`` for reasoning models such as
+            Qwen3.6 so the prefill lands at the final-answer position
+            instead of inside a ``<think>`` block).
+        close_think_block: If the rendered generation prompt still ends
+            with an open ``<think>`` tag (templates that ignore
+            ``enable_thinking``), append a closing ``</think>`` so the
+            prefill sits after the (empty) reasoning block.
 
     Returns:
         The formatted prompt string ending at the decision token.
@@ -61,7 +72,11 @@ def build_agent_prompt_from_tokenizer(
         messages,
         tokenize=False,
         add_generation_prompt=True,
+        **(chat_template_kwargs or {}),
     )
+
+    if close_think_block and formatted.rstrip().endswith("<think>"):
+        formatted = formatted.rstrip() + "\n\n</think>\n\n"
 
     formatted += assistant_prefill
     return formatted
@@ -74,6 +89,8 @@ def build_agent_prompt(
     model_type: str = "auto",
     tokenizer=None,
     assistant_prefill: str = "I'll use the ",
+    chat_template_kwargs: dict[str, Any] | None = None,
+    close_think_block: bool = False,
 ) -> str:
     """
     Build a full prompt in the target model's chat template.
@@ -97,7 +114,13 @@ def build_agent_prompt(
     # Prefer tokenizer-based approach
     if tokenizer is not None and getattr(tokenizer, "chat_template", None):
         return build_agent_prompt_from_tokenizer(
-            tokenizer, system_prompt, tools, user_request, assistant_prefill
+            tokenizer,
+            system_prompt,
+            tools,
+            user_request,
+            assistant_prefill,
+            chat_template_kwargs=chat_template_kwargs,
+            close_think_block=close_think_block,
         )
 
     # Legacy manual format strings
@@ -174,11 +197,15 @@ class RawActivationExtractor:
         model_type: str = "auto",
         layer_key: str = "residual_20",
         tokenizer=None,
+        chat_template_kwargs: dict[str, Any] | None = None,
+        close_think_block: bool = False,
     ):
         self.extractor = base_extractor
         self.model_type = model_type
         self.layer_key = layer_key
         self.tokenizer = tokenizer or base_extractor.tokenizer
+        self.chat_template_kwargs = chat_template_kwargs
+        self.close_think_block = close_think_block
 
     def extract_to_shards(
         self,
@@ -260,6 +287,8 @@ class RawActivationExtractor:
                     user_request=pair.anchor_prompt,
                     model_type=self.model_type,
                     tokenizer=self.tokenizer,
+                    chat_template_kwargs=self.chat_template_kwargs,
+                    close_think_block=self.close_think_block,
                 )
             )
             user_requests.append(pair.anchor_prompt)
@@ -270,6 +299,8 @@ class RawActivationExtractor:
                     user_request=pair.contrast_prompt,
                     model_type=self.model_type,
                     tokenizer=self.tokenizer,
+                    chat_template_kwargs=self.chat_template_kwargs,
+                    close_think_block=self.close_think_block,
                 )
             )
             user_requests.append(pair.contrast_prompt)

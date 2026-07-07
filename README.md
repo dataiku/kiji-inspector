@@ -93,8 +93,15 @@ The apply script installs every `*.patch` file under [patches](patches/) in lexi
 - `01_allow_extract_hidden_states.patch`
 - `02_support_nemotron_models.patch`
 - `03_support_gemma3_models.patch`
+- `04_support_qwen3_5_models.patch`
 
 Additional workflow details live in [patches/README_PATCH.md](patches/README_PATCH.md).
+
+To run the pipeline against a Qwen3.6 subject model (a reasoning model), pass `--no-thinking` so the decision token sits at the final-answer position:
+
+```bash
+python -m kiji_inspector.pipeline --subject-model Qwen/Qwen3.6-35B-A3B --no-thinking
+```
 
 ---
 

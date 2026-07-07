@@ -1,0 +1,58 @@
+diff --git a/model_executor/models/qwen3_5.py b/model_executor/models/qwen3_5.py
+index 4cbe9b8..3ea5943 100644
+--- a/model_executor/models/qwen3_5.py
++++ b/model_executor/models/qwen3_5.py
+@@ -621,6 +621,16 @@ class Qwen3_5ForConditionalGeneration(Qwen3VLForConditionalGeneration, IsHybrid)
+             self.packed_modules_mapping.pop("in_proj_qkvz", None)
+             self.packed_modules_mapping["in_proj_qkv"] = ["in_proj_qkv"]
+ 
++    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:
++        # The default SupportsEagle3 implementation requires the inner model
++        # to inherit from EagleModelMixin, which Qwen3NextModel does not.
++        # Delegate to the wrapped causal LM, which stores the layer indices
++        # directly on the model (see Qwen3_5ForCausalLMBase).
++        self.language_model.set_aux_hidden_state_layers(layers)
++
++    def get_eagle3_aux_hidden_state_layers(self) -> tuple[int, ...]:
++        return self.language_model.get_eagle3_aux_hidden_state_layers()
++
+     def embed_input_ids(
+         self,
+         input_ids: torch.Tensor,
+@@ -660,7 +670,7 @@ class Qwen3_5ForConditionalGeneration(Qwen3VLForConditionalGeneration, IsHybrid)
+         intermediate_tensors: IntermediateTensors | None = None,
+         inputs_embeds: torch.Tensor | None = None,
+         **kwargs: object,
+-    ) -> torch.Tensor | IntermediateTensors:
++    ) -> torch.Tensor | IntermediateTensors | tuple[torch.Tensor, list[torch.Tensor]]:
+         """Run forward pass for Qwen3.5.
+ 
+         Args:
+diff --git a/model_executor/models/qwen3_next.py b/model_executor/models/qwen3_next.py
+index 75f1b50..06a57bb 100644
+--- a/model_executor/models/qwen3_next.py
++++ b/model_executor/models/qwen3_next.py
+@@ -520,15 +520,19 @@ class Qwen3NextModel(nn.Module):
+             islice(self.layers, self.start_layer, self.end_layer),
+             start=self.start_layer,
+         ):
+-            if layer_idx in self.aux_hidden_state_layers:
+-                aux_hidden_states.append(
+-                    hidden_states + residual if residual is not None else hidden_states
+-                )
+             hidden_states, residual = layer(
+                 positions=positions,
+                 hidden_states=hidden_states,
+                 residual=residual,
+             )
++            if layer_idx in self.aux_hidden_state_layers:
++                # Capture the residual stream *after* the layer runs so that
++                # layer indices line up with HuggingFace forward hooks on
++                # model.layers[i] (post-layer output), matching the Nemotron
++                # and Gemma3 extraction patches.
++                aux_hidden_states.append(
++                    hidden_states + residual if residual is not None else hidden_states
++                )
+ 
+         if not get_pp_group().is_last_rank:
+             return IntermediateTensors(

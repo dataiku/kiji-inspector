@@ -106,15 +106,26 @@ def _resolve_model_defaults(args: argparse.Namespace) -> None:
 
     print(f"  Auto-detecting model config for {args.subject_model}...")
     config = AutoConfig.from_pretrained(args.subject_model, trust_remote_code=True)
+    # Multimodal-style configs (e.g. Qwen3.5/3.6 *ForConditionalGeneration*)
+    # nest the language-model settings under `text_config`.
+    text_config = getattr(config, "text_config", None)
 
     if needs_layer:
-        num_layers = getattr(config, "num_hidden_layers", 30)
+        num_layers = getattr(config, "num_hidden_layers", None)
+        if num_layers is None and text_config is not None:
+            num_layers = getattr(text_config, "num_hidden_layers", None)
+        if num_layers is None:
+            num_layers = 30
         default_layer = int(num_layers * 2 / 3)
         args.layers = [default_layer]
         print(f"  Auto-selected layer {default_layer} (~2/3 of {num_layers} layers)")
 
     if needs_d_sae:
-        hidden_size = getattr(config, "hidden_size", 4096)
+        hidden_size = getattr(config, "hidden_size", None)
+        if hidden_size is None and text_config is not None:
+            hidden_size = getattr(text_config, "hidden_size", None)
+        if hidden_size is None:
+            hidden_size = 4096
         args.d_sae = 4 * hidden_size
         print(f"  Auto-selected d_sae={args.d_sae} (4x hidden_size={hidden_size})")
 
@@ -365,6 +376,15 @@ def parse_args() -> argparse.Namespace:
         "or 'hf' (HuggingFace Transformers, required for ablation).",
     )
     p.add_argument(
+        "--no-thinking",
+        action="store_true",
+        help="Suppress the subject model's reasoning block when building "
+        "extraction prompts: passes enable_thinking=False to the chat "
+        "template and closes any <think> block the template still opens. "
+        "Recommended for reasoning models such as Qwen/Qwen3.6-35B-A3B so "
+        "the decision token sits at the final-answer position.",
+    )
+    p.add_argument(
         "--disable-p2p",
         type=str,
         default="auto",
@@ -393,6 +413,7 @@ def extract_activations(
     backend: str = "vllm",
     dp_size: int = 1,
     tp_size: int = 1,
+    no_thinking: bool = False,
 ) -> dict[str, Path]:
     """Load subject model, extract raw activations for all layers, save as numpy shards.
 
@@ -449,6 +470,8 @@ def extract_activations(
 
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
+        chat_template_kwargs={"enable_thinking": False} if no_thinking else None,
+        close_think_block=no_thinking,
     )
 
     layer_dirs = raw_extractor.extract_to_shards(
@@ -561,6 +584,7 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
         backend=args.backend,
         dp_size=args.extraction_dp_size,
         tp_size=args.extraction_tp_size,
+        no_thinking=args.no_thinking,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")
