@@ -491,6 +491,8 @@ Focus areas:
 Co-author of four O'Reilly & Manning books, including:
   - **Generative AI Design Patterns** (2025)
   - **Machine Learning Production Systems** (2024)
+  - **Building Machine Learning Pipelines** (2020)
+  - **NLP in Action (1st edition)** (2019)
 
 </div>
 
@@ -533,7 +535,7 @@ Our Responsible AI work:
 ### Signature projects
 
 - **Kiji Inspector** &mdash; mechanistic interpretability for agent tool selection *(this talk)*
-- **Kiji Privacy Proxy** &mdash; detect &amp; redact sensitive data before LLM API calls
+- **Kiji Privacy Proxy** &mdash; detect &amp; mask sensitive data before LLM API calls and unmask responses
 
 ### Also contributing to
 
@@ -791,10 +793,10 @@ where $\pi_i(\mathbf{x}) = [W_{\text{enc}}(\mathbf{x} - \mathbf{b}_{\text{dec}})
 $$\hat{\mathcal{L}}_{\text{sparse}} = \sum_{i=1}^{M} \text{ReLU}\!\left(\tanh\!\left(\frac{\pi_i - \theta_i}{\varepsilon}\right)\right)$$
 - **Pseudo-gradients** via rectangular kernel density estimator
 
-Dictionary size $M = 16{,}384$ ($4 \times$ hidden dim).
+Dictionary size $M = 10{,}752$ ($4 \times$ hidden dim).
 
 <!--
-This is the math slide for the ML audience. The problem with regular ReLU SAEs is that the sparsity penalty is an L1 norm, which biases features toward zero magnitude even when active - it shrinks the very signal you want to keep. TopK SAEs fix that but lose differentiability. JumpReLU (Rajamanoharan 2024, DeepMind) splits the difference: a Heaviside step function gives true zeros, but the gradient is approximated through a tanh kernel so the optimizer can still move thresholds smoothly. Each feature has its own learnable threshold theta_i. Dictionary is 16,384 - 4x the 4,096 hidden dim of the model we did the math on for this slide. (Nemotron Nano is 2,688 -> 10,752 in practice; the formula is identical.) Don't read the equations - point at them and move on unless the audience is hungry.
+This is the math slide for the ML audience. The problem with regular ReLU SAEs is that the sparsity penalty is an L1 norm, which biases features toward zero magnitude even when active - it shrinks the very signal you want to keep. TopK SAEs fix that but lose differentiability. JumpReLU (Rajamanoharan 2024, DeepMind) splits the difference: a Heaviside step function gives true zeros, but the gradient is approximated through a tanh kernel so the optimizer can still move thresholds smoothly. Each feature has its own learnable threshold theta_i. Dictionary is 10,752 - 4x the 4,096 hidden dim of the model we did the math on for this slide. (Nemotron Nano is 2,688 -> 10,752 in practice; the formula is identical.) Don't read the equations - point at them and move on unless the audience is hungry.
 -->
 
 ---
@@ -949,7 +951,7 @@ This validates the design: ablation effects are due to *specific features*, not 
 Drill into the cleanest case: fundamental vs technical financial analysis. Ablating 10 specific contrastive features flips 10.1% of predictions, p=0.002. 9 out of 10 percentage points flip *toward the contrast tool* - the direction we'd expect if we'd removed exactly the signal driving the choice. Random ablation: 0% flips. Reconstruction-only: 0% flips. So on this contrast, neither generic noise nor SAE distortion could have produced the effect - it has to be the specific features. Highlight the methodological win: random ablation rate equaling reconstruction-only rate across all 23 contrasts means our SAE adds essentially no spurious damage. That's what justifies attributing the contrastive effect to specific features rather than general degradation.
 -->
 
----
+<!-----
 
 ## The Spectrum of Causal Involvement
 
@@ -962,7 +964,7 @@ Not all decisions rely on sparse feature circuits. Across 23 contrast types we s
 This reveals a heterogeneous landscape:
 > Some tool-selection decisions are governed by interpretable sparse circuits; others rely on distributed, redundant encodings.
 
-Both findings are scientifically valuable.
+Both findings are scientifically valuable.-->
 
 <!--
 This is the honest reading of the full ablation table. Not every tool-selection decision sits on a sparse, identifiable circuit. About a third of contrasts (the cleanest cases like fundamental/technical, single/multi-tool) show large effects from ablating just 10 features - those are sparse circuits we can name and intervene on. Another chunk - including preventive/reactive maintenance - shows 0% flips even after we ablate 10 features. That doesn't mean nothing is there - it means the signal is distributed across many features redundantly, so any 10-subset leaves the decision intact. The third bucket is in between. The scientifically honest story: tool selection is heterogeneous - sometimes sparse, sometimes distributed - and Kiji Inspector lets us tell which is which. That's a useful diagnostic on its own.
