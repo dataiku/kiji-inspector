@@ -1,0 +1,588 @@
+From da89d7ea6a81d823968a338452a8b5ae8bd7fa6e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 7 Jul 2026 00:06:56 +0000
+Subject: [PATCH] feat: add Qwen3.6-35B-A3B subject-model support (HF + vLLM)
+
+Adds support for Qwen/Qwen3.6-35B-A3B (hybrid GatedDeltaNet/attention
+MoE, Qwen3.5-family architecture) as a subject model:
+
+- registry: map Qwen3.6-35B-A3B (BF16 + FP8) to their SAE hub repos
+- pipeline: resolve num_hidden_layers/hidden_size from nested
+  text_config (Qwen3.5/3.6 ForConditionalGeneration configs); new
+  --no-thinking flag so the decision token sits at the final-answer
+  position for reasoning models
+- extractor: optional chat_template_kwargs (e.g. enable_thinking=False)
+  and close_think_block guard for templates that ignore it; default
+  behavior unchanged for existing models
+- HF activation extractor: locate decoder layers and embeddings under
+  model.model.language_model for ForConditionalGeneration wrappers
+- vllm: bump pinned wheel 0.18.0 -> 0.19.0 (Qwen3.6 requires >= 0.19);
+  patches 01-03 verified to apply cleanly against 0.19.0
+- new patches/04_support_qwen3_5_models.patch: delegate
+  set_aux_hidden_state_layers through the Qwen3_5 ForConditionalGeneration
+  wrapper and capture aux hidden states post-layer in Qwen3NextModel for
+  parity with HF forward hooks
+- tests for the registry entry and prompt building; docs updates
+
+Note: uv.lock still pins vllm 0.18.0 - regenerate with `uv lock` on a
+machine with GitHub access (this sandbox cannot fetch release wheels).
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0146AuXii3YX8crc998H4Jjn
+---
+ README.md                                     |  7 ++
+ docs/index.md                                 |  3 +
+ docs/step1_activation_extraction.md           |  6 +-
+ patches/04_support_qwen3_5_models.patch       | 58 +++++++++++
+ patches/README_PATCH.md                       | 28 +++++-
+ pyproject.toml                                |  4 +-
+ src/kiji_inspector/core/registry.py           |  3 +
+ .../extraction/activation_extractor.py        | 14 ++-
+ src/kiji_inspector/extraction/extractor.py    | 33 ++++++-
+ src/kiji_inspector/pipeline.py                | 28 +++++-
+ tests/test_core_registry.py                   |  4 +
+ tests/test_prompt_building.py                 | 96 +++++++++++++++++++
+ 12 files changed, 275 insertions(+), 9 deletions(-)
+ create mode 100644 patches/04_support_qwen3_5_models.patch
+ create mode 100644 tests/test_prompt_building.py
+
+diff --git a/README.md b/README.md
+index 4f019ef..9689939 100644
+--- a/README.md
++++ b/README.md
+@@ -93,9 +93,16 @@ The apply script installs every `*.patch` file under [patches](patches/) in lexi
+ - `01_allow_extract_hidden_states.patch`
+ - `02_support_nemotron_models.patch`
+ - `03_support_gemma3_models.patch`
++- `04_support_qwen3_5_models.patch`
+ 
+ Additional workflow details live in [patches/README_PATCH.md](patches/README_PATCH.md).
+ 
++To run the pipeline against a Qwen3.6 subject model (a reasoning model), pass `--no-thinking` so the decision token sits at the final-answer position:
++
++```bash
++python -m kiji_inspector.pipeline --subject-model Qwen/Qwen3.6-35B-A3B --no-thinking
++```
++
+ ---
+ 
+ ## 📓 Examples
+diff --git a/docs/index.md b/docs/index.md
+index 429550c..04ae0fa 100644
+--- a/docs/index.md
++++ b/docs/index.md
+@@ -70,9 +70,12 @@ The pipeline supports training on activations from diverse agent scenarios (tool
+ |-------|------|-------|---------|
+ | Qwen/Qwen3-VL-235B-A22B-Instruct-FP8 | Generator / Labeler / Judge | Pair generation, 4c, 5c | vLLM with tensor + expert parallelism |
+ | nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | Subject model (activation source) | 1, 3, 5a | HuggingFace Transformers with `device_map="auto"` |
++| Qwen/Qwen3.6-35B-A3B | Subject model (alternative, use `--subject-model` and `--no-thinking`) | 1, 3, 5a | HuggingFace Transformers or vLLM (patched, >= 0.19.0) |
+ 
+ Nemotron-3-Nano is a Mixture-of-Experts model (30B total parameters, 3B active per token) with a hidden dimension of 4096.
+ 
++Qwen3.6-35B-A3B is a hybrid GatedDeltaNet/attention Mixture-of-Experts model (35B total parameters, 3B active per token) with 40 layers and a hidden dimension of 2048 (nested under `text_config`); layer count and `d_sae` are auto-detected by the pipeline.
++
+ ## Quick Start
+ 
+ ```bash
+diff --git a/docs/step1_activation_extraction.md b/docs/step1_activation_extraction.md
+index b887428..975c164 100644
+--- a/docs/step1_activation_extraction.md
++++ b/docs/step1_activation_extraction.md
+@@ -62,6 +62,8 @@ I'll use the
+ 
+ The last token of this prompt is the **decision token**. At this position, the model's hidden state encodes its full "reasoning" about which tool to name next. By extracting activations at exactly this point, we capture the model's internal decision state before it commits to a specific tool.
+ 
++> **Reasoning models (e.g. Qwen/Qwen3.6-35B-A3B):** the chat template may open a `<think>` block in the generation prompt, which would place the prefill (and therefore the decision token) *inside* the reasoning span. Pass `--no-thinking` to the pipeline to request `enable_thinking=False` from the chat template and close any `<think>` block the template still opens, so the decision token sits at the final-answer position.
++
+ ### Supported Model Formats
+ 
+ The `build_agent_prompt()` function supports four chat templates:
+@@ -102,7 +104,9 @@ The extractor auto-detects the model's internal structure to find the layer list
+ 
+ | Architecture | Layer Path |
+ |-------------|-----------|
+-| Llama / Nemotron | `model.model.layers` |
++| Llama / Nemotron / Qwen (incl. Qwen3.6 via `AutoModelForCausalLM`) | `model.model.layers` |
++| Qwen3.5/3.6 `ForConditionalGeneration` wrapper | `model.model.language_model.layers` |
++| Gemma3 multimodal | `model.language_model.model.layers` |
+ | NemotronH | `model.backbone.layers` or `model.backbone.decoder.layers` |
+ | GPT-NeoX | `model.transformer.h` |
+ | GPT-2 | `model.transformer.layers` |
+diff --git a/patches/04_support_qwen3_5_models.patch b/patches/04_support_qwen3_5_models.patch
+new file mode 100644
+index 0000000..c2e0385
+--- /dev/null
++++ b/patches/04_support_qwen3_5_models.patch
+@@ -0,0 +1,58 @@
++diff --git a/model_executor/models/qwen3_5.py b/model_executor/models/qwen3_5.py
++index 4cbe9b8..3ea5943 100644
++--- a/model_executor/models/qwen3_5.py
+++++ b/model_executor/models/qwen3_5.py
++@@ -621,6 +621,16 @@ class Qwen3_5ForConditionalGeneration(Qwen3VLForConditionalGeneration, IsHybrid)
++             self.packed_modules_mapping.pop("in_proj_qkvz", None)
++             self.packed_modules_mapping["in_proj_qkv"] = ["in_proj_qkv"]
++ 
+++    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:
+++        # The default SupportsEagle3 implementation requires the inner model
+++        # to inherit from EagleModelMixin, which Qwen3NextModel does not.
+++        # Delegate to the wrapped causal LM, which stores the layer indices
+++        # directly on the model (see Qwen3_5ForCausalLMBase).
+++        self.language_model.set_aux_hidden_state_layers(layers)
+++
+++    def get_eagle3_aux_hidden_state_layers(self) -> tuple[int, ...]:
+++        return self.language_model.get_eagle3_aux_hidden_state_layers()
+++
++     def embed_input_ids(
++         self,
++         input_ids: torch.Tensor,
++@@ -660,7 +670,7 @@ class Qwen3_5ForConditionalGeneration(Qwen3VLForConditionalGeneration, IsHybrid)
++         intermediate_tensors: IntermediateTensors | None = None,
++         inputs_embeds: torch.Tensor | None = None,
++         **kwargs: object,
++-    ) -> torch.Tensor | IntermediateTensors:
+++    ) -> torch.Tensor | IntermediateTensors | tuple[torch.Tensor, list[torch.Tensor]]:
++         """Run forward pass for Qwen3.5.
++ 
++         Args:
++diff --git a/model_executor/models/qwen3_next.py b/model_executor/models/qwen3_next.py
++index 75f1b50..06a57bb 100644
++--- a/model_executor/models/qwen3_next.py
+++++ b/model_executor/models/qwen3_next.py
++@@ -520,15 +520,19 @@ class Qwen3NextModel(nn.Module):
++             islice(self.layers, self.start_layer, self.end_layer),
++             start=self.start_layer,
++         ):
++-            if layer_idx in self.aux_hidden_state_layers:
++-                aux_hidden_states.append(
++-                    hidden_states + residual if residual is not None else hidden_states
++-                )
++             hidden_states, residual = layer(
++                 positions=positions,
++                 hidden_states=hidden_states,
++                 residual=residual,
++             )
+++            if layer_idx in self.aux_hidden_state_layers:
+++                # Capture the residual stream *after* the layer runs so that
+++                # layer indices line up with HuggingFace forward hooks on
+++                # model.layers[i] (post-layer output), matching the Nemotron
+++                # and Gemma3 extraction patches.
+++                aux_hidden_states.append(
+++                    hidden_states + residual if residual is not None else hidden_states
+++                )
++ 
++         if not get_pp_group().is_last_rank:
++             return IntermediateTensors(
+diff --git a/patches/README_PATCH.md b/patches/README_PATCH.md
+index 0ad9b70..b7dd0be 100644
+--- a/patches/README_PATCH.md
++++ b/patches/README_PATCH.md
+@@ -15,15 +15,41 @@ The patch files are:
+ - `patches/01_allow_extract_hidden_states.patch`
+ - `patches/02_support_nemotron_models.patch`
+ - `patches/03_support_gemma3_models.patch`
++- `patches/04_support_qwen3_5_models.patch`
+ 
+ They are applied in lexical order by `patches/apply-patch.sh`.
+ 
+ The patch set adds:
+ 
+-`Support extracting hidden states for Gemma3 and Nemotron models`
++`Support extracting hidden states for Gemma3, Nemotron, and Qwen3.5/3.6 models`
+ 
+ At a high level, this patch adds support for configuring `extract_activation_layers`, capturing prompt activations for selected layers, and returning serialized activations in OpenAI-compatible chat and completion responses.
+ 
++The patch set targets **vLLM v0.19.0** (all four patches apply cleanly against it).
++
++### Patch 04: Qwen3.5 / Qwen3.6 (e.g. `Qwen/Qwen3.6-35B-A3B`)
++
++Qwen3.5/3.6 checkpoints declare the `Qwen3_5MoeForConditionalGeneration`
++(or `Qwen3_5ForConditionalGeneration`) architecture, whose inner causal LM
++already ships EAGLE3 auxiliary-hidden-state support upstream. Patch 04 makes
++two small changes:
++
++1. `model_executor/models/qwen3_5.py`: overrides
++   `set_aux_hidden_state_layers` on the `ForConditionalGeneration` wrapper to
++   delegate to the wrapped language model (the default `SupportsEagle3`
++   implementation asserts the inner model inherits `EagleModelMixin`, which
++   `Qwen3NextModel` does not).
++2. `model_executor/models/qwen3_next.py`: moves the auxiliary hidden-state
++   capture from *before* each decoder layer to *after* it, so that a layer
++   index passed to `extract_activation_layers` yields the same residual-stream
++   vector as a HuggingFace forward hook on `model.layers[i]` (post-layer
++   output), consistent with the Nemotron and Gemma3 patches.
++
++Note: because of (2), do not use this patched vLLM build for EAGLE3/MTP
++speculative decoding of Qwen3-Next-family models — the aux-hidden-state
++semantics intentionally differ from upstream. The patched build is intended
++for activation extraction.
++
+ ## Apply the patch
+ 
+ Run from the repository root:
+diff --git a/pyproject.toml b/pyproject.toml
+index 8c51cd6..bf3c4ba 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -41,7 +41,7 @@ full = [
+     "accelerate>=1.13.0",
+     "causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1%2Bcu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl ; python_version >= '3.12' and platform_machine == 'x86_64'",
+     "mamba-ssm @ https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1%2Bcu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl ; python_version >= '3.12' and platform_machine == 'x86_64'",
+-    "vllm @ https://github.com/vllm-project/vllm/releases/download/v0.18.0/vllm-0.18.0-cp38-abi3-manylinux_2_31_x86_64.whl ; python_version >= '3.12' and platform_machine == 'x86_64'",
++    "vllm @ https://github.com/vllm-project/vllm/releases/download/v0.19.0/vllm-0.19.0-cp38-abi3-manylinux_2_31_x86_64.whl ; python_version >= '3.12' and platform_machine == 'x86_64'",
+ ]
+ 
+ [dependency-groups]
+@@ -117,5 +117,5 @@ torchaudio = [
+   { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+ ]
+ vllm = [
+-  { url = "https://github.com/vllm-project/vllm/releases/download/v0.18.0/vllm-0.18.0-cp38-abi3-manylinux_2_31_x86_64.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
++  { url = "https://github.com/vllm-project/vllm/releases/download/v0.19.0/vllm-0.19.0-cp38-abi3-manylinux_2_31_x86_64.whl", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+ ]
+diff --git a/src/kiji_inspector/core/registry.py b/src/kiji_inspector/core/registry.py
+index 89f7fd3..ef1af55 100644
+--- a/src/kiji_inspector/core/registry.py
++++ b/src/kiji_inspector/core/registry.py
+@@ -9,6 +9,9 @@ MODEL_REGISTRY: dict[str, str] = {
+     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8": "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8",
+     # EXPERIMENTAL
+     "google/gemma-3-27b-it": "575-lab/kiji-inspector-google-gemma-3-27b-it",
++    # Qwen
++    "Qwen/Qwen3.6-35B-A3B": "575-lab/kiji-inspector-Qwen3.6-35B-A3B",
++    "Qwen/Qwen3.6-35B-A3B-FP8": "575-lab/kiji-inspector-Qwen3.6-35B-A3B-FP8",
+ }
+ 
+ 
+diff --git a/src/kiji_inspector/extraction/activation_extractor.py b/src/kiji_inspector/extraction/activation_extractor.py
+index ad67fe5..0bef53f 100644
+--- a/src/kiji_inspector/extraction/activation_extractor.py
++++ b/src/kiji_inspector/extraction/activation_extractor.py
+@@ -159,6 +159,7 @@ class ActivationExtractor:
+             "language_model.model.embed_tokens",
+             "language_model.embed_tokens",
+             "model.embed_tokens",
++            "model.language_model.embed_tokens",
+             "backbone.embed_tokens",
+             "backbone.embedding",
+             "transformer.wte",
+@@ -189,6 +190,14 @@ class ActivationExtractor:
+         # Standard Llama/Nemotron/Gemma architecture
+         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
+             return self.model.model.layers
++        # Qwen3.5/3.6 ForConditionalGeneration (transformers >= 5.x):
++        # outer model wraps a composite model whose text stack lives at
++        # model.model.language_model.layers.  (AutoModelForCausalLM loads
++        # the ForCausalLM variant with model.model.layers, handled above.)
++        if hasattr(self.model, "model") and hasattr(self.model.model, "language_model"):
++            inner_lm = self.model.model.language_model
++            if hasattr(inner_lm, "layers"):
++                return inner_lm.layers
+         # NemotronH architecture uses 'backbone' instead of 'model'
+         if hasattr(self.model, "backbone"):
+             backbone = self.model.backbone
+@@ -222,8 +231,9 @@ class ActivationExtractor:
+         raise AttributeError(
+             f"Cannot locate transformer layers for {type(self.model).__name__}. "
+             "Supported architectures: LlamaForCausalLM, Qwen2ForCausalLM, "
+-            "MistralForCausalLM, NemotronForCausalLM, NemotronHForCausalLM, "
+-            "GPTNeoXForCausalLM, and others using model.model.layers. "
++            "Qwen3_5MoeForCausalLM, MistralForCausalLM, NemotronForCausalLM, "
++            "NemotronHForCausalLM, GPTNeoXForCausalLM, and others using "
++            "model.model.layers. "
+             f"Model structure: {[attr for attr in dir(self.model) if not attr.startswith('_')]}"
+         )
+ 
+diff --git a/src/kiji_inspector/extraction/extractor.py b/src/kiji_inspector/extraction/extractor.py
+index d2d073d..d4e73b5 100644
+--- a/src/kiji_inspector/extraction/extractor.py
++++ b/src/kiji_inspector/extraction/extractor.py
+@@ -26,6 +26,8 @@ def build_agent_prompt_from_tokenizer(
+     tools: list[dict],
+     user_request: str,
+     assistant_prefill: str = "I'll use the ",
++    chat_template_kwargs: dict[str, Any] | None = None,
++    close_think_block: bool = False,
+ ) -> str:
+     """Build a prompt using the tokenizer's native chat template.
+ 
+@@ -39,6 +41,15 @@ def build_agent_prompt_from_tokenizer(
+         user_request: The user's message.
+         assistant_prefill: Text to prepend to the assistant turn
+             (creates a "prefill" so we extract at the decision point).
++        chat_template_kwargs: Extra keyword arguments forwarded to
++            ``tokenizer.apply_chat_template`` (e.g.
++            ``{"enable_thinking": False}`` for reasoning models such as
++            Qwen3.6 so the prefill lands at the final-answer position
++            instead of inside a ``<think>`` block).
++        close_think_block: If the rendered generation prompt still ends
++            with an open ``<think>`` tag (templates that ignore
++            ``enable_thinking``), append a closing ``</think>`` so the
++            prefill sits after the (empty) reasoning block.
+ 
+     Returns:
+         The formatted prompt string ending at the decision token.
+@@ -61,8 +72,12 @@ def build_agent_prompt_from_tokenizer(
+         messages,
+         tokenize=False,
+         add_generation_prompt=True,
++        **(chat_template_kwargs or {}),
+     )
+ 
++    if close_think_block and formatted.rstrip().endswith("<think>"):
++        formatted = formatted.rstrip() + "\n\n</think>\n\n"
++
+     formatted += assistant_prefill
+     return formatted
+ 
+@@ -74,6 +89,8 @@ def build_agent_prompt(
+     model_type: str = "auto",
+     tokenizer=None,
+     assistant_prefill: str = "I'll use the ",
++    chat_template_kwargs: dict[str, Any] | None = None,
++    close_think_block: bool = False,
+ ) -> str:
+     """
+     Build a full prompt in the target model's chat template.
+@@ -97,7 +114,13 @@ def build_agent_prompt(
+     # Prefer tokenizer-based approach
+     if tokenizer is not None and getattr(tokenizer, "chat_template", None):
+         return build_agent_prompt_from_tokenizer(
+-            tokenizer, system_prompt, tools, user_request, assistant_prefill
++            tokenizer,
++            system_prompt,
++            tools,
++            user_request,
++            assistant_prefill,
++            chat_template_kwargs=chat_template_kwargs,
++            close_think_block=close_think_block,
+         )
+ 
+     # Legacy manual format strings
+@@ -174,11 +197,15 @@ class RawActivationExtractor:
+         model_type: str = "auto",
+         layer_key: str = "residual_20",
+         tokenizer=None,
++        chat_template_kwargs: dict[str, Any] | None = None,
++        close_think_block: bool = False,
+     ):
+         self.extractor = base_extractor
+         self.model_type = model_type
+         self.layer_key = layer_key
+         self.tokenizer = tokenizer or base_extractor.tokenizer
++        self.chat_template_kwargs = chat_template_kwargs
++        self.close_think_block = close_think_block
+ 
+     def extract_to_shards(
+         self,
+@@ -260,6 +287,8 @@ class RawActivationExtractor:
+                     user_request=pair.anchor_prompt,
+                     model_type=self.model_type,
+                     tokenizer=self.tokenizer,
++                    chat_template_kwargs=self.chat_template_kwargs,
++                    close_think_block=self.close_think_block,
+                 )
+             )
+             user_requests.append(pair.anchor_prompt)
+@@ -270,6 +299,8 @@ class RawActivationExtractor:
+                     user_request=pair.contrast_prompt,
+                     model_type=self.model_type,
+                     tokenizer=self.tokenizer,
++                    chat_template_kwargs=self.chat_template_kwargs,
++                    close_think_block=self.close_think_block,
+                 )
+             )
+             user_requests.append(pair.contrast_prompt)
+diff --git a/src/kiji_inspector/pipeline.py b/src/kiji_inspector/pipeline.py
+index 7a39665..ced06cd 100644
+--- a/src/kiji_inspector/pipeline.py
++++ b/src/kiji_inspector/pipeline.py
+@@ -106,15 +106,26 @@ def _resolve_model_defaults(args: argparse.Namespace) -> None:
+ 
+     print(f"  Auto-detecting model config for {args.subject_model}...")
+     config = AutoConfig.from_pretrained(args.subject_model, trust_remote_code=True)
++    # Multimodal-style configs (e.g. Qwen3.5/3.6 *ForConditionalGeneration*)
++    # nest the language-model settings under `text_config`.
++    text_config = getattr(config, "text_config", None)
+ 
+     if needs_layer:
+-        num_layers = getattr(config, "num_hidden_layers", 30)
++        num_layers = getattr(config, "num_hidden_layers", None)
++        if num_layers is None and text_config is not None:
++            num_layers = getattr(text_config, "num_hidden_layers", None)
++        if num_layers is None:
++            num_layers = 30
+         default_layer = int(num_layers * 2 / 3)
+         args.layers = [default_layer]
+         print(f"  Auto-selected layer {default_layer} (~2/3 of {num_layers} layers)")
+ 
+     if needs_d_sae:
+-        hidden_size = getattr(config, "hidden_size", 4096)
++        hidden_size = getattr(config, "hidden_size", None)
++        if hidden_size is None and text_config is not None:
++            hidden_size = getattr(text_config, "hidden_size", None)
++        if hidden_size is None:
++            hidden_size = 4096
+         args.d_sae = 4 * hidden_size
+         print(f"  Auto-selected d_sae={args.d_sae} (4x hidden_size={hidden_size})")
+ 
+@@ -364,6 +375,15 @@ def parse_args() -> argparse.Namespace:
+         help="Backend for activation extraction: 'vllm' (fast, default) "
+         "or 'hf' (HuggingFace Transformers, required for ablation).",
+     )
++    p.add_argument(
++        "--no-thinking",
++        action="store_true",
++        help="Suppress the subject model's reasoning block when building "
++        "extraction prompts: passes enable_thinking=False to the chat "
++        "template and closes any <think> block the template still opens. "
++        "Recommended for reasoning models such as Qwen/Qwen3.6-35B-A3B so "
++        "the decision token sits at the final-answer position.",
++    )
+     p.add_argument(
+         "--disable-p2p",
+         type=str,
+@@ -393,6 +413,7 @@ def extract_activations(
+     backend: str = "vllm",
+     dp_size: int = 1,
+     tp_size: int = 1,
++    no_thinking: bool = False,
+ ) -> dict[str, Path]:
+     """Load subject model, extract raw activations for all layers, save as numpy shards.
+ 
+@@ -449,6 +470,8 @@ def extract_activations(
+ 
+     raw_extractor = RawActivationExtractor(
+         base_extractor=extractor,
++        chat_template_kwargs={"enable_thinking": False} if no_thinking else None,
++        close_think_block=no_thinking,
+     )
+ 
+     layer_dirs = raw_extractor.extract_to_shards(
+@@ -561,6 +584,7 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
+         backend=args.backend,
+         dp_size=args.extraction_dp_size,
+         tp_size=args.extraction_tp_size,
++        no_thinking=args.no_thinking,
+     )
+     elapsed = time.time() - t0
+     print(f"  Extraction complete ({elapsed:.1f}s)")
+diff --git a/tests/test_core_registry.py b/tests/test_core_registry.py
+index ff176b0..6ec4722 100644
+--- a/tests/test_core_registry.py
++++ b/tests/test_core_registry.py
+@@ -8,6 +8,10 @@ class TestResolveRepoId:
+         repo = resolve_repo_id("nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16")
+         assert repo == "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+ 
++    def test_qwen_model_returns_repo(self):
++        repo = resolve_repo_id("Qwen/Qwen3.6-35B-A3B")
++        assert repo == "575-lab/kiji-inspector-Qwen3.6-35B-A3B"
++
+     def test_unknown_model_raises_keyerror(self):
+         with pytest.raises(KeyError, match="No SAE repo registered"):
+             resolve_repo_id("unknown/model")
+diff --git a/tests/test_prompt_building.py b/tests/test_prompt_building.py
+new file mode 100644
+index 0000000..62816a3
+--- /dev/null
++++ b/tests/test_prompt_building.py
+@@ -0,0 +1,96 @@
++from kiji_inspector.extraction.extractor import (
++    build_agent_prompt,
++    build_agent_prompt_from_tokenizer,
++)
++
++TOOLS = [
++    {"name": "internal_search", "description": "Search internal docs"},
++    {"name": "web_search", "description": "Search the web"},
++]
++
++
++class FakeTokenizer:
++    """Minimal stand-in for a HF tokenizer with a ChatML-style template."""
++
++    chat_template = "chatml"
++
++    def __init__(self, thinking_generation_prompt: bool = False):
++        self.thinking_generation_prompt = thinking_generation_prompt
++        self.last_template_kwargs: dict = {}
++
++    def apply_chat_template(
++        self, messages, tokenize=False, add_generation_prompt=True, **kwargs
++    ):
++        self.last_template_kwargs = kwargs
++        rendered = ""
++        for m in messages:
++            rendered += f"<|im_start|>{m['role']}\n{m['content']}<|im_end|>\n"
++        if add_generation_prompt:
++            rendered += "<|im_start|>assistant\n"
++            # Reasoning models (e.g. Qwen3.6) open a think block unless
++            # enable_thinking=False is honored by the template.
++            if self.thinking_generation_prompt and kwargs.get("enable_thinking", True):
++                rendered += "<think>\n"
++        return rendered
++
++
++def test_prompt_ends_with_prefill_by_default():
++    tok = FakeTokenizer()
++    prompt = build_agent_prompt_from_tokenizer(tok, "You are an agent.", TOOLS, "Find API limits")
++    assert prompt.endswith("<|im_start|>assistant\nI'll use the ")
++    assert tok.last_template_kwargs == {}
++
++
++def test_chat_template_kwargs_are_forwarded():
++    tok = FakeTokenizer(thinking_generation_prompt=True)
++    prompt = build_agent_prompt_from_tokenizer(
++        tok,
++        "You are an agent.",
++        TOOLS,
++        "Find API limits",
++        chat_template_kwargs={"enable_thinking": False},
++    )
++    assert tok.last_template_kwargs == {"enable_thinking": False}
++    assert "<think>" not in prompt
++    assert prompt.endswith("I'll use the ")
++
++
++def test_close_think_block_closes_open_think_tag():
++    # Template that ignores enable_thinking and always opens a think block.
++    tok = FakeTokenizer(thinking_generation_prompt=True)
++    prompt = build_agent_prompt_from_tokenizer(
++        tok,
++        "You are an agent.",
++        TOOLS,
++        "Find API limits",
++        close_think_block=True,
++    )
++    assert prompt.endswith("<think>\n\n</think>\n\nI'll use the ")
++
++
++def test_close_think_block_noop_without_open_think_tag():
++    tok = FakeTokenizer(thinking_generation_prompt=False)
++    prompt = build_agent_prompt_from_tokenizer(
++        tok,
++        "You are an agent.",
++        TOOLS,
++        "Find API limits",
++        close_think_block=True,
++    )
++    assert "</think>" not in prompt
++    assert prompt.endswith("<|im_start|>assistant\nI'll use the ")
++
++
++def test_build_agent_prompt_passes_thinking_options_through():
++    tok = FakeTokenizer(thinking_generation_prompt=True)
++    prompt = build_agent_prompt(
++        system_prompt="You are an agent.",
++        tools=TOOLS,
++        user_request="Find API limits",
++        tokenizer=tok,
++        chat_template_kwargs={"enable_thinking": False},
++        close_think_block=True,
++    )
++    assert tok.last_template_kwargs == {"enable_thinking": False}
++    assert "<think>" not in prompt
++    assert prompt.endswith("I'll use the ")
+-- 
+2.43.0
+
