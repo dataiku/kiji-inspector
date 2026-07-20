@@ -10,7 +10,7 @@ class TestResolveRepoId:
 
     def test_qwen_model_returns_repo(self):
         repo = resolve_repo_id("Qwen/Qwen3.6-35B-A3B")
-        assert repo == "575-lab/kiji-inspector-Qwen3.6-35B-A3B"
+        assert repo == "575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B"
 
     def test_unknown_model_raises_keyerror(self):
         with pytest.raises(KeyError, match="No SAE repo registered"):
