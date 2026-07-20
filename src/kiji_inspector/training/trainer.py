@@ -710,8 +710,19 @@ def train_sae(
 
             running = {}
 
-        # Dead feature resampling
-        if config.resample_dead_features and step > 0 and step % config.resample_every == 0:
+        # Dead feature resampling. Never resample near the end of training:
+        # reinitialised features need optimizer steps to become useful (or be
+        # re-killed) before the final save. Without this guard, a resample
+        # landing on the last step (e.g. total_steps divisible by
+        # resample_every, which auto-scaling makes likely) ships thousands of
+        # random, dense features in sae_final.pt (L0 ~50% of d_sae).
+        can_resample = step + config.resample_every <= total_steps
+        if (
+            config.resample_dead_features
+            and can_resample
+            and step > 0
+            and step % config.resample_every == 0
+        ):
             print(f"\n[Step {step}] Checking for dead features...")
             raw_sae = _unwrap(sae)
             dev = next(raw_sae.parameters()).device
