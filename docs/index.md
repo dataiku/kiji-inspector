@@ -70,7 +70,7 @@ The pipeline supports training on activations from diverse agent scenarios (tool
 |-------|------|-------|---------|
 | Qwen/Qwen3-VL-235B-A22B-Instruct-FP8 | Generator / Labeler / Judge | Pair generation, 4c, 5c | vLLM with tensor + expert parallelism |
 | nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16 | Subject model (activation source) | 1, 3, 5a | HuggingFace Transformers with `device_map="auto"` |
-| Qwen/Qwen3.6-35B-A3B | Subject model (alternative, use `--subject-model` and `--no-thinking`) | 1, 3, 5a | HuggingFace Transformers or vLLM (patched, >= 0.19.0) |
+| Qwen/Qwen3.6-35B-A3B | Subject model (alternative, use `--subject-model` and `--no-thinking`) | 1, 3, 5a | HuggingFace Transformers or vLLM native hidden-states connector (fork-built Docker image, see `Dockerfile`) |
 
 Nemotron-3-Nano is a Mixture-of-Experts model (30B total parameters, 3B active per token) with a hidden dimension of 4096.
 

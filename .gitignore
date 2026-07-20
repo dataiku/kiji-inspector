@@ -63,3 +63,4 @@ Thumbs.db
 
 # Exceptions: keep the built poster PDF in the repo
 !poster/poster.pdf
+output_575_full/

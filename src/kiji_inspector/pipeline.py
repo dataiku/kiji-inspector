@@ -718,8 +718,9 @@ def _run_step4(args, sae_checkpoints: dict[str, str] | None = None) -> None:
 
         print(f"\n  --- Layer {layer} ---")
 
-        # Label all SAE features (not just contrastive ones) so downstream
-        # consumers (e.g. the demo) can look up any feature that fires.
+        # Analyze all SAE features (not just contrastive ones) so downstream
+        # consumers (e.g. the demo) can look up any feature that fires; dead
+        # features are dropped before LLM labeling below.
         from kiji_inspector.core.sae_core import JumpReLUSAE
 
         _sae_tmp = JumpReLUSAE.from_pretrained(checkpoint, device="cpu")
@@ -753,6 +754,21 @@ def _run_step4(args, sae_checkpoints: dict[str, str] | None = None) -> None:
         print(f"    4b complete ({elapsed:.1f}s): {len(feature_examples)} features analyzed")
 
         del activations
+
+        # Only send alive features to the LLM — same criterion as the feature
+        # health report (fires on >0.1% of inputs). Features below that have
+        # too few real activations to interpret (their top-K examples are
+        # noise), and labeling all of d_sae wastes hours of judge time per
+        # layer. Downstream consumers can still look up any feature that
+        # meaningfully fires.
+        n_before = len(feature_examples)
+        feature_examples = {
+            idx: ex for idx, ex in feature_examples.items() if ex["frac_nonzero"] >= 0.001
+        }
+        print(
+            f"    Labeling {len(feature_examples)} alive features "
+            f"(skipping {n_before - len(feature_examples)} dead/near-dead)"
+        )
 
         # 4c: Label features via LLM (subprocess)
         print(f"\n  [Layer {layer}] 4c: Labeling features via LLM (subprocess)...")

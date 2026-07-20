@@ -178,14 +178,10 @@ def extract_per_token_activations(
     import pickle
     import tempfile
 
-    # Per-token extraction requires full sequence activations, which
-    # the vLLM backend cannot provide (it only returns the decode step).
-    # Force HF backend for this step.
-    if backend == "vllm":
-        print(
-            "  Note: switching to HF backend for per-token extraction (vLLM only returns decode-step activations)"
-        )
-        backend = "hf"
+    # Per-token extraction requires full-sequence (prompt-position) activations.
+    # The native hidden-states connector emits hidden states for every prompt
+    # token (shape [T, num_layers, H] with include_output_tokens=False), so the
+    # vLLM backend now supports per-token extraction directly — no HF fallback.
 
     # Run in a subprocess so GPU memory is fully freed on exit
     tmp_dir = tempfile.mkdtemp(prefix="kiji_extraction_")
@@ -774,15 +770,26 @@ def _run_judge_subprocess(
     from vllm import LLM, SamplingParams
 
     print(f"  [subprocess] Loading vLLM model: {judging_model}")
+    # Apply model-family engine defaults so hybrid-MoE judges (e.g. Qwen3.6)
+    # load reliably for generation too — same fix as the extractor path.
+    from kiji_inspector.extraction.vllm_activation_extractor import recommended_vllm_kwargs
+
+    gen_kwargs = recommended_vllm_kwargs(judging_model)
+    if gen_kwargs.get("moe_backend") == "triton":
+        os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     llm = LLM(
         model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
         gpu_memory_utilization=0.95,
-        enforce_eager=True,
+        # Hybrid (linear-attention) models need one Mamba cache block per
+        # decode sequence for CUDA graph capture; the default (1024) exceeds
+        # the available blocks at this memory budget.
+        max_num_seqs=256,
         enable_expert_parallel=False,
         disable_log_stats=True,
+        **gen_kwargs,
     )
 
     sampling_params = SamplingParams(
@@ -791,8 +798,16 @@ def _run_judge_subprocess(
         max_tokens=20,
     )
 
-    # Format prompts using the model's own chat template
+    # Format prompts using the model's own chat template. Model-family
+    # template kwargs (e.g. enable_thinking=False for Qwen3) disable
+    # reasoning modes — the judge must answer in <=20 tokens and thinking
+    # would burn the whole budget on prose.
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
     tokenizer = llm.get_tokenizer()
+    template_kwargs = recommended_chat_template_kwargs(judging_model, tokenizer)
     formatted_prompts = []
     for user_content in user_contents:
         messages = [
@@ -804,6 +819,7 @@ def _run_judge_subprocess(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
+                **template_kwargs,
             )
         )
 

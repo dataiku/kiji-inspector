@@ -336,6 +336,7 @@ class RawActivationExtractor:
         if dp_size > 1 and hasattr(self.extractor, "config"):
             # Data-parallel: workers write shards directly — no temp files
             from kiji_inspector.extraction.vllm_activation_extractor import (
+                recommended_vllm_kwargs,
                 run_dp_extraction_to_shards,
             )
 
@@ -347,6 +348,9 @@ class RawActivationExtractor:
                 "tensor_parallel_size": getattr(self.extractor.config, "tensor_parallel_size", 1),
                 "max_model_len": self.extractor.config.max_model_len,
                 "trust_remote_code": self.extractor.config.trust_remote_code,
+                # Model-family defaults (e.g. language_model_only for Qwen3.6)
+                # so DP workers load the same way as the single-GPU path.
+                **recommended_vllm_kwargs(self.extractor.config.model_name),
             }
             totals = run_dp_extraction_to_shards(
                 prompts=all_prompts,

@@ -316,15 +316,26 @@ def _run_labeling_subprocess(
     from vllm import LLM, SamplingParams
 
     print(f"  [subprocess] Loading vLLM model: {judging_model}")
+    # Apply model-family engine defaults so hybrid-MoE judges (e.g. Qwen3.6)
+    # load reliably for generation too — same fix as the extractor path.
+    from kiji_inspector.extraction.vllm_activation_extractor import recommended_vllm_kwargs
+
+    gen_kwargs = recommended_vllm_kwargs(judging_model)
+    if gen_kwargs.get("moe_backend") == "triton":
+        os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     llm = LLM(
         model=judging_model,
         tensor_parallel_size=tp_size,
         max_model_len=max_model_len,
         trust_remote_code=True,
         gpu_memory_utilization=0.80,
-        enforce_eager=True,
+        # Hybrid (linear-attention) models need one Mamba cache block per
+        # decode sequence for CUDA graph capture; the default (1024) exceeds
+        # the available blocks at this memory budget.
+        max_num_seqs=256,
         enable_expert_parallel=False,
         disable_log_stats=True,
+        **gen_kwargs,
     )
 
     sampling_params = SamplingParams(
@@ -333,12 +344,24 @@ def _run_labeling_subprocess(
         max_tokens=500,
     )
 
-    # Build prompts using the model's own chat template
+    # Build prompts using the model's own chat template. Two guards against
+    # the judge meta-reasoning in prose instead of answering (which burns the
+    # whole token budget before any JSON appears):
+    #   1. Model-family template kwargs (e.g. enable_thinking=False for the
+    #      Qwen3 family) suppress the reasoning mode at the template.
+    #   2. Pre-fill the assistant response with the start of the JSON object,
+    #      so the model must continue it with content rather than preamble.
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
+    JSON_PREFILL = '{"label": "'
     system = (
         "You are an expert at interpreting neural network features. "
         "Output only valid JSON, no markdown fences."
     )
     tokenizer = llm.get_tokenizer()
+    template_kwargs = recommended_chat_template_kwargs(judging_model, tokenizer)
     formatted_prompts = []
     for _feat_idx, user_content in label_prompts:
         messages = [
@@ -350,7 +373,9 @@ def _run_labeling_subprocess(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
+                **template_kwargs,
             )
+            + JSON_PREFILL
         )
 
     print(f"  [subprocess] Labeling {len(formatted_prompts)} features...")
@@ -358,7 +383,8 @@ def _run_labeling_subprocess(
 
     labels: dict[str, dict] = {}
     for (feat_idx, _), output in zip(label_prompts, outputs, strict=True):
-        raw = output.outputs[0].text.strip()
+        # Re-attach the pre-filled JSON prefix the model continued from.
+        raw = (JSON_PREFILL + output.outputs[0].text).strip()
         # Strip Qwen3 thinking blocks (<think>...</think>)
         raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
         # Also handle unclosed thinking block (truncated output)
