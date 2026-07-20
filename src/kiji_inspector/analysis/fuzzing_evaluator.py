@@ -798,7 +798,15 @@ def _run_judge_subprocess(
         max_tokens=20,
     )
 
-    # Format prompts using the model's own chat template
+    # Format prompts using the model's own chat template. Model-family
+    # template kwargs (e.g. enable_thinking=False for Qwen3) disable
+    # reasoning modes — the judge must answer in <=20 tokens and thinking
+    # would burn the whole budget on prose.
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
+    template_kwargs = recommended_chat_template_kwargs(judging_model)
     tokenizer = llm.get_tokenizer()
     formatted_prompts = []
     for user_content in user_contents:
@@ -811,9 +819,7 @@ def _run_judge_subprocess(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
-                # The judge must answer in <=20 tokens; thinking mode would
-                # burn the whole budget on reasoning prose.
-                enable_thinking=False,
+                **template_kwargs,
             )
         )
 

@@ -347,10 +347,15 @@ def _run_labeling_subprocess(
     # Build prompts using the model's own chat template. Two guards against
     # the judge meta-reasoning in prose instead of answering (which burns the
     # whole token budget before any JSON appears):
-    #   1. enable_thinking=False — Qwen3-family templates suppress the
-    #      <think> block entirely.
+    #   1. Model-family template kwargs (e.g. enable_thinking=False for the
+    #      Qwen3 family) suppress the reasoning mode at the template.
     #   2. Pre-fill the assistant response with the start of the JSON object,
     #      so the model must continue it with content rather than preamble.
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
+    template_kwargs = recommended_chat_template_kwargs(judging_model)
     JSON_PREFILL = '{"label": "'
     system = (
         "You are an expert at interpreting neural network features. "
@@ -368,7 +373,7 @@ def _run_labeling_subprocess(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
-                enable_thinking=False,
+                **template_kwargs,
             )
             + JSON_PREFILL
         )
