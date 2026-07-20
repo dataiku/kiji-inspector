@@ -79,3 +79,19 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -e . --no-deps \
     && python -c "import kiji_inspector, torch, vllm; print(f'kiji-inspector installed (torch={torch.__version__}, vllm={vllm.__version__})')"
+
+# Development tooling. The plan's verification steps run `pytest`/`ruff` inside
+# this image; install them explicitly (constrained so they can't touch the
+# pinned torch stack) rather than relying on tools incidentally present from
+# vLLM's build environment. Mirrors the [dependency-groups].dev group.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -c /opt/torch-constraints.txt \
+    "pytest>=7.0" "pytest-cov>=4.0" "ruff>=0.1.0"
+
+# Import check for the native hidden-states connector: fail the build early if
+# the pinned vLLM revision does not ship the extract_hidden_states connector.
+RUN python -c "\
+from vllm.config.kv_transfer import KVTransferConfig; \
+from vllm.distributed.kv_transfer.kv_connector.v1 import example_hidden_states_connector as c; \
+assert hasattr(c, 'load_hidden_states') and hasattr(c, 'cleanup_hidden_states'); \
+print('hidden-states connector present')"

@@ -79,23 +79,39 @@ python -m kiji_inspector.generate_pairs 1300
 python -m kiji_inspector.pipeline --layers 10 20 30
 ```
 
-## Local vLLM patches
+## vLLM hidden-state extraction (native connector)
 
-For local experiments that require the custom `vllm` extraction changes, rebuild the environment and apply the patch set from the repository root:
+Activation extraction uses vLLM's native `extract_hidden_states` speculator
+method together with the `ExampleHiddenStatesConnector`, which writes captured
+hidden states to safetensors files that the extractor loads and cleans up per
+request. This capability ships in the `575lab/kiji-inspector:dev` image, which
+builds the [`Davidnet/vllm`](https://github.com/Davidnet/vllm) fork
+(branch `hidden-states-inline-return-squashed`); the public v0.19.0 wheel does
+**not** contain the connector.
+
+Run all extraction, tests, and API checks inside that image:
 
 ```bash
-uv sync --no-cache --refresh --extra full --group dev
-./patches/apply-patch.sh
+docker pull 575lab/kiji-inspector:dev
+
+# Smoke test the connector (Qwen3-8B):
+samples/run_hidden_states_test.sh 575lab/kiji-inspector:dev
+
+# Iterate on the checked-out source with a bind mount:
+docker run --rm --gpus all \
+  -v "$PWD:/workspace" \
+  -v "${HF_CACHE:-$HOME/.cache/huggingface}:/root/.cache/huggingface" \
+  -e HF_HOME=/root/.cache/huggingface \
+  -e PYTHONPATH=/workspace/src \
+  -w /workspace \
+  575lab/kiji-inspector:dev \
+  python -m pytest tests/test_activation_extractors.py
 ```
 
-The apply script installs every `*.patch` file under [patches](patches/) in lexical order:
-
-- `01_allow_extract_hidden_states.patch`
-- `02_support_nemotron_models.patch`
-- `03_support_gemma3_models.patch`
-- `04_support_qwen3_5_models.patch`
-
-Additional workflow details live in [patches/README_PATCH.md](patches/README_PATCH.md).
+The historical `patches/` directory (applied against a stock v0.19.0 wheel)
+predates the fork-based image and is retained for reference only; the current
+image bakes those changes into the fork and does not run `apply-patch.sh`. See
+[patches/README_PATCH.md](patches/README_PATCH.md) for the legacy workflow.
 
 To run the pipeline against a Qwen3.6 subject model (a reasoning model), pass `--no-thinking` so the decision token sits at the final-answer position:
 
