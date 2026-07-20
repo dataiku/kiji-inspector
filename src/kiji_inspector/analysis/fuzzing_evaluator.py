@@ -783,7 +783,10 @@ def _run_judge_subprocess(
         max_model_len=max_model_len,
         trust_remote_code=True,
         gpu_memory_utilization=0.95,
-        enforce_eager=True,
+        # Hybrid (linear-attention) models need one Mamba cache block per
+        # decode sequence for CUDA graph capture; the default (1024) exceeds
+        # the available blocks at this memory budget.
+        max_num_seqs=256,
         enable_expert_parallel=False,
         disable_log_stats=True,
         **gen_kwargs,
@@ -808,6 +811,9 @@ def _run_judge_subprocess(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
+                # The judge must answer in <=20 tokens; thinking mode would
+                # burn the whole budget on reasoning prose.
+                enable_thinking=False,
             )
         )
 
