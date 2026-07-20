@@ -18,9 +18,7 @@ class FakeTokenizer:
         self.thinking_generation_prompt = thinking_generation_prompt
         self.last_template_kwargs: dict = {}
 
-    def apply_chat_template(
-        self, messages, tokenize=False, add_generation_prompt=True, **kwargs
-    ):
+    def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True, **kwargs):
         self.last_template_kwargs = kwargs
         rendered = ""
         for m in messages:
