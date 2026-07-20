@@ -102,6 +102,27 @@ def recommended_vllm_kwargs(model_name: str) -> dict:
     return {}
 
 
+def recommended_chat_template_kwargs(model_name: str) -> dict:
+    """Model-family kwargs for ``tokenizer.apply_chat_template``.
+
+    Judge/labeling subprocesses run models with small token budgets and
+    machine-parsed outputs, so reasoning modes must be disabled at the chat
+    template. The mechanism is model-family specific:
+
+    * Qwen3 family templates implement ``enable_thinking``; without
+      ``enable_thinking=False`` the model meta-reasons in plain text (no
+      ``<think>`` tags to strip) and exhausts the budget before answering.
+    * Other families ignore unknown template kwargs, so returning Qwen's
+      knob for unknown models would be harmless but ineffective — extend
+      this dispatch when adding a judge family with a different convention
+      (e.g. Nemotron toggles reasoning via a system-prompt phrase).
+    """
+    name = model_name.lower()
+    if "qwen3" in name or "qwen-3" in name:
+        return {"enable_thinking": False}
+    return {}
+
+
 class VLLMActivationExtractor:
     """Extract activations using vLLM's native hidden-state connector.
 
