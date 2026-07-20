@@ -50,13 +50,16 @@ For loading and running pretrained SAEs:
 pip install kiji-inspector
 ```
 
-For the full extraction, training, and analysis workflow:
+For the HuggingFace-based training and analysis extras (accelerate etc.):
 
 ```bash
-pip install 'kiji-inspector[train]'
+pip install 'kiji-inspector[full]'
 ```
 
-`kiji-inspector[full]` is also available as an alias for the same full stack.
+The vLLM extraction path is not covered by any extra: upstream vLLM wheels do
+not ship the hidden-states connector, so it requires the Docker image built
+from the repository [Dockerfile](Dockerfile), which compiles vLLM from the
+[`Davidnet/vllm`](https://github.com/Davidnet/vllm) fork.
 
 ## Quick Start
 

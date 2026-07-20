@@ -66,16 +66,6 @@ class ActivationExtractor:
         if self.config.max_memory is not None:
             load_kwargs["max_memory"] = self.config.max_memory
 
-        # Nemotron-H's custom modelling code needs mamba_ssm for a Triton-based
-        # rmsnorm, but mamba_ssm's __init__ unconditionally imports the CUDA kernel
-        # selective_scan_cuda which isn't compiled for all platforms (e.g. GB200).
-        # Inject a stub so the import succeeds; the model never calls this kernel.
-        import sys
-        import types
-
-        if "selective_scan_cuda" not in sys.modules:
-            sys.modules["selective_scan_cuda"] = types.ModuleType("selective_scan_cuda")
-
         self.model = AutoModelForCausalLM.from_pretrained(self.config.model_name, **load_kwargs)
         self.model.eval()
 
