@@ -102,8 +102,8 @@ def recommended_vllm_kwargs(model_name: str) -> dict:
     return {}
 
 
-def recommended_chat_template_kwargs(model_name: str) -> dict:
-    """Model-family kwargs for ``tokenizer.apply_chat_template``.
+def recommended_chat_template_kwargs(model_name: str, tokenizer: object | None = None) -> dict:
+    """Kwargs for ``tokenizer.apply_chat_template`` that disable reasoning modes.
 
     Judge/labeling subprocesses run models with small token budgets and
     machine-parsed outputs, so reasoning modes must be disabled at the chat
@@ -114,9 +114,23 @@ def recommended_chat_template_kwargs(model_name: str) -> dict:
       ``<think>`` tags to strip) and exhausts the budget before answering.
     * Other families ignore unknown template kwargs, so returning Qwen's
       knob for unknown models would be harmless but ineffective — extend
-      this dispatch when adding a judge family with a different convention
+      this when adding a judge family with a different convention
       (e.g. Nemotron toggles reasoning via a system-prompt phrase).
+
+    Detection prefers the tokenizer's own chat template when available: a
+    renamed fine-tune or local path (``/models/judge``) loads the same Qwen
+    template even though its name matches nothing. The model-name heuristic
+    is the fallback when no tokenizer (or no template) is at hand.
     """
+    if tokenizer is not None:
+        template = getattr(tokenizer, "chat_template", None)
+        if isinstance(template, dict):  # some tokenizers ship named templates
+            template = " ".join(str(v) for v in template.values())
+        if template:
+            if "enable_thinking" in str(template):
+                return {"enable_thinking": False}
+            return {}  # template known and does not implement the knob
+
     name = model_name.lower()
     if "qwen3" in name or "qwen-3" in name:
         return {"enable_thinking": False}

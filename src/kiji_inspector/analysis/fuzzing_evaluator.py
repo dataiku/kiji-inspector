@@ -806,8 +806,8 @@ def _run_judge_subprocess(
         recommended_chat_template_kwargs,
     )
 
-    template_kwargs = recommended_chat_template_kwargs(judging_model)
     tokenizer = llm.get_tokenizer()
+    template_kwargs = recommended_chat_template_kwargs(judging_model, tokenizer)
     formatted_prompts = []
     for user_content in user_contents:
         messages = [
