@@ -171,8 +171,8 @@ def collect_max_activating_examples(
             # Transpose so each row is one feature's values across the chunk
             feat_sub_t = feat_sub.t().contiguous()  # (n_features, chunk)
             chunk_len = feat_sub_t.shape[1]
-            global_idx = torch.arange(i, end, dtype=torch.long).unsqueeze(0).expand(
-                n_features, chunk_len
+            global_idx = (
+                torch.arange(i, end, dtype=torch.long).unsqueeze(0).expand(n_features, chunk_len)
             )
 
             # Running stats

@@ -145,9 +145,7 @@ def _install_fake_vllm(monkeypatch, captured, hidden_size=64):
 
     monkeypatch.setitem(sys.modules, "vllm", fake_vllm)
     monkeypatch.setitem(sys.modules, "vllm.config.kv_transfer", fake_kv)
-    monkeypatch.setitem(
-        sys.modules, "vllm.distributed.kv_transfer.kv_connector.v1", fake_v1
-    )
+    monkeypatch.setitem(sys.modules, "vllm.distributed.kv_transfer.kv_connector.v1", fake_v1)
     monkeypatch.setitem(
         sys.modules,
         "vllm.distributed.kv_transfer.kv_connector.v1.example_hidden_states_connector",
@@ -188,12 +186,8 @@ def test_recommended_chat_template_kwargs_by_name():
     )
 
     # Canonical IDs, no tokenizer available: name heuristic.
-    assert recommended_chat_template_kwargs("Qwen/Qwen3.6-35B-A3B") == {
-        "enable_thinking": False
-    }
-    assert recommended_chat_template_kwargs("Qwen/Qwen3-Next-80B-A3B") == {
-        "enable_thinking": False
-    }
+    assert recommended_chat_template_kwargs("Qwen/Qwen3.6-35B-A3B") == {"enable_thinking": False}
+    assert recommended_chat_template_kwargs("Qwen/Qwen3-Next-80B-A3B") == {"enable_thinking": False}
     assert recommended_chat_template_kwargs("meta-llama/Llama-3.3-70B") == {}
     assert recommended_chat_template_kwargs("nvidia/Nemotron-H-56B") == {}
 
@@ -206,14 +200,10 @@ def test_recommended_chat_template_kwargs_by_tokenizer_template():
     # A renamed fine-tune / local path still loads the Qwen chat template:
     # detection must key off the template, not the user-provided name.
     tok = _FakeTokenizer(_QWEN_STYLE_TEMPLATE)
-    assert recommended_chat_template_kwargs("/models/judge", tok) == {
-        "enable_thinking": False
-    }
+    assert recommended_chat_template_kwargs("/models/judge", tok) == {"enable_thinking": False}
     # Named-template dict form.
     tok = _FakeTokenizer({"default": _QWEN_STYLE_TEMPLATE})
-    assert recommended_chat_template_kwargs("/models/judge", tok) == {
-        "enable_thinking": False
-    }
+    assert recommended_chat_template_kwargs("/models/judge", tok) == {"enable_thinking": False}
     # Template known and lacking the knob: no kwargs, even for a Qwen name.
     tok = _FakeTokenizer(_PLAIN_TEMPLATE)
     assert recommended_chat_template_kwargs("Qwen/Qwen3.6-35B-A3B", tok) == {}
@@ -244,9 +234,7 @@ def test_vllm_extractor_uses_native_connector_config(monkeypatch):
     # Native extract_hidden_states speculator method drives layer selection.
     spec = kwargs["speculative_config"]
     assert spec["method"] == "extract_hidden_states"
-    assert spec["draft_model_config"]["hf_config"][
-        "eagle_aux_hidden_state_layer_ids"
-    ] == [20]
+    assert spec["draft_model_config"]["hf_config"]["eagle_aux_hidden_state_layer_ids"] == [20]
 
     # ExampleHiddenStatesConnector installed as a kv_producer.
     kv = kwargs["kv_transfer_config"].kwargs
