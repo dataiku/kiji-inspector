@@ -101,18 +101,19 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Install Kiji Inspector — runtime deps, the `full` extra (accelerate for the
 # HF path), and the dev dependency group (pytest/ruff for in-image
-# verification) — into the existing vLLM environment. The constraints file
-# keeps the resolver off the torch stack vLLM was compiled against; everything
-# else resolves from pyproject.toml, so the image stays in sync with the
-# project metadata instead of duplicating a hand-picked package list.
-# uv (not pip) here: `uv pip install --group` works on any uv version we pin,
-# whereas pip only grew `--group` in 25.1, making the layer hostage to
-# whatever pip `uv venv --seed` happened to ship.
+# verification) — into the existing vLLM environment, resolved from the
+# committed uv.lock (`--frozen`) so later builds install the exact versions
+# the lockfile records instead of re-resolving broad pyproject ranges.
+# `--inexact` leaves packages the lock doesn't own — the fork-built vllm and
+# its build deps — untouched; the lock's torch (2.11.0+cu129 on linux)
+# matches the frozen constraints, and the assertion below fails the build if
+# that ever drifts. `--active` targets /opt/venv rather than a project-local
+# .venv.
 WORKDIR /opt/kiji-inspector
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install -e '.[full]' --group dev -c /opt/torch-constraints.txt \
+    uv sync --active --frozen --inexact --extra full --group dev \
     && python -c "import kiji_inspector, torch, vllm; print(f'kiji-inspector installed (torch={torch.__version__}, vllm={vllm.__version__})')"
 
 # Fail the build early if the pinned vLLM commit does not ship the
