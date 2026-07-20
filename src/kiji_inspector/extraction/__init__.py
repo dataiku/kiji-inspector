@@ -3,6 +3,7 @@ from kiji_inspector.extraction.extractor import RawActivationExtractor, build_ag
 from kiji_inspector.extraction.vllm_activation_extractor import (
     VLLMActivationConfig,
     VLLMActivationExtractor,
+    recommended_vllm_kwargs,
     run_dp_extraction_to_shards,
 )
 
@@ -14,6 +15,7 @@ __all__ = [
     "RawActivationExtractor",
     "build_agent_prompt",
     "create_extractor",
+    "recommended_vllm_kwargs",
     "run_dp_extraction_to_shards",
 ]
 
@@ -41,11 +43,14 @@ def create_extractor(
         ``tokenizer``, and ``hidden_size``.
     """
     if backend == "vllm":
+        # Apply model-family defaults (e.g. language_model_only for hybrid
+        # multimodal Qwen), letting explicit kwargs win.
+        merged = {**recommended_vllm_kwargs(model_name), **kwargs}
         config = VLLMActivationConfig(
             model_name=model_name,
             layers=layers,
             token_positions=token_positions,
-            **kwargs,
+            **merged,
         )
         return VLLMActivationExtractor(config)
     elif backend == "hf":

@@ -178,14 +178,10 @@ def extract_per_token_activations(
     import pickle
     import tempfile
 
-    # Per-token extraction requires full sequence activations, which
-    # the vLLM backend cannot provide (it only returns the decode step).
-    # Force HF backend for this step.
-    if backend == "vllm":
-        print(
-            "  Note: switching to HF backend for per-token extraction (vLLM only returns decode-step activations)"
-        )
-        backend = "hf"
+    # Per-token extraction requires full-sequence (prompt-position) activations.
+    # The native hidden-states connector emits hidden states for every prompt
+    # token (shape [T, num_layers, H] with include_output_tokens=False), so the
+    # vLLM backend now supports per-token extraction directly — no HF fallback.
 
     # Run in a subprocess so GPU memory is fully freed on exit
     tmp_dir = tempfile.mkdtemp(prefix="kiji_extraction_")

@@ -39,41 +39,50 @@ def _test_worker(
     # Suppress vLLM logging noise
     os.environ.setdefault("VLLM_LOGGING_LEVEL", "ERROR")
 
+    import numpy as np
     import torch
-    from vllm import LLM, SamplingParams
+
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        VLLMActivationConfig,
+        VLLMActivationExtractor,
+    )
+
+    layer_key = f"residual_{layer}"
 
     try:
-        llm = LLM(
-            model=model,
-            extract_activation_layers=[layer],
-            enforce_eager=True,
-            trust_remote_code=True,
-            tensor_parallel_size=tp_size,
-            max_model_len=4096,
-            gpu_memory_utilization=0.90,
-            disable_log_stats=True,
+        # Route through the centralized extractor so this benchmark exercises
+        # the same native hidden-states connector path as production.
+        extractor = VLLMActivationExtractor(
+            VLLMActivationConfig(
+                model_name=model,
+                layers=[layer],
+                token_positions="all",
+                tensor_parallel_size=tp_size,
+                max_model_len=4096,
+                gpu_memory_utilization=0.90,
+                enforce_eager=True,
+                trust_remote_code=True,
+            )
         )
 
-        sp = SamplingParams(max_tokens=1, temperature=0.0, extract_activations=True)
         prompts = ["The quick brown fox jumps over the lazy dog."] * num_prompts
 
         # Warmup
-        llm.generate(prompts[:2], sp, use_tqdm=False)
+        extractor.extract_batch(prompts[:2], batch_size=2)
 
         # Benchmark
         t0 = time.perf_counter()
-        outputs = llm.generate(prompts, sp, use_tqdm=False)
+        acts_list = extractor.extract_batch(prompts, batch_size=num_prompts)
         elapsed = time.perf_counter() - t0
 
         # Check for NaN
         nan_count = 0
         total_count = 0
-        for out in outputs:
-            act = out.outputs[0].activations
-            if act:
-                for _, tensor in act.items():
-                    nan_count += torch.isnan(tensor).sum().item()
-                    total_count += tensor.numel()
+        for act in acts_list:
+            arr = act.get(layer_key)
+            if arr is not None and arr.size:
+                nan_count += int(np.isnan(arr).sum())
+                total_count += int(arr.size)
             else:
                 # No activations returned at all
                 nan_count += 1
@@ -87,7 +96,7 @@ def _test_worker(
             "throughput": num_prompts / elapsed,
         }
 
-        del llm
+        extractor.cleanup()
         torch.cuda.empty_cache()
 
     except Exception as e:
