@@ -115,6 +115,7 @@ class CachedActivationBuffer:
 
         # Count total tokens and compute global RMS across all shards
         self._total_tokens = 0
+        self._batches_per_epoch = 0
         sum_sq = 0.0
         total_elements = 0
         for path in self.shard_files:
@@ -126,6 +127,10 @@ class CachedActivationBuffer:
             arr_clean = np.where(finite_mask, arr_f64, 0.0)
             sum_sq += (arr_clean**2).sum()
             total_elements += finite_mask.sum()
+            # __iter__ drops non-finite rows and each shard's tail remainder
+            # independently, so count exactly what it will yield.
+            finite_rows = int(finite_mask.all(axis=1).sum())
+            self._batches_per_epoch += finite_rows // self.batch_size
 
         self.rms_scale = float(np.sqrt(sum_sq / total_elements))
 
@@ -139,7 +144,8 @@ class CachedActivationBuffer:
         return self._total_tokens
 
     def estimate_total_steps(self) -> int:
-        return (self._total_tokens * self.num_epochs) // self.batch_size
+        """Exact number of batches ``__iter__`` will yield across all epochs."""
+        return self._batches_per_epoch * self.num_epochs
 
     def __iter__(self) -> Iterator[torch.Tensor]:
         for _epoch in range(self.num_epochs):
@@ -574,7 +580,19 @@ def train_sae(
     )
 
     d_model = buffer.d_model
-    total_steps = config.total_steps or buffer.estimate_total_steps()
+    # Clamp to what the buffer can actually supply: the training loop ends
+    # when the buffer is exhausted, so a larger requested step count would
+    # silently shift "end of training" earlier and break every step-based
+    # schedule computed from total_steps (including the resample guard below).
+    available_steps = buffer.estimate_total_steps()
+    total_steps = config.total_steps or available_steps
+    if total_steps > available_steps:
+        print(
+            f"Warning: requested {total_steps:,} steps but the activation buffer "
+            f"only supplies {available_steps:,} ({config.num_epochs} epochs); "
+            f"training for {available_steps:,} steps."
+        )
+        total_steps = available_steps
 
     # Auto-scale step-based parameters relative to total_steps
     if config.auto_scale_steps:
@@ -710,8 +728,19 @@ def train_sae(
 
             running = {}
 
-        # Dead feature resampling
-        if config.resample_dead_features and step > 0 and step % config.resample_every == 0:
+        # Dead feature resampling. Never resample near the end of training:
+        # reinitialised features need optimizer steps to become useful (or be
+        # re-killed) before the final save. Without this guard, a resample
+        # landing on the last step (e.g. total_steps divisible by
+        # resample_every, which auto-scaling makes likely) ships thousands of
+        # random, dense features in sae_final.pt (L0 ~50% of d_sae).
+        can_resample = step + config.resample_every <= total_steps
+        if (
+            config.resample_dead_features
+            and can_resample
+            and step > 0
+            and step % config.resample_every == 0
+        ):
             print(f"\n[Step {step}] Checking for dead features...")
             raw_sae = _unwrap(sae)
             dev = next(raw_sae.parameters()).device
