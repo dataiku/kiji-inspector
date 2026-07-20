@@ -74,7 +74,7 @@ The pipeline supports training on activations from diverse agent scenarios (tool
 
 Nemotron-3-Nano is a Mixture-of-Experts model (30B total parameters, 3B active per token) with a hidden dimension of 4096.
 
-Qwen3.6-35B-A3B is a hybrid GatedDeltaNet/attention Mixture-of-Experts model (35B total parameters, 3B active per token) with 40 layers and a hidden dimension of 2048 (nested under `text_config`); layer count and `d_sae` are auto-detected by the pipeline.
+Qwen3.6-35B-A3B is a hybrid GatedDeltaNet/attention Mixture-of-Experts model (35B total parameters, 3B active per token) with 40 layers and a hidden dimension of 2048 (nested under `text_config`); layer count and `d_sae` are auto-detected by the pipeline. Trained SAEs for this model (layers 12/20/28/36) are published at [`575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B`](https://huggingface.co/575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B) and resolve through the model registry via `SAE.from_pretrained(base_model="Qwen/Qwen3.6-35B-A3B", layer=...)`.
 
 ## Quick Start
 
