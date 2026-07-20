@@ -88,6 +88,19 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -c /opt/torch-constraints.txt \
     "pytest>=7.0" "pytest-cov>=4.0" "ruff>=0.1.0"
 
+# Pipeline runtime dependencies that kiji needs but that `pip install . --no-deps`
+# above skips. Without these the full pipeline fails: pyarrow/pandas for pairs
+# parquet I/O (steps 1/3/5), scipy for SAE feature-health stats (step 2).
+#
+# TODO(maintainer): this is a stopgap. Replace the `--no-deps` kiji install +
+# this hand-picked list with a proper install of kiji's dependency groups (e.g.
+# `uv pip install --group runtime` or drop `--no-deps` once pyproject pins are
+# guaranteed compatible with the pinned torch/vLLM stack), so runtime deps stay
+# in sync with pyproject.toml instead of being duplicated here.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -c /opt/torch-constraints.txt \
+    "pyarrow" "pandas" "scipy"
+
 # Import check for the native hidden-states connector: fail the build early if
 # the pinned vLLM revision does not ship the extract_hidden_states connector.
 RUN python -c "\
