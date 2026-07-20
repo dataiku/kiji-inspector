@@ -329,7 +329,10 @@ def _run_labeling_subprocess(
         max_model_len=max_model_len,
         trust_remote_code=True,
         gpu_memory_utilization=0.80,
-        enforce_eager=True,
+        # Hybrid (linear-attention) models need one Mamba cache block per
+        # decode sequence for CUDA graph capture; the default (1024) exceeds
+        # the available blocks at this memory budget.
+        max_num_seqs=256,
         enable_expert_parallel=False,
         disable_log_stats=True,
         **gen_kwargs,
@@ -341,7 +344,14 @@ def _run_labeling_subprocess(
         max_tokens=500,
     )
 
-    # Build prompts using the model's own chat template
+    # Build prompts using the model's own chat template. Two guards against
+    # the judge meta-reasoning in prose instead of answering (which burns the
+    # whole token budget before any JSON appears):
+    #   1. enable_thinking=False — Qwen3-family templates suppress the
+    #      <think> block entirely.
+    #   2. Pre-fill the assistant response with the start of the JSON object,
+    #      so the model must continue it with content rather than preamble.
+    JSON_PREFILL = '{"label": "'
     system = (
         "You are an expert at interpreting neural network features. "
         "Output only valid JSON, no markdown fences."
@@ -358,7 +368,9 @@ def _run_labeling_subprocess(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
+                enable_thinking=False,
             )
+            + JSON_PREFILL
         )
 
     print(f"  [subprocess] Labeling {len(formatted_prompts)} features...")
@@ -366,7 +378,8 @@ def _run_labeling_subprocess(
 
     labels: dict[str, dict] = {}
     for (feat_idx, _), output in zip(label_prompts, outputs, strict=True):
-        raw = output.outputs[0].text.strip()
+        # Re-attach the pre-filled JSON prefix the model continued from.
+        raw = (JSON_PREFILL + output.outputs[0].text).strip()
         # Strip Qwen3 thinking blocks (<think>...</think>)
         raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
         # Also handle unclosed thinking block (truncated output)
