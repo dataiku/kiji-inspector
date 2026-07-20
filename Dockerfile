@@ -64,8 +64,18 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 ENV MAX_JOBS=16
 ENV NVCC_THREADS=2
 ENV CMAKE_BUILD_TYPE=Release
-ARG TORCH_CUDA_ARCH_LIST="8.0 8.9 9.0 10.0 12.0"
+ARG TORCH_CUDA_ARCH_LIST="8.0 8.9 9.0 10.0 12.0+PTX"
 ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.cache/ccache \
     pip install -e . --no-build-isolation -c /opt/torch-constraints.txt
+
+# Install Kiji Inspector from this checkout into the existing vLLM
+# environment without changing its dependency versions. In particular, vLLM
+# was compiled against the Torch version installed above.
+WORKDIR /opt/kiji-inspector
+COPY pyproject.toml README.md LICENSE ./
+COPY src ./src
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -e . --no-deps \
+    && python -c "import kiji_inspector, torch, vllm; print(f'kiji-inspector installed (torch={torch.__version__}, vllm={vllm.__version__})')"
