@@ -316,6 +316,13 @@ def _run_labeling_subprocess(
     from vllm import LLM, SamplingParams
 
     print(f"  [subprocess] Loading vLLM model: {judging_model}")
+    # Apply model-family engine defaults so hybrid-MoE judges (e.g. Qwen3.6)
+    # load reliably for generation too — same fix as the extractor path.
+    from kiji_inspector.extraction.vllm_activation_extractor import recommended_vllm_kwargs
+
+    gen_kwargs = recommended_vllm_kwargs(judging_model)
+    if gen_kwargs.get("moe_backend") == "triton":
+        os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     llm = LLM(
         model=judging_model,
         tensor_parallel_size=tp_size,
@@ -325,6 +332,7 @@ def _run_labeling_subprocess(
         enforce_eager=True,
         enable_expert_parallel=False,
         disable_log_stats=True,
+        **gen_kwargs,
     )
 
     sampling_params = SamplingParams(
