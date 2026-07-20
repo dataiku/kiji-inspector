@@ -334,9 +334,7 @@ class VLLMActivationExtractor:
             # ids (prompt tokens, since include_output_tokens=False) must match
             # the request's prompt token ids.
             prompt_ids = list(output.prompt_token_ids or [])
-            extracted_ids = (
-                token_ids.tolist() if hasattr(token_ids, "tolist") else list(token_ids)
-            )
+            extracted_ids = token_ids.tolist() if hasattr(token_ids, "tolist") else list(token_ids)
             if prompt_ids and extracted_ids != prompt_ids:
                 raise ValueError(
                     "Extracted token ids do not match prompt token ids "
