@@ -240,6 +240,16 @@ def _gather_rows(
     materialized in RAM.
     """
     d_model = memmaps[0].shape[1]
+    total_rows = int(cum_offsets[-1])
+    if len(global_indices) and (
+        int(global_indices.min()) < 0 or int(global_indices.max()) >= total_rows
+    ):
+        raise IndexError(
+            f"Activation row index out of range: requested "
+            f"[{int(global_indices.min())}, {int(global_indices.max())}] but shards "
+            f"hold {total_rows} rows. A shard file is likely missing or truncated, "
+            "or this layer's shards don't match the layer the indices were built from."
+        )
     out = np.empty((len(global_indices), d_model), dtype=memmaps[0].dtype)
     for shard_idx, m in enumerate(memmaps):
         lo, hi = int(cum_offsets[shard_idx]), int(cum_offsets[shard_idx + 1])
