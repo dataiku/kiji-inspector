@@ -173,6 +173,58 @@ def test_recommended_vllm_kwargs_qwen_hybrid():
     assert recommended_vllm_kwargs("google/gemma-3-27b-it") == {}
 
 
+class _FakeTokenizer:
+    def __init__(self, chat_template):
+        self.chat_template = chat_template
+
+
+_QWEN_STYLE_TEMPLATE = "{% if enable_thinking %}<think>{% endif %}{{ messages }}"
+_PLAIN_TEMPLATE = "{{ messages }}"
+
+
+def test_recommended_chat_template_kwargs_by_name():
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
+    # Canonical IDs, no tokenizer available: name heuristic.
+    assert recommended_chat_template_kwargs("Qwen/Qwen3.6-35B-A3B") == {
+        "enable_thinking": False
+    }
+    assert recommended_chat_template_kwargs("Qwen/Qwen3-Next-80B-A3B") == {
+        "enable_thinking": False
+    }
+    assert recommended_chat_template_kwargs("meta-llama/Llama-3.3-70B") == {}
+    assert recommended_chat_template_kwargs("nvidia/Nemotron-H-56B") == {}
+
+
+def test_recommended_chat_template_kwargs_by_tokenizer_template():
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
+    # A renamed fine-tune / local path still loads the Qwen chat template:
+    # detection must key off the template, not the user-provided name.
+    tok = _FakeTokenizer(_QWEN_STYLE_TEMPLATE)
+    assert recommended_chat_template_kwargs("/models/judge", tok) == {
+        "enable_thinking": False
+    }
+    # Named-template dict form.
+    tok = _FakeTokenizer({"default": _QWEN_STYLE_TEMPLATE})
+    assert recommended_chat_template_kwargs("/models/judge", tok) == {
+        "enable_thinking": False
+    }
+    # Template known and lacking the knob: no kwargs, even for a Qwen name.
+    tok = _FakeTokenizer(_PLAIN_TEMPLATE)
+    assert recommended_chat_template_kwargs("Qwen/Qwen3.6-35B-A3B", tok) == {}
+    # Tokenizer without a template falls back to the name heuristic.
+    tok = _FakeTokenizer(None)
+    assert recommended_chat_template_kwargs("Qwen/Qwen3.6-35B-A3B", tok) == {
+        "enable_thinking": False
+    }
+    assert recommended_chat_template_kwargs("/models/judge", tok) == {}
+
+
 def test_vllm_extractor_uses_native_connector_config(monkeypatch):
     captured = {}
     _install_fake_vllm(monkeypatch, captured)

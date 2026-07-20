@@ -355,13 +355,13 @@ def _run_labeling_subprocess(
         recommended_chat_template_kwargs,
     )
 
-    template_kwargs = recommended_chat_template_kwargs(judging_model)
     JSON_PREFILL = '{"label": "'
     system = (
         "You are an expert at interpreting neural network features. "
         "Output only valid JSON, no markdown fences."
     )
     tokenizer = llm.get_tokenizer()
+    template_kwargs = recommended_chat_template_kwargs(judging_model, tokenizer)
     formatted_prompts = []
     for _feat_idx, user_content in label_prompts:
         messages = [
