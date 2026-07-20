@@ -17,12 +17,14 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Fetch the (public) vLLM fork at an exact commit. Fetching the SHA directly
 # (GitHub serves arbitrary reachable SHAs) instead of `git clone --branch`
 # keeps the build identical even if the branch is later force-pushed or
-# deleted. Current pin: tip of `hidden-states-inline-return-squashed`.
+# deleted. Full history (no --depth 1) so setuptools-scm derives the real
+# dev version (0.1.devN+g<sha>) instead of a depth-truncated dev1.
+# Current pin: tip of `hidden-states-inline-return-squashed`.
 ARG VLLM_REPO=https://github.com/Davidnet/vllm.git
 ARG VLLM_COMMIT=b6455d43be849d4850bed6ecfb834489ba9f0a08
 RUN git init /opt/vllm \
     && git -C /opt/vllm remote add origin "${VLLM_REPO}" \
-    && git -C /opt/vllm fetch --depth 1 origin "${VLLM_COMMIT}" \
+    && git -C /opt/vllm fetch origin "${VLLM_COMMIT}" \
     && git -C /opt/vllm checkout --detach FETCH_HEAD
 
 WORKDIR /opt/vllm
