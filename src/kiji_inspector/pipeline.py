@@ -40,6 +40,40 @@ from pathlib import Path
 _SUBJECT_MODEL_DEFAULT = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
 
 
+def _resolve_subject_model(value: str) -> str:
+    """Resolve ``--subject-model`` to either a hub ID or a validated local directory.
+
+    A value is treated as a local path only when it starts with ``/``, ``./``,
+    ``../``, or ``~`` — never by sniffing the filesystem, so a hub ID like
+    ``org/name`` is returned untouched even if a same-named directory exists.
+    Local paths must be a directory containing ``config.json``; failing early
+    here replaces the cryptic ``HFValidationError`` HF hub raises much later.
+
+    Raises:
+        ValueError: If a local path is missing, not a directory, or has no
+            ``config.json``.
+    """
+    if not value.startswith(("/", "./", "../", "~")):
+        return value
+
+    path = Path(value).expanduser().resolve()
+    hint = (
+        "If you are running inside Docker, the model directory must be "
+        "volume-mounted, e.g.: -v /home/user/models:/models:ro and pass the "
+        "container path (--subject-model /models/...)."
+    )
+    if not path.exists():
+        raise ValueError(f"Subject model path does not exist: {path}\n{hint}")
+    if not path.is_dir():
+        raise ValueError(f"Subject model path is not a directory: {path}\n{hint}")
+    if not (path / "config.json").is_file():
+        raise ValueError(
+            f"Subject model directory has no config.json: {path}\n"
+            "This does not look like a HuggingFace model directory."
+        )
+    return str(path)
+
+
 def _apply_p2p_mitigations(disable_p2p: str) -> None:
     """Disable CUDA peer-to-peer access to prevent host OOM on GB200 (Blackwell).
 
@@ -207,8 +241,9 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=_SUBJECT_MODEL_DEFAULT,
         dest="subject_model",
-        help="HuggingFace model ID for activation extraction — the model under study "
-        f"(default: {_SUBJECT_MODEL_DEFAULT}).",
+        help="HuggingFace model ID or local model directory for activation "
+        "extraction — the model under study. Local paths must start with "
+        f"/, ./, ../, or ~ (default: {_SUBJECT_MODEL_DEFAULT}).",
     )
     # Backward-compatible alias (hidden from help)
     p.add_argument(
@@ -968,6 +1003,11 @@ def _run_step5(args, pairs_dir: str, sae_checkpoints: dict[str, str] | None = No
 
 def main() -> None:
     args = parse_args()
+
+    try:
+        args.subject_model = _resolve_subject_model(args.subject_model)
+    except ValueError as e:
+        sys.exit(f"error: {e}")
 
     # Apply Blackwell P2P mitigations before any CUDA context is created
     _apply_p2p_mitigations(args.disable_p2p)

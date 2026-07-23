@@ -122,6 +122,29 @@ To run the pipeline against a Qwen3.6 subject model (a reasoning model), pass `-
 python -m kiji_inspector.pipeline --subject-model Qwen/Qwen3.6-35B-A3B --no-thinking
 ```
 
+### Using a locally downloaded model
+
+`--subject-model` also accepts a local model directory (paths must start with
+`/`, `./`, `../`, or `~`; anything else is treated as a hub ID). Inside Docker
+the directory must be volume-mounted, and you pass the **container** path:
+
+```bash
+docker run --rm --gpus all \
+  -v "$PWD:/workspace" \
+  -v /home/user/models:/models:ro \
+  -v "${HF_CACHE:-$HOME/.cache/huggingface}:/root/.cache/huggingface" \
+  -e HF_HOME=/root/.cache/huggingface \
+  -e PYTHONPATH=/workspace/src \
+  -w /workspace \
+  575lab/kiji-inspector:dev \
+  python -m kiji_inspector.pipeline \
+    --subject-model /models/programs/downloaded-model
+```
+
+Note: `SAE.from_pretrained(base_model=...)` resolves SAE repos through an
+exact-match registry of hub IDs, so it won't match a local path — pass
+`repo_id` directly instead.
+
 ---
 
 ## 📓 Examples
