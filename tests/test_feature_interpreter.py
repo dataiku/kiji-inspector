@@ -112,6 +112,26 @@ class TestShardedRowView:
             view[[0, 1]]
 
 
+class TestOpenLayerShards:
+    def test_mismatched_d_model_raises(self, tmp_path):
+        layer_dir = tmp_path / "shards"
+        layer_dir.mkdir()
+        np.save(layer_dir / "shard_000000.npy", np.zeros((2, 4), dtype=np.float32))
+        np.save(layer_dir / "shard_000001.npy", np.zeros((2, 5), dtype=np.float32))
+
+        with pytest.raises(ValueError, match=r"d_model=5, expected 4"):
+            open_layer_shards(layer_dir)
+
+    def test_mismatched_dtype_raises(self, tmp_path):
+        layer_dir = tmp_path / "shards"
+        layer_dir.mkdir()
+        np.save(layer_dir / "shard_000000.npy", np.zeros((2, 4), dtype=np.float32))
+        np.save(layer_dir / "shard_000001.npy", np.zeros((2, 4), dtype=np.float16))
+
+        with pytest.raises(ValueError, match=r"dtype=float16, expected float32"):
+            open_layer_shards(layer_dir)
+
+
 class TestLoadActivationsFromShards:
     def test_dedup_keeps_first_occurrence_order(self, tmp_path):
         # 10 rows: prompt "a" repeats at rows 0/3/9, "b" at 1/4, rest unique

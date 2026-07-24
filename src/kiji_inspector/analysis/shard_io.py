@@ -26,6 +26,25 @@ def open_layer_shards(
     if not shard_paths:
         raise FileNotFoundError(f"No shard_*.npy files in {layer_dir}")
     memmaps = [np.load(p, mmap_mode="r") for p in shard_paths]
+
+    first_shape = memmaps[0].shape
+    if len(first_shape) != 2:
+        raise ValueError(f"Shard {shard_paths[0]} must be 2-D, got shape {first_shape}")
+
+    expected_d_model = first_shape[1]
+    expected_dtype = memmaps[0].dtype
+    for path, memmap in zip(shard_paths[1:], memmaps[1:], strict=True):
+        if memmap.ndim != 2:
+            raise ValueError(f"Shard {path} must be 2-D, got shape {memmap.shape}")
+        if memmap.shape[1] != expected_d_model:
+            raise ValueError(
+                f"Shard {path} has d_model={memmap.shape[1]}, expected {expected_d_model}"
+            )
+        if memmap.dtype != expected_dtype:
+            raise ValueError(
+                f"Shard {path} has dtype={memmap.dtype}, expected {expected_dtype}"
+            )
+
     cum = np.zeros(len(memmaps) + 1, dtype=np.int64)
     for i, m in enumerate(memmaps):
         cum[i + 1] = cum[i] + m.shape[0]
