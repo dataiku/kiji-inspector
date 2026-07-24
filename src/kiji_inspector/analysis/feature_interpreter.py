@@ -17,6 +17,8 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from kiji_inspector.analysis.shard_io import ShardedRowView, open_layer_shards
+
 # ---------------------------------------------------------------------------
 # 5a: Extract activations for all unique prompts
 # ---------------------------------------------------------------------------
@@ -24,12 +26,14 @@ from tqdm import tqdm
 
 def load_activations_from_shards(
     activations_dir: str | Path,
-) -> tuple[list[str], np.ndarray]:
-    """Load activations and prompt texts from Step 2 output.
+) -> tuple[list[str], ShardedRowView]:
+    """Open activations and load prompt texts from Step 2 output.
 
     Step 2 saves ``prompts.json`` (user request per activation vector)
-    alongside the numpy shards.  We load both, deduplicate prompts, and
-    return one activation per unique prompt.
+    alongside the numpy shards.  We memmap the shards (no RAM
+    materialization), deduplicate prompts, and return a row view exposing
+    one activation per unique prompt, in first-occurrence order — so
+    ``prompts[i]`` corresponds to ``activations[i]``.
 
     Args:
         activations_dir: Directory containing shard_*.npy, metadata.json,
@@ -37,7 +41,8 @@ def load_activations_from_shards(
 
     Returns:
         prompts: Ordered list of unique user request strings.
-        activations: numpy array of shape (N, d_model), float32.
+        activations: ShardedRowView of shape (N, d_model); slicing yields
+            float32 numpy arrays gathered from the memmapped shards.
     """
     activations_dir = Path(activations_dir)
 
@@ -62,34 +67,30 @@ def load_activations_from_shards(
         f"  Model: {metadata['model']}, layer: {metadata['layer']}, d_model: {metadata['d_model']}"
     )
 
-    # Load and concatenate all shards
-    shard_paths = sorted(activations_dir.glob("shard_*.npy"))
-    if not shard_paths:
-        raise FileNotFoundError(f"No shard_*.npy files found in {activations_dir}")
+    memmaps, cum_offsets = open_layer_shards(activations_dir)
+    total_rows = int(cum_offsets[-1])
+    if len(all_prompts) != total_rows:
+        raise ValueError(
+            f"prompts.json has {len(all_prompts)} entries but shards in "
+            f"{activations_dir} hold {total_rows} rows. A shard file is likely "
+            "missing or truncated, or prompts.json is from a different run."
+        )
+    print(f"  Memmapped {len(memmaps)} shards ({total_rows} rows × {memmaps[0].shape[1]} dims)")
 
-    shards = []
-    for sp in tqdm(shard_paths, desc="[4a] Loading shards", unit="shard"):
-        shards.append(np.load(sp))
-
-    all_activations = np.concatenate(shards, axis=0)  # (total_tokens, d_model), float16
-    del shards
-    print(f"  Loaded {all_activations.shape[0]} activation vectors, shape {all_activations.shape}")
-
-    # Deduplicate: keep first activation for each unique prompt
+    # Deduplicate: keep the row index of the first occurrence of each prompt
     seen: set[str] = set()
     unique_prompts: list[str] = []
-    unique_activations: list[np.ndarray] = []
+    unique_row_idx: list[int] = []
 
-    for prompt, act in zip(all_prompts, all_activations, strict=True):
+    for row, prompt in enumerate(all_prompts):
         if prompt not in seen:
             seen.add(prompt)
             unique_prompts.append(prompt)
-            unique_activations.append(act)
+            unique_row_idx.append(row)
 
-    del all_activations
-
-    activations = np.stack(unique_activations, axis=0)
-    del unique_activations
+    activations = ShardedRowView(
+        memmaps, cum_offsets, np.asarray(unique_row_idx, dtype=np.int64)
+    )
 
     print(f"  Unique prompts: {len(unique_prompts)}, activations shape: {activations.shape}")
 
@@ -103,7 +104,7 @@ def load_activations_from_shards(
 
 def collect_max_activating_examples(
     prompts: list[str],
-    activations: np.ndarray,
+    activations: ShardedRowView | np.ndarray,
     sae_checkpoint: str,
     feature_indices: list[int],
     top_n: int = 20,
@@ -113,7 +114,8 @@ def collect_max_activating_examples(
 
     Args:
         prompts: List of user request strings (same order as activations).
-        activations: (N, d_model) float32 numpy array.
+        activations: (N, d_model) float32 array-like — a dense numpy array or
+            a ShardedRowView; only len(), .shape, and row slicing are used.
         sae_checkpoint: Path to trained SAE checkpoint.
         feature_indices: Which SAE features to analyze.
         top_n: Number of top-activating examples to collect.
