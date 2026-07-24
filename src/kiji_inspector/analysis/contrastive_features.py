@@ -21,6 +21,8 @@ from pathlib import Path
 
 import numpy as np
 
+from kiji_inspector.analysis.shard_io import gather_rows, open_layer_shards
+
 
 def _analyze_layer(
     layer_key: str,
@@ -209,57 +211,6 @@ def _analyze_layer(
     return report_path
 
 
-def _open_layer_shards(
-    layer_dir: Path,
-) -> tuple[list[np.memmap], np.ndarray]:
-    """Open all shard files in a layer dir as memmaps (no RAM materialization).
-
-    Returns:
-        (memmaps, cum_offsets) — ``cum_offsets[i]`` is the global row index of
-        the first row in shard ``i``, and ``cum_offsets[-1]`` is the total row
-        count across all shards.
-    """
-    shard_paths = sorted(layer_dir.glob("shard_*.npy"))
-    if not shard_paths:
-        raise FileNotFoundError(f"No shard_*.npy files in {layer_dir}")
-    memmaps = [np.load(p, mmap_mode="r") for p in shard_paths]
-    cum = np.zeros(len(memmaps) + 1, dtype=np.int64)
-    for i, m in enumerate(memmaps):
-        cum[i + 1] = cum[i] + m.shape[0]
-    return memmaps, cum
-
-
-def _gather_rows(
-    memmaps: list[np.memmap],
-    cum_offsets: np.ndarray,
-    global_indices: np.ndarray,
-) -> np.ndarray:
-    """Gather rows at ``global_indices`` from a list of virtually-concatenated memmaps.
-
-    Only the requested rows are paged in from disk; the full array is never
-    materialized in RAM.
-    """
-    d_model = memmaps[0].shape[1]
-    total_rows = int(cum_offsets[-1])
-    if len(global_indices) and (
-        int(global_indices.min()) < 0 or int(global_indices.max()) >= total_rows
-    ):
-        raise IndexError(
-            f"Activation row index out of range: requested "
-            f"[{int(global_indices.min())}, {int(global_indices.max())}] but shards "
-            f"hold {total_rows} rows. A shard file is likely missing or truncated, "
-            "or this layer's shards don't match the layer the indices were built from."
-        )
-    out = np.empty((len(global_indices), d_model), dtype=memmaps[0].dtype)
-    for shard_idx, m in enumerate(memmaps):
-        lo, hi = int(cum_offsets[shard_idx]), int(cum_offsets[shard_idx + 1])
-        mask = (global_indices >= lo) & (global_indices < hi)
-        if mask.any():
-            local = global_indices[mask] - lo
-            out[mask] = m[local]
-    return out
-
-
 def _validate_step1_metadata(pairs: list, first_layer_dir: Path) -> None:
     """Validate Step 1 metadata + prompt ordering matches the loaded pairs."""
     metadata_path = first_layer_dir / "metadata.json"
@@ -362,7 +313,7 @@ def identify_contrastive_features(
         print(f"\n  --- Layer {layer} ---")
         print(f"    SAE checkpoint: {checkpoint}")
 
-        memmaps, cum_offsets = _open_layer_shards(layer_act_dir)
+        memmaps, cum_offsets = open_layer_shards(layer_act_dir)
         print(
             f"    Memmapped {len(memmaps)} shards "
             f"({int(cum_offsets[-1])} rows × {memmaps[0].shape[1]} dims, "
@@ -373,8 +324,8 @@ def identify_contrastive_features(
         for ct_value, ct_pair_indices in pair_indices_by_type.items():
             anchor_global = 2 * ct_pair_indices
             contrast_global = 2 * ct_pair_indices + 1
-            anchor_arr = _gather_rows(memmaps, cum_offsets, anchor_global)
-            contrast_arr = _gather_rows(memmaps, cum_offsets, contrast_global)
+            anchor_arr = gather_rows(memmaps, cum_offsets, anchor_global)
+            contrast_arr = gather_rows(memmaps, cum_offsets, contrast_global)
             acts_by_type[ct_value] = (anchor_arr, contrast_arr)
 
         report_path = _analyze_layer(
