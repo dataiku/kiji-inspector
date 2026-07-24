@@ -1,3 +1,9 @@
+## kiji-inspector-v0.5.1 (2026-07-24)
+
+### Feat
+
+- memory-safe shard loading and activation shard validation (#52)
+
 ## kiji-inspector-v0.5.0 (2026-07-20)
 
 ### Feat
