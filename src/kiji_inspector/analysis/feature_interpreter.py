@@ -88,9 +88,7 @@ def load_activations_from_shards(
             unique_prompts.append(prompt)
             unique_row_idx.append(row)
 
-    activations = ShardedRowView(
-        memmaps, cum_offsets, np.asarray(unique_row_idx, dtype=np.int64)
-    )
+    activations = ShardedRowView(memmaps, cum_offsets, np.asarray(unique_row_idx, dtype=np.int64))
 
     print(f"  Unique prompts: {len(unique_prompts)}, activations shape: {activations.shape}")
 

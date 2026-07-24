@@ -41,9 +41,7 @@ def open_layer_shards(
                 f"Shard {path} has d_model={memmap.shape[1]}, expected {expected_d_model}"
             )
         if memmap.dtype != expected_dtype:
-            raise ValueError(
-                f"Shard {path} has dtype={memmap.dtype}, expected {expected_dtype}"
-            )
+            raise ValueError(f"Shard {path} has dtype={memmap.dtype}, expected {expected_dtype}")
 
     cum = np.zeros(len(memmaps) + 1, dtype=np.int64)
     for i, m in enumerate(memmaps):
@@ -122,9 +120,9 @@ class ShardedRowView:
                 idx += n
             if not 0 <= idx < n:
                 raise IndexError(f"row index {int(key)} out of range for {n} rows")
-            return gather_rows(
-                self._memmaps, self._cum_offsets, self._row_indices[idx : idx + 1]
-            )[0]
+            return gather_rows(self._memmaps, self._cum_offsets, self._row_indices[idx : idx + 1])[
+                0
+            ]
         if isinstance(key, slice):
             selected = self._row_indices[key]
             if len(selected) == 0:
