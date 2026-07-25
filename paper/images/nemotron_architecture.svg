@@ -18,17 +18,17 @@
 
   <!-- Title -->
   <text x="550" y="36" text-anchor="middle" font-size="16" fill="#1a2744" font-weight="700">Nemotron-3 Nano 30B Architecture</text>
-  <text x="550" y="54" text-anchor="middle" font-size="11" fill="#718096">52 layers | 30B total params | 3.5B active | Mamba2-Transformer Hybrid MoE</text>
+  <text x="550" y="54" text-anchor="middle" font-size="11" fill="#718096">52 layers | 30B total params | 3B active | Mamba2-Transformer Hybrid MoE</text>
 
   <!-- ============================================================ -->
   <!-- Layer strip: 52 columns -->
   <!-- ============================================================ -->
   <!-- Layout: x=40..1060, width=1020, each layer = 1020/52 ~ 19.6px -->
 
-  <!-- Layer type colors:
+  <!-- Layer type colors (per NemotronH config: M=mamba, *=attention, E=moe):
        M (Mamba2)    = #2d4a7a (primary_light)
-       E (Attention) = #1a2744 (primary)
-       * (MoE)       = #e8563a (accent)
+       E (MoE)       = #1a2744 (primary)
+       * (Attention) = #e8563a (accent)
        Layer 20 highlight = bright outline
   -->
 
@@ -117,7 +117,7 @@
     <rect x="340" y="355" width="202" height="70" rx="8" fill="#fff5f5" stroke="#e8563a" stroke-width="2"/>
   </g>
   <text x="441" y="377" text-anchor="middle" font-size="13" fill="#e8563a" font-weight="700">Layer 20: Extraction Point</text>
-  <text x="441" y="395" text-anchor="middle" font-size="10" fill="#2d3748">GQA Attention layer</text>
+  <text x="441" y="395" text-anchor="middle" font-size="10" fill="#2d3748">MoE layer, post-residual stream</text>
   <text x="441" y="411" text-anchor="middle" font-size="10" fill="#2d3748">hidden dim = 2,688</text>
 
   <!-- Arrow from callout pointing right to "why layer 20" note -->
@@ -127,7 +127,7 @@
     <rect x="600" y="355" width="235" height="70" rx="8" fill="#f7fafc" stroke="#e2e8f0" stroke-width="1.5"/>
   </g>
   <text x="717" y="377" text-anchor="middle" font-size="11" fill="#1a2744" font-weight="700">Why layer 20?</text>
-  <text x="717" y="395" text-anchor="middle" font-size="10" fill="#718096">Last dense layer before MoE block</text>
+  <text x="717" y="395" text-anchor="middle" font-size="10" fill="#718096">Best of layer sweep {8, 16, 20, 32, 44}</text>
   <text x="717" y="411" text-anchor="middle" font-size="10" fill="#718096">81.2% alive features, MSE 0.574</text>
 
   <!-- ============================================================ -->
@@ -145,15 +145,15 @@
   <text x="100" y="501" font-size="11" fill="#2d3748" font-weight="600">Mamba-2 (23 layers)</text>
   <text x="100" y="515" font-size="9.5" fill="#718096">State-space model, linear complexity</text>
 
-  <!-- Attention -->
-  <rect x="310" y="488" width="30" height="16" rx="3" fill="#1a2744"/>
-  <text x="348" y="501" font-size="11" fill="#2d3748" font-weight="600">GQA Attention (23 layers)</text>
-  <text x="348" y="515" font-size="9.5" fill="#718096">Grouped query attention, 2 KV groups</text>
-
   <!-- MoE -->
+  <rect x="310" y="488" width="30" height="16" rx="3" fill="#1a2744"/>
+  <text x="348" y="501" font-size="11" fill="#2d3748" font-weight="600">MoE (23 layers)</text>
+  <text x="348" y="515" font-size="9.5" fill="#718096">128 routed + 1 shared expert, 6 active/token</text>
+
+  <!-- Attention -->
   <rect x="590" y="488" width="30" height="16" rx="3" fill="#e8563a"/>
-  <text x="628" y="501" font-size="11" fill="#2d3748" font-weight="600">MoE (6 layers)</text>
-  <text x="628" y="515" font-size="9.5" fill="#718096">128 routed + 1 shared expert, 6 active/token</text>
+  <text x="628" y="501" font-size="11" fill="#2d3748" font-weight="600">GQA Attention (6 layers)</text>
+  <text x="628" y="515" font-size="9.5" fill="#718096">Grouped query attention, 2 KV groups</text>
 
   <!-- Extraction highlight -->
   <rect x="860" y="486" width="30" height="20" rx="3" fill="none" stroke="#ff7b5f" stroke-width="2.5"/>
@@ -162,7 +162,7 @@
 
   <!-- Model stats row -->
   <text x="62" y="547" font-size="10" fill="#718096">30B total params</text>
-  <text x="210" y="547" font-size="10" fill="#718096">3.5B active/token</text>
+  <text x="210" y="547" font-size="10" fill="#718096">3B active/token</text>
   <text x="380" y="547" font-size="10" fill="#718096">hidden dim: 2,688</text>
   <text x="560" y="547" font-size="10" fill="#718096">vocab: 131K</text>
   <text x="700" y="547" font-size="10" fill="#718096">context: 256K</text>
