@@ -38,12 +38,15 @@ HF_CACHE="${HF_CACHE:-$HOME/.cache/huggingface}"
 
 # --- Guards -----------------------------------------------------------------
 
-# Layer 18 is the one healthy SAE. Retraining it would overwrite a good result.
+# Layer 18 was the one SAE that trained correctly under the original fixed-l1
+# settings, so it is protected against an accidental overwrite. Retraining it
+# deliberately is legitimate — its checkpoint predates mean-centering, so its
+# metrics are not on the same scale as the others — but it has to be asked for.
 for l in $LAYERS; do
-    if [[ "$l" == "18" ]]; then
-        echo "error: layer 18 is in LAYERS. Its SAE trained correctly (L0 73.45," >&2
-        echo "       1304 alive, 5.6% firing rate); re-running would overwrite it." >&2
-        echo "       Remove it, or set LAYERS explicitly if this is intentional." >&2
+    if [[ "$l" == "18" && "${ALLOW_LAYER_18:-0}" != "1" ]]; then
+        echo "error: layer 18 is in LAYERS. It trained correctly under the original" >&2
+        echo "       settings (L0 73.45, 1304 alive, 5.6% firing rate)." >&2
+        echo "       Re-run with ALLOW_LAYER_18=1 if overwriting it is intended." >&2
         exit 1
     fi
 done
@@ -93,7 +96,11 @@ NUM_GPUS="$(nvidia-smi -L 2>/dev/null | wc -l)"
 
 echo "image:         $IMAGE"
 echo "judging model: $JUDGING_MODEL"
-echo "layers:        $LAYERS  (18 excluded — already healthy)"
+if [[ " $LAYERS " == *" 18 "* ]]; then
+    echo "layers:        $LAYERS  (includes 18 via ALLOW_LAYER_18)"
+else
+    echo "layers:        $LAYERS  (18 excluded)"
+fi
 echo "target L0:     $TARGET_L0 (adaptive l1_coefficient)"
 echo "steps:         $STEPS  (step 1 skipped, activations reused)"
 echo "gpus:          $NUM_GPUS"
