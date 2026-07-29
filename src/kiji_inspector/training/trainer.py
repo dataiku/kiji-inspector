@@ -113,31 +113,57 @@ class CachedActivationBuffer:
         if not self.shard_files:
             raise FileNotFoundError(f"No shard_*.npy files in {activations_dir}")
 
-        # Count total tokens and compute global RMS across all shards
+        # Count total tokens and compute the global per-dimension mean and the
+        # RMS *about that mean* across all shards.
+        #
+        # Centering matters: a residual stream carries a large constant offset
+        # that dominates E[x^2] (94-98% of it at most layers of gemma-4-E4B).
+        # Scaling by the uncentered RMS therefore normalizes the offset rather
+        # than the signal, and leaves the variance the SAE actually has to
+        # explain differing by >10x across layers — so a threshold/l1 pair
+        # tuned on one layer collapses or diverges on another. Centering first
+        # makes the post-normalization variance ~1 everywhere, which is what
+        # makes the hyperparameters layer-agnostic.
         self._total_tokens = 0
         self._batches_per_epoch = 0
-        sum_sq = 0.0
-        total_elements = 0
+        sum_vec = np.zeros(self.d_model, dtype=np.float64)
+        sum_sq_vec = np.zeros(self.d_model, dtype=np.float64)
+        total_rows = 0
+        # Accumulate in row-chunks: a full float64 cast of one shard is ~10 GB
+        # at 500k x 2560, and filtering it would double that.
+        stat_chunk = 65_536
         for path in self.shard_files:
             arr = np.load(path, mmap_mode="r")
             self._total_tokens += arr.shape[0]
-            # Accumulate sum of squares for RMS (cast to float64 to avoid overflow)
-            arr_f64 = arr.astype(np.float64)
-            finite_mask = np.isfinite(arr_f64)
-            arr_clean = np.where(finite_mask, arr_f64, 0.0)
-            sum_sq += (arr_clean**2).sum()
-            total_elements += finite_mask.sum()
-            # __iter__ drops non-finite rows and each shard's tail remainder
-            # independently, so count exactly what it will yield.
-            finite_rows = int(finite_mask.all(axis=1).sum())
-            self._batches_per_epoch += finite_rows // self.batch_size
+            shard_rows = 0
+            for start in range(0, arr.shape[0], stat_chunk):
+                block = np.asarray(arr[start : start + stat_chunk], dtype=np.float64)
+                # __iter__ drops whole rows containing any non-finite value, so
+                # the statistics must cover exactly those kept rows.
+                block = block[np.isfinite(block).all(axis=1)]
+                if block.shape[0] == 0:
+                    continue
+                sum_vec += block.sum(axis=0)
+                sum_sq_vec += (block**2).sum(axis=0)
+                shard_rows += block.shape[0]
+            total_rows += shard_rows
+            # __iter__ batches within a shard, so the remainder is dropped
+            # per shard rather than across the whole set.
+            self._batches_per_epoch += shard_rows // self.batch_size
 
-        self.rms_scale = float(np.sqrt(sum_sq / total_elements))
+        if total_rows == 0:
+            raise ValueError(f"No finite activation rows found in {activations_dir}")
+
+        self.mean_vec = (sum_vec / total_rows).astype(np.float32)
+        # Var[x] = E[x^2] - E[x]^2, averaged over dimensions; clamp for fp error.
+        var_vec = np.maximum(sum_sq_vec / total_rows - (sum_vec / total_rows) ** 2, 0.0)
+        self.rms_scale = float(np.sqrt(var_vec.mean()))
 
         print(
             f"Activation buffer: {len(self.shard_files)} shards, "
             f"{self._total_tokens:,} vectors, d_model={self.d_model}, "
-            f"rms_scale={self.rms_scale:.4f}"
+            f"rms_scale={self.rms_scale:.4f} (centered), "
+            f"mean_norm={float(np.linalg.norm(self.mean_vec)):.4f}"
         )
 
     def estimate_total_tokens(self) -> int:
@@ -170,7 +196,9 @@ class CachedActivationBuffer:
                     if shard_cpu.shape[0] == 0:
                         continue
 
-                # Normalize by global RMS so hyperparameters are layer-agnostic
+                # Center, then normalize by the RMS about the mean, so that
+                # hyperparameters are layer-agnostic (see __init__).
+                shard_cpu -= torch.from_numpy(self.mean_vec).to(dtype=shard_cpu.dtype)
                 if self.rms_scale > 0:
                     shard_cpu /= self.rms_scale
 
@@ -219,6 +247,19 @@ class _AdaptiveL1Controller:
 
     After the sparsity warmup period, measures the running average L0
     and nudges l1_coefficient up/down to converge on the target.
+
+    Two safeguards keep the loop from destroying a run when it cannot actually
+    reach the target:
+
+    * **Anti-windup.** The integral only accumulates while the controller has
+      authority, so a large constant error cannot ratchet it without bound.
+    * **Authority check.** A multiplicative controller facing a constant error
+      raises l1 exponentially regardless of the integral, so anti-windup alone
+      is not enough. If l1 rises by ``authority_ratio`` without L0 falling
+      meaningfully, the L1 penalty is not what is binding — in a JumpReLU SAE
+      that is typically the threshold — and further escalation only destroys
+      reconstruction. The controller then freezes l1 and warns instead of
+      running to ``l1_max``.
     """
 
     def __init__(
@@ -229,6 +270,8 @@ class _AdaptiveL1Controller:
         ki: float = 0.001,
         l1_min: float = 1e-5,
         l1_max: float = 1.0,
+        authority_ratio: float = 4.0,
+        authority_l0_drop: float = 0.10,
     ):
         self.target_l0 = target_l0
         self.l1 = initial_l1
@@ -236,15 +279,54 @@ class _AdaptiveL1Controller:
         self.ki = ki
         self.l1_min = l1_min
         self.l1_max = l1_max
+        self.authority_ratio = authority_ratio
+        self.authority_l0_drop = authority_l0_drop
         self._integral = 0.0
+        self._frozen = False
+        # Reference point for the authority check: l1 and L0 when last re-armed.
+        self._ref_l1: float | None = None
+        self._ref_l0: float | None = None
 
     def update(self, current_l0: float) -> float:
         """Update l1_coefficient based on current L0. Returns new l1."""
+        if self._frozen:
+            return self.l1
+
+        if self._ref_l1 is None:
+            self._ref_l1, self._ref_l0 = self.l1, current_l0
+
+        # Authority check: has a large l1 increase actually moved L0?
+        if self.l1 >= self._ref_l1 * self.authority_ratio:
+            if current_l0 > self._ref_l0 * (1.0 - self.authority_l0_drop):
+                self._frozen = True
+                print(
+                    f"\n  WARNING: adaptive L1 has no authority over L0 — l1 rose "
+                    f"{self.l1 / self._ref_l1:.1f}x ({self._ref_l1:.4g} -> {self.l1:.4g}) "
+                    f"while L0 held at ~{current_l0:.0f} (target {self.target_l0:.0f}).\n"
+                    f"           Sparsity is bound by the JumpReLU threshold, not the L1 "
+                    f"penalty; escalating further would wreck reconstruction.\n"
+                    f"           Freezing l1 at {self.l1:.4g}. Target L0 is not reachable "
+                    f"with these settings."
+                )
+                return self.l1
+            # L0 did respond — re-arm the reference and keep going.
+            self._ref_l1, self._ref_l0 = self.l1, current_l0
+
         # Positive error → L0 too high → need more sparsity → increase l1
         error = (current_l0 - self.target_l0) / self.target_l0  # normalized
-        self._integral += error
 
-        # Multiplicative adjustment (works better than additive for log-scale)
+        # Conditional integration: don't wind up while the output is saturated
+        # or already pinned to an l1 bound in the direction of the error.
+        raw = 1.0 + self.kp * error + self.ki * (self._integral + error)
+        saturated = raw > 2.0 or raw < 0.5
+        at_bound = (self.l1 >= self.l1_max and error > 0) or (
+            self.l1 <= self.l1_min and error < 0
+        )
+        if not (saturated or at_bound):
+            self._integral += error
+        elif at_bound:
+            self._integral *= 0.9  # decay so the loop can recover when L0 moves
+
         adjustment = 1.0 + self.kp * error + self.ki * self._integral
         adjustment = max(0.5, min(2.0, adjustment))  # clamp per-step change
         self.l1 = max(self.l1_min, min(self.l1_max, self.l1 * adjustment))
@@ -774,7 +856,13 @@ def train_sae(
     raw_sae = _unwrap(sae)
     _save_checkpoint(raw_sae, optimizer, scheduler, step, config, {})
     final_path = str(Path(config.output_dir) / "sae_final.pt")
-    raw_sae.save_pretrained(final_path, config={"rms_scale": buffer.rms_scale})
+    raw_sae.save_pretrained(
+        final_path,
+        config={
+            "rms_scale": buffer.rms_scale,
+            "mean_vec": buffer.mean_vec.tolist(),
+        },
+    )
     print(f"Saved final model: {final_path}")
 
     # Post-training feature health analysis
