@@ -93,6 +93,21 @@ class JumpReLUSAE(nn.Module):
             x = x / self.rms_scale
         return x
 
+    def denormalize_output(self, x: torch.Tensor) -> torch.Tensor:
+        """Invert :meth:`normalize_input`, mapping a reconstruction back to
+        raw activation space.
+
+        Needed by callers that round-trip through the SAE and write the result
+        back into the model — e.g. ablation, which replaces a hidden state with
+        ``decode(encode(x))``. Scaling back without re-adding ``mean_vec``
+        would shift the hidden state by the full activation offset.
+        """
+        if self.rms_scale is not None and self.rms_scale > 0:
+            x = x * self.rms_scale
+        if self.mean_vec is not None:
+            x = x + torch.from_numpy(self.mean_vec).to(device=x.device, dtype=x.dtype)
+        return x
+
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         x = x.contiguous()
         pre_activation = F.linear(x - self.b_dec, self.W_enc.t(), self.b_enc)
