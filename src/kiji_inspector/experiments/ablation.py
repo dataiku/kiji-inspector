@@ -147,33 +147,28 @@ def make_ablation_hook(
         orig_dtype = hidden.dtype
 
         with torch.no_grad():
-            _rms = sae.rms_scale if (sae.rms_scale is not None and sae.rms_scale > 0) else None
+            # normalize_input/denormalize_output apply the full transform the
+            # SAE was trained under — (x - mean_vec) / rms_scale and its
+            # inverse. Scaling by rms_scale alone leaves the activation offset
+            # in place, which for a residual stream dwarfs the signal.
             if decision_token_only:
                 # Only modify the last token position
                 last_tok = hidden[:, -1:, :]  # (1, 1, d_model)
                 flat = last_tok.reshape(-1, last_tok.shape[-1]).to(
                     device=sae_device, dtype=sae_dtype
                 )
-                if _rms is not None:
-                    flat = flat / _rms
-                features = sae.encode(flat)
+                features = sae.encode(sae.normalize_input(flat))
                 for idx in feat_set:
                     features[:, idx] = 0.0
-                modified = sae.decode(features)
-                if _rms is not None:
-                    modified = modified * _rms
+                modified = sae.denormalize_output(sae.decode(features))
                 modified = modified.reshape(last_tok.shape).to(device=orig_device, dtype=orig_dtype)
                 hidden = torch.cat([hidden[:, :-1, :], modified], dim=1)
             else:
                 flat = hidden.reshape(-1, hidden.shape[-1]).to(device=sae_device, dtype=sae_dtype)
-                if _rms is not None:
-                    flat = flat / _rms
-                features = sae.encode(flat)
+                features = sae.encode(sae.normalize_input(flat))
                 for idx in feat_set:
                     features[:, idx] = 0.0
-                modified = sae.decode(features)
-                if _rms is not None:
-                    modified = modified * _rms
+                modified = sae.denormalize_output(sae.decode(features))
                 hidden = modified.reshape(hidden.shape).to(device=orig_device, dtype=orig_dtype)
 
         if rest is not None:
