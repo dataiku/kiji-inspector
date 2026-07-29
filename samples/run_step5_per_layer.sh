@@ -27,6 +27,11 @@
 set -euo pipefail
 
 IMAGE="${IMAGE:-575lab/kiji-inspector:dev}"
+# MUST be passed: step 5 re-extracts per-token activations with the subject
+# model. Omitting it falls back to the pipeline default (Nemotron-3-Nano-30B),
+# which yields 2688-dim activations and the wrong tokenizer, and the run dies
+# feeding them to a 2560-dim gemma-trained SAE.
+SUBJECT_MODEL="${SUBJECT_MODEL:-google/gemma-4-E4B-it}"
 JUDGING_MODEL="${JUDGING_MODEL:-Qwen/Qwen3.6-35B-A3B}"
 LAYERS="${LAYERS:-12 18 24 30 36}"
 NEED_GB="${NEED_GB:-120}"
@@ -54,6 +59,7 @@ mkdir -p "$FUZZ_CACHE"
 trap 'echo; echo "interrupted — cleaning fuzz cache"; [[ "${KEEP_CACHE:-0}" == "1" ]] || clean_cache' INT TERM
 
 echo "image:         $IMAGE"
+echo "subject model: $SUBJECT_MODEL"
 echo "judging model: $JUDGING_MODEL"
 echo "layers:        $LAYERS  (one container per layer)"
 echo "fuzz cache:    $FUZZ_CACHE  (cleaned between layers)"
@@ -77,6 +83,7 @@ for layer in $LAYERS; do
         --output-dir "$OUTPUT_DIR"
         --pairs-dir "$PAIRS_DIR"
         --layers "$layer"
+        --subject-model "$SUBJECT_MODEL"
         --judging-model "$JUDGING_MODEL"
         --backend vllm
         --extraction-tp-size "$NUM_GPUS"

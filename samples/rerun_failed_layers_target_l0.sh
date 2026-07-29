@@ -27,6 +27,11 @@
 set -euo pipefail
 
 IMAGE="${IMAGE:-575lab/kiji-inspector:dev}"
+# MUST be passed even for steps that don't load the subject model: the pipeline
+# reads its config to auto-size d_sae (4 x hidden_size). Falling back to the
+# default (Nemotron-3-Nano-30B, hidden_size 2688) silently yields d_sae=10752
+# instead of gemma-4-E4B's 10240, and makes step 5 extract from the wrong model.
+SUBJECT_MODEL="${SUBJECT_MODEL:-google/gemma-4-E4B-it}"
 JUDGING_MODEL="${JUDGING_MODEL:-Qwen/Qwen3.6-35B-A3B}"
 LAYERS="${LAYERS:-12 24 30 36}"
 TARGET_L0="${TARGET_L0:-75}"
@@ -95,6 +100,7 @@ NUM_GPUS="$(nvidia-smi -L 2>/dev/null | wc -l)"
 [[ "$NUM_GPUS" -lt 1 ]] && NUM_GPUS=1
 
 echo "image:         $IMAGE"
+echo "subject model: $SUBJECT_MODEL"
 echo "judging model: $JUDGING_MODEL"
 if [[ " $LAYERS " == *" 18 "* ]]; then
     echo "layers:        $LAYERS  (includes 18 via ALLOW_LAYER_18)"
@@ -119,6 +125,7 @@ for step in $STEPS; do
     --pairs-dir '$PAIRS_DIR' \
     --layers $LAYERS \
     --target-l0 '$TARGET_L0' \
+    --subject-model '$SUBJECT_MODEL' \
     --judging-model '$JUDGING_MODEL' \
     --backend vllm \
     --extraction-tp-size $NUM_GPUS \
