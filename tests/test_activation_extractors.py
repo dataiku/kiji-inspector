@@ -22,11 +22,95 @@ def test_hf_hook_stores_full_sequence():
     extractor._activations = {}
 
     activation = torch.arange(24, dtype=torch.float32).reshape(2, 3, 4)
-    extractor._make_hook("residual_20")(None, None, activation)
+    # Pre-hook signature: (module, args, kwargs) — hidden_states is args[0].
+    extractor._make_hook("residual_20")(None, (activation,), {})
 
     stored = extractor._activations["residual_20"]
     assert stored.shape == (2, 3, 4)
     assert torch.equal(stored, activation)
+
+
+def test_hf_hook_reads_hidden_states_from_kwargs():
+    """Some HF decoder layers are invoked with hidden_states as a kwarg."""
+    extractor = ActivationExtractor.__new__(ActivationExtractor)
+    extractor.config = ActivationConfig(
+        model_name="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
+        token_positions="decision",
+    )
+    extractor._hooks = []
+    extractor._activations = {}
+
+    activation = torch.arange(24, dtype=torch.float32).reshape(2, 3, 4)
+    extractor._make_hook("residual_20")(None, (), {"hidden_states": activation})
+
+    stored = extractor._activations["residual_20"]
+    assert stored.shape == (2, 3, 4)
+    assert torch.equal(stored, activation)
+
+
+def test_hf_hook_registered_as_pre_hook_captures_layer_input():
+    """Regression test for the HF/vLLM layer-indexing off-by-one.
+
+    vLLM's aux-hidden-state extraction (used to build SAE training data)
+    records the residual stream *entering* layer N, with N=0 seeded at the
+    embedding output before any layer runs — the same convention as HF's own
+    ``output_hidden_states=True`` tuple (``hidden_states[N]`` is the input to
+    layer N). Registering the HF hook as a forward *hook* (capturing a
+    layer's output) would be off by one relative to that convention;
+    registering it as a forward *pre-hook* (capturing the layer's input)
+    matches it exactly, including at N=0 where there is no ``layers[-1]``.
+
+    This test builds a tiny deterministic decoder-style stack — each "layer"
+    adds a distinct offset — and checks that the pre-hook captures the exact
+    tensor a layer receives, for both an early and a later layer, matching a
+    reference computed by calling the layers directly (equivalent to HF's
+    own ``output_hidden_states`` tuple entries).
+    """
+
+    class FakeLayer(torch.nn.Module):
+        def __init__(self, offset):
+            super().__init__()
+            self.offset = offset
+
+        def forward(self, hidden_states):
+            return hidden_states + self.offset
+
+    torch.manual_seed(0)
+    layers = torch.nn.ModuleList([FakeLayer(offset=i + 1) for i in range(4)])
+    embedding = torch.arange(6, dtype=torch.float32).reshape(1, 2, 3)
+
+    # Reference, computed with no hooks attached: what each layer actually
+    # receives as input (HF's output_hidden_states[N] convention — N=0 is
+    # the embedding itself, before any layer runs).
+    expected_input_to_layer = {}
+    hidden_states = embedding
+    for idx, layer in enumerate(layers):
+        expected_input_to_layer[idx] = hidden_states
+        hidden_states = layer(hidden_states)
+
+    extractor = ActivationExtractor.__new__(ActivationExtractor)
+    extractor.config = ActivationConfig(
+        model_name="fake/model",
+        layers=[0, 2],
+        token_positions="all",
+    )
+    extractor._hooks = []
+    extractor._activations = {}
+    extractor._get_model_layers = lambda: layers
+    extractor._register_hooks()
+
+    # Now run the monitored forward pass the hooks are attached to.
+    hidden_states = embedding
+    for layer in layers:
+        hidden_states = layer(hidden_states)
+
+    for hook in extractor._hooks:
+        hook.remove()
+
+    assert torch.equal(extractor._activations["residual_0"], expected_input_to_layer[0])
+    assert torch.equal(extractor._activations["residual_2"], expected_input_to_layer[2])
+    # Layer 0's captured input must be the raw embedding, not layer 0's output.
+    assert not torch.equal(extractor._activations["residual_0"], layers[0](embedding))
 
 
 def test_hf_activation_to_numpy_uses_last_token_by_default():
@@ -58,7 +142,7 @@ def test_hf_hook_preserves_full_sequence_for_all_mode():
     extractor._activations = {}
 
     activation = torch.arange(24, dtype=torch.float32).reshape(2, 3, 4)
-    extractor._make_hook("residual_20")(None, None, activation)
+    extractor._make_hook("residual_20")(None, (activation,), {})
 
     stored = extractor._activations["residual_20"]
     assert stored.shape == (2, 3, 4)

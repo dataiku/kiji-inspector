@@ -115,11 +115,17 @@ def make_ablation_hook(
     feature_indices: list[int] | None = None,
     decision_token_only: bool = True,
 ):
-    """Create a forward hook that ablates specific SAE features.
+    """Create a forward pre-hook that ablates specific SAE features.
 
-    The hook intercepts the layer output, encodes through the SAE, zeros
-    out the specified features, decodes back, and returns the modified
-    activation.
+    The hook intercepts the layer's *input* — the residual stream entering
+    the layer — encodes it through the SAE, zeros out the specified
+    features, decodes back, and returns the modified activation as the
+    layer's new input. This must be the layer's input rather than its
+    output: the SAE is trained on activations extracted via vLLM's
+    aux-hidden-state mechanism, which records the residual entering layer N
+    (see activation_extractor.py's ``_make_hook`` for the full convention).
+    Hooking the layer's output would intervene one layer downstream of
+    where the SAE's features actually live.
 
     When feature_indices is None (or empty), this becomes a reconstruction-only
     hook: the activation is encoded and decoded through the SAE without zeroing
@@ -135,13 +141,15 @@ def make_ablation_hook(
     sae_device = next(sae.parameters()).device
     sae_dtype = next(sae.parameters()).dtype
 
-    def hook(module, input, output):
-        if isinstance(output, tuple):
-            hidden = output[0]
-            rest = output[1:]
+    def hook(module, args, kwargs):
+        if args:
+            hidden = args[0]
+            rest_args = args[1:]
+            hidden_from_kwargs = False
         else:
-            hidden = output
-            rest = None
+            hidden = kwargs["hidden_states"]
+            rest_args = None
+            hidden_from_kwargs = True
 
         orig_device = hidden.device
         orig_dtype = hidden.dtype
@@ -171,9 +179,11 @@ def make_ablation_hook(
                 modified = sae.denormalize_output(sae.decode(features))
                 hidden = modified.reshape(hidden.shape).to(device=orig_device, dtype=orig_dtype)
 
-        if rest is not None:
-            return (hidden,) + rest
-        return hidden
+        if hidden_from_kwargs:
+            new_kwargs = dict(kwargs)
+            new_kwargs["hidden_states"] = hidden
+            return args, new_kwargs
+        return (hidden,) + rest_args, kwargs
 
     return hook
 
@@ -528,8 +538,8 @@ def run_ablation_experiment(
             n_tested += 1
 
             # Reconstruction-only baseline
-            hook_handle = target_layer.register_forward_hook(
-                make_ablation_hook(sae, feature_indices=None)
+            hook_handle = target_layer.register_forward_pre_hook(
+                make_ablation_hook(sae, feature_indices=None), with_kwargs=True
             )
             recon_tool, recon_tid, recon_prob_contrast = get_tool_prediction(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
@@ -539,8 +549,8 @@ def run_ablation_experiment(
                 reconstruction_flips += 1
 
             # Contrastive ablation
-            hook_handle = target_layer.register_forward_hook(
-                make_ablation_hook(sae, contrastive_indices)
+            hook_handle = target_layer.register_forward_pre_hook(
+                make_ablation_hook(sae, contrastive_indices), with_kwargs=True
             )
             ablated_tool, ablated_tid, ablated_prob_contrast = get_tool_prediction(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
@@ -552,8 +562,8 @@ def run_ablation_experiment(
                     contrastive_directed_flips += 1
 
             # Random ablation
-            hook_handle = target_layer.register_forward_hook(
-                make_ablation_hook(sae, random_indices)
+            hook_handle = target_layer.register_forward_pre_hook(
+                make_ablation_hook(sae, random_indices), with_kwargs=True
             )
             rand_tool, rand_tid, rand_prob_contrast = get_tool_prediction(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
