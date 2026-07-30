@@ -405,8 +405,20 @@ def run_ablation_experiment(
     with open(contrastive_features_path) as f:
         contrastive = json.load(f)
 
-    # Load pairs
+    # Load pairs. Excludes anchor_tool == contrast_tool pairs, matching
+    # pipeline.py's _load_pairs() (used by steps 1/3/4/5) -- for those pairs
+    # the expected tool is identical either way, so "did ablation flip toward
+    # the contrast tool" is degenerate. Step 3's feature selection never saw
+    # these (its pair count is validated against step 1's filtered shards),
+    # so leaving them in here would test features against noise the features
+    # weren't selected to explain.
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
+    total_pairs = len(dataset.pairs)
+    dataset.pairs = [p for p in dataset.pairs if p.anchor_tool != p.contrast_tool]
+    excluded_pairs = total_pairs - len(dataset.pairs)
+    print(f"  Loaded {len(dataset.pairs)} pairs from {pairs_dir}")
+    if excluded_pairs:
+        print(f"  Excluded {excluded_pairs} pairs where anchor_tool == contrast_tool")
     scenarios = load_scenarios_meta(pairs_dir)
 
     # Load SAE
