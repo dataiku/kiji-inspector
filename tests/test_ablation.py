@@ -19,6 +19,12 @@ class _FakeSAE:
     def parameters(self):
         return iter([self._param])
 
+    def normalize_input(self, x):
+        return x
+
+    def denormalize_output(self, x):
+        return x
+
     def encode(self, x):
         return x.clone()
 
