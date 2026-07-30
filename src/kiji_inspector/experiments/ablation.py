@@ -45,9 +45,11 @@ def build_tool_token_map(
 ) -> tuple[dict[int, str], dict[str, int]]:
     """Map between tool names and their first token ID.
 
-    The prompt ends with "I'll use the " so the next token starts with a
-    space followed by the tool name.  We try multiple tokenization variants
-    to handle different tokenizer behaviors.
+    The prompt ends with "I'll use the" (no trailing space), so the next token
+    is the space-prefixed tool name — "▁ticket" under SentencePiece,
+    "Ġticket" under BPE. The " {name}" variant below is therefore the one that
+    normally matches; the others are fallbacks for tokenizers that split
+    differently.
 
     Returns:
         (token_id_to_tool, tool_to_token_id)
@@ -366,6 +368,7 @@ def run_ablation_experiment(
     n_features: int = 10,
     n_prompts_per_type: int = 100,
     seed: int = 42,
+    min_baseline_pass_rate: float = 0.2,
 ) -> dict:
     """Run the full ablation experiment.
 
@@ -379,6 +382,10 @@ def run_ablation_experiment(
         n_features: Number of top contrastive features to ablate.
         n_prompts_per_type: Max prompts to test per contrast type.
         seed: Random seed.
+        min_baseline_pass_rate: Abort if the fraction of prompts whose
+            unablated prediction matches the expected tool falls below this.
+            Guards against publishing a report built on a handful of prompts.
+            Set to 0 to disable.
     """
     from kiji_inspector.core.sae_core import JumpReLUSAE
     from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
@@ -581,6 +588,11 @@ def run_ablation_experiment(
         per_contrast[ct_key] = {
             "n_pairs_available": len(ct_pairs),
             "n_tested": n_tested,
+            # Recorded so the baseline-pass-rate guard below (and anyone reading
+            # the report) can tell "the features did nothing" apart from "almost
+            # no prompt reached the intervention".
+            "n_baseline_mismatches": n_baseline_mismatches,
+            "n_unknown_baseline": n_unknown_baseline,
             "contrastive_flips": contrastive_flips,
             "contrastive_directed_flips": contrastive_directed_flips,
             "random_flips": random_flips,
@@ -615,6 +627,30 @@ def run_ablation_experiment(
             )
         else:
             print("    No prompts with correct baseline prediction")
+
+    # Refuse to publish a report the baseline filter has already invalidated.
+    # A prompt the model does not answer with a tool name yields n_tested ~= 0
+    # per contrast type, and every downstream statistic then degenerates
+    # silently: CATE and directed-flip come out as exactly 0.0, Wilcoxon p as
+    # None, and flip-rate CIs as [0, 0.975] -- a report that looks complete but
+    # measures nothing. The usual cause is a prompt whose decision token is not
+    # a tool name (see _DEFAULT_ASSISTANT_PREFILL in extraction/extractor.py),
+    # or a --model that does not match the SAE's subject model.
+    kept = sum(v.get("n_tested", 0) for v in per_contrast.values())
+    tried = sum(
+        v.get("n_tested", 0) + v.get("n_baseline_mismatches", 0) + v.get("n_unknown_baseline", 0)
+        for v in per_contrast.values()
+    )
+    if tried and kept / tried < min_baseline_pass_rate:
+        raise RuntimeError(
+            f"Baseline filter kept only {kept}/{tried} prompts "
+            f"({100 * kept / tried:.1f}%), below the {100 * min_baseline_pass_rate:.0f}% "
+            f"minimum — the model is not predicting tool names at the decision "
+            f"token, so ablation would measure nothing. Check that --model "
+            f"({model_name}) matches the SAE's subject model and that the "
+            f"assistant prefill leaves the tool name as the next token. "
+            f"Pass min_baseline_pass_rate=0 to override."
+        )
 
     # Compute metrics and save
     report = compute_ablation_metrics(per_contrast)
@@ -666,6 +702,14 @@ if __name__ == "__main__":
         "--n-prompts-per-type", type=int, default=100, help="Max prompts per contrast type"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--min-baseline-pass-rate",
+        type=float,
+        default=0.2,
+        help="Abort if fewer than this fraction of prompts predict the expected "
+        "tool before ablation (default: 0.2; 0 disables). Protects against a "
+        "report computed from a handful of prompts.",
+    )
 
     args = parser.parse_args()
 
@@ -679,4 +723,5 @@ if __name__ == "__main__":
         n_features=args.n_features,
         n_prompts_per_type=args.n_prompts_per_type,
         seed=args.seed,
+        min_baseline_pass_rate=args.min_baseline_pass_rate,
     )
