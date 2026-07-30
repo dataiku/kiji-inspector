@@ -115,3 +115,39 @@ def test_build_agent_prompt_passes_thinking_options_through():
     assert tok.last_template_kwargs == {"enable_thinking": False}
     assert "<think>" not in prompt
     assert prompt.endswith("I'll use the")
+
+
+def test_reasoning_suppression_moves_prefill_out_of_think_block():
+    """Auto-suppression must put the decision token at the answer position.
+
+    Nemotron-3-Nano's template opens a <think> block in its generation prompt,
+    so without enable_thinking=False the prefill — and therefore the extracted
+    activation — lands inside the reasoning channel rather than where the tool
+    name is emitted. gemma-4's template defaults the flag to false already, so
+    the same handling is a no-op for it.
+    """
+    reasoning = FakeTokenizer(thinking_generation_prompt=True)
+    plain = FakeTokenizer(thinking_generation_prompt=False)
+
+    # Reasoning model, suppression off: prefill sits inside the think block.
+    inside = build_agent_prompt_from_tokenizer(reasoning, "S", TOOLS, "U")
+    assert "<think>" in inside
+    assert inside.index("<think>") < inside.index(_DEFAULT_ASSISTANT_PREFILL)
+    assert "</think>" not in inside
+
+    # Reasoning model, suppression on: block is closed before the prefill.
+    outside = build_agent_prompt_from_tokenizer(
+        reasoning,
+        "S",
+        TOOLS,
+        "U",
+        chat_template_kwargs={"enable_thinking": False},
+        close_think_block=True,
+    )
+    assert "<think>" not in outside
+    assert outside.endswith(_DEFAULT_ASSISTANT_PREFILL)
+
+    # Non-reasoning model: identical with and without suppression.
+    assert build_agent_prompt_from_tokenizer(
+        plain, "S", TOOLS, "U", chat_template_kwargs={"enable_thinking": False}
+    ) == build_agent_prompt_from_tokenizer(plain, "S", TOOLS, "U")
