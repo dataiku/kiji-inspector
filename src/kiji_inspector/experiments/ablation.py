@@ -404,8 +404,23 @@ def run_ablation_experiment(
     with open(contrastive_features_path) as f:
         contrastive = json.load(f)
 
-    # Load pairs
+    # Load pairs, applying the same same-tool filter as pipeline._load_pairs.
+    # A pair whose two sides call the same tool is not a tool-selection
+    # contrast: "flipping to the contrast tool" is then indistinguishable from
+    # not flipping, so directed_flip_rate is structurally zero for it. Step 3
+    # computes the contrastive features on the filtered set, so testing them
+    # here on the unfiltered set measures a different population — it inflated
+    # cost_vs_speed_optimization from 3 usable pairs to 74.
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
+    _n_all = len(dataset.pairs)
+    dataset = ContrastiveDataset(
+        pairs=[p for p in dataset.pairs if p.anchor_tool != p.contrast_tool]
+    )
+    if _n_all != len(dataset.pairs):
+        print(
+            f"  Excluded {_n_all - len(dataset.pairs)} of {_n_all} pairs where "
+            f"anchor_tool == contrast_tool"
+        )
     scenarios = load_scenarios_meta(pairs_dir)
 
     # Load SAE
@@ -424,6 +439,21 @@ def run_ablation_experiment(
     model = extractor.model
     tokenizer = extractor.tokenizer
     input_device = extractor._input_device
+
+    # Ablation prompts must be built exactly as the extraction prompts were, or
+    # the intervention lands at a different position than the SAE was trained
+    # on. Reasoning models open a <think> block in their generation prompt, so
+    # without suppression the decision token sits inside the reasoning channel
+    # while the SAE's features live at the final-answer position. Detected from
+    # the tokenizer's own template, matching extract_activations() in
+    # pipeline.py; a no-op for templates that never open the block (gemma-4).
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
+
+    tpl_kwargs = recommended_chat_template_kwargs(model_name, tokenizer) or None
+    if tpl_kwargs:
+        print(f"  Auto-disabling reasoning for {model_name} ({tpl_kwargs})")
 
     # Get the layer module for hook registration
     model_layers = extractor._get_model_layers()
@@ -525,6 +555,8 @@ def run_ablation_experiment(
                 tools=sc.tools,
                 user_request=pair.anchor_prompt,
                 tokenizer=tokenizer,
+                chat_template_kwargs=tpl_kwargs,
+                close_think_block=bool(tpl_kwargs),
             )
 
             expected_tool = pair.anchor_tool.split(",")[0].strip()
