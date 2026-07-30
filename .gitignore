@@ -67,3 +67,6 @@ output_575_full/
 
 # Step 5 fuzzing activation cache (see samples/run_step5_per_layer.sh)
 .fuzz_cache/
+
+# Pipeline run logs (see samples/run_full_pipeline_gemma4.sh)
+logs/
