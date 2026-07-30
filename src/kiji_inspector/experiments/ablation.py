@@ -392,6 +392,7 @@ def run_ablation_experiment(
     from kiji_inspector.data.scenario import load_scenarios_meta
     from kiji_inspector.extraction.activation_extractor import ActivationConfig, ActivationExtractor
     from kiji_inspector.extraction.extractor import build_agent_prompt
+    from kiji_inspector.extraction.vllm_activation_extractor import recommended_chat_template_kwargs
 
     random.seed(seed)
     np.random.seed(seed)
@@ -424,6 +425,13 @@ def run_ablation_experiment(
     model = extractor.model
     tokenizer = extractor.tokenizer
     input_device = extractor._input_device
+
+    # Reasoning models (e.g. Nemotron-3-Nano) open a <think> block in their
+    # generation prompt by default, which would put the decision token inside
+    # the reasoning channel instead of at the tool-name position -- the same
+    # bug fixed for step 1 extraction, but ablation builds its own prompts
+    # here and needs the same suppression applied.
+    _tpl_kwargs = recommended_chat_template_kwargs(model_name, tokenizer) or None
 
     # Get the layer module for hook registration
     model_layers = extractor._get_model_layers()
@@ -525,6 +533,8 @@ def run_ablation_experiment(
                 tools=sc.tools,
                 user_request=pair.anchor_prompt,
                 tokenizer=tokenizer,
+                chat_template_kwargs=_tpl_kwargs,
+                close_think_block=bool(_tpl_kwargs),
             )
 
             expected_tool = pair.anchor_tool.split(",")[0].strip()
