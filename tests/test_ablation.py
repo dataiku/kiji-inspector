@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from kiji_inspector.experiments.ablation import make_ablation_hook
@@ -123,3 +124,34 @@ def test_ablation_hook_zeros_specified_features():
     received = layer.received
     assert received[0, 0, 0].item() == 0.0
     assert received[0, 0, 1].item() == 2.0
+
+
+def test_baseline_pass_rate_guard_arithmetic():
+    """The guard must reject the shape of run that produced an empty report.
+
+    Layer 12's first ablation run kept 1 of 100 prompts per contrast type
+    because the prompt's decision token was a newline rather than a tool name.
+    Every downstream statistic degenerated to 0.0/None while the report still
+    looked complete, so the pass rate has to be checked before publishing.
+    """
+    degenerate = {
+        f"contrast_{i}": {"n_tested": 1, "n_baseline_mismatches": 0, "n_unknown_baseline": 99}
+        for i in range(34)
+    }
+    healthy = {
+        f"contrast_{i}": {"n_tested": 88, "n_baseline_mismatches": 7, "n_unknown_baseline": 5}
+        for i in range(34)
+    }
+
+    def pass_rate(per_contrast):
+        kept = sum(v["n_tested"] for v in per_contrast.values())
+        tried = sum(
+            v["n_tested"] + v["n_baseline_mismatches"] + v["n_unknown_baseline"]
+            for v in per_contrast.values()
+        )
+        return kept / tried
+
+    assert pass_rate(degenerate) == pytest.approx(0.01)
+    assert pass_rate(degenerate) < 0.2, "guard would not have caught the real failure"
+    assert pass_rate(healthy) == pytest.approx(0.88)
+    assert pass_rate(healthy) >= 0.2, "guard would reject a healthy run"
