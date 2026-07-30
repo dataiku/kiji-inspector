@@ -105,7 +105,9 @@ for layer in $LAYERS; do
         "$IMAGE" \
         python -m kiji_inspector.pipeline "${ARGS[@]}"
 
-    echo "--- layer $layer done; cache peak $(du -sh "$FUZZ_CACHE" 2>/dev/null | cut -f1)"
+    # Not a peak: the pipeline's own DiskBackedActivations.cleanup() has
+    # already run by now, so this is the residue it left behind.
+    echo "--- layer $layer done; cache residue $(du -sh "$FUZZ_CACHE" 2>/dev/null | cut -f1)"
     [[ "${KEEP_CACHE:-0}" == "1" ]] || clean_cache
 done
 
