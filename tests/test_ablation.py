@@ -155,3 +155,204 @@ def test_baseline_pass_rate_guard_arithmetic():
     assert pass_rate(degenerate) < 0.2, "guard would not have caught the real failure"
     assert pass_rate(healthy) == pytest.approx(0.88)
     assert pass_rate(healthy) >= 0.2, "guard would reject a healthy run"
+
+
+# ---------------------------------------------------------------------------
+# Frequency-matched random control
+# ---------------------------------------------------------------------------
+
+
+def _rates_with_bins():
+    """Synthetic firing-rate array with known bin populations.
+
+    Bins (FIRING_RATE_BIN_EDGES): [0,1e-5) [1e-5,1e-4) [1e-4,1e-3) [1e-3,1e-2)
+    [1e-2,0.1) [0.1,1.01). Indices 0-19 silent, 20-39 ultra-rare, 40-59 rare,
+    60-79 alive-low, 80-99 alive-mid, 100-119 alive-high.
+    """
+    import numpy as np
+
+    rates = np.zeros(120)
+    rates[20:40] = 5e-5
+    rates[40:60] = 5e-4
+    rates[60:80] = 5e-3
+    rates[80:100] = 5e-2
+    rates[100:120] = 0.5
+    return rates
+
+
+def test_frequency_matched_sampler_matches_bins():
+    import random as _random
+
+    import numpy as np
+
+    from kiji_inspector.experiments.ablation import (
+        FIRING_RATE_BIN_EDGES,
+        sample_frequency_matched,
+    )
+
+    rates = _rates_with_bins()
+    contrastive = [85, 86, 105, 106]  # two alive-mid, two alive-high
+    excluded = set(contrastive)
+    rng = _random.Random(0)
+
+    matched = sample_frequency_matched(rng, contrastive, rates, excluded)
+
+    assert len(matched) == len(contrastive)
+    assert len(set(matched)) == len(matched), "duplicates in matched sample"
+    assert not (set(matched) & excluded), "excluded feature sampled"
+    bin_of = np.digitize(rates, FIRING_RATE_BIN_EDGES) - 1
+    for ci, mi in zip(contrastive, matched, strict=True):
+        assert bin_of[mi] == bin_of[ci], f"feature {mi} not in same bin as {ci}"
+
+
+def test_frequency_matched_sampler_falls_back_to_nearest_bin():
+    import random as _random
+
+    import numpy as np
+
+    from kiji_inspector.experiments.ablation import (
+        FIRING_RATE_BIN_EDGES,
+        sample_frequency_matched,
+    )
+
+    rates = _rates_with_bins()
+    # Exclude the ENTIRE alive-high bin (100-119) except the contrastive
+    # feature itself, so its bin has no eligible pool.
+    contrastive = [105]
+    excluded = set(range(100, 120))
+    rng = _random.Random(0)
+
+    matched = sample_frequency_matched(rng, contrastive, rates, excluded)
+
+    assert len(matched) == 1
+    bin_of = np.digitize(rates, FIRING_RATE_BIN_EDGES) - 1
+    # Nearest non-empty bin is alive-mid (one below), not a silent bin.
+    assert bin_of[matched[0]] == bin_of[105] - 1
+
+
+def test_frequency_matched_sampler_never_matches_active_to_silent():
+    """Regression: the failure this sampler exists to fix.
+
+    The legacy uniform draw paired highly active contrastive features with
+    features that never fire, making the control a no-op. With 70% of the
+    dictionary silent and all contrastive features alive, no matched feature
+    may be near-silent.
+    """
+    import random as _random
+
+    import numpy as np
+
+    from kiji_inspector.experiments.ablation import sample_frequency_matched
+
+    rng = _random.Random(0)
+    n = 1000
+    rates = np.zeros(n)
+    rates[700:] = 0.05  # 70% silent, 30% alive
+    contrastive = list(range(700, 710))
+    excluded = set(contrastive)
+
+    matched = sample_frequency_matched(rng, contrastive, rates, excluded)
+
+    assert len(matched) == 10
+    assert all(rates[m] >= 1e-3 for m in matched), "active target matched to silent feature"
+
+
+def test_compute_firing_rates_fake_sae(tmp_path):
+    import numpy as np
+
+    from kiji_inspector.experiments.ablation import compute_firing_rates
+
+    class _SparseSAE(_FakeSAE):
+        """Feature j fires iff input dim j > 0.5; d_sae == d_model == 4."""
+
+        d_sae = 4
+
+        def encode(self, x):
+            return (x > 0.5).to(x.dtype)
+
+    # 8 rows: dim 0 always high (rate 1.0), dim 1 high in half (0.5),
+    # dim 2 never (0.0), dim 3 in one row (0.125).
+    data = np.zeros((8, 4), dtype=np.float32)
+    data[:, 0] = 1.0
+    data[:4, 1] = 1.0
+    data[0, 3] = 1.0
+    np.save(tmp_path / "shard_000000.npy", data)
+
+    rates = compute_firing_rates(_SparseSAE(), tmp_path, chunk_size=8, device="cpu")
+
+    np.testing.assert_allclose(rates, [1.0, 0.5, 0.0, 0.125])
+
+
+# ---------------------------------------------------------------------------
+# Metrics: BH correction, honest denominators, preserved raw counts
+# ---------------------------------------------------------------------------
+
+
+def _make_type(n_tested, deltas_contrastive, flips=2):
+    return {
+        "n_tested": n_tested,
+        "n_baseline_mismatches": 0,
+        "n_unknown_baseline": 0,
+        "contrastive_flips": flips,
+        "contrastive_directed_flips": 1,
+        "random_flips": 1,
+        "reconstruction_flips": 0,
+        "contrastive_feature_indices": [1, 2, 3],
+        "n_random_features": 3,
+        "prob_deltas": {
+            "contrastive": deltas_contrastive,
+            "random": [0.0] * len(deltas_contrastive),
+            "reconstruction": [0.0] * len(deltas_contrastive),
+        },
+    }
+
+
+def test_metrics_bh_and_denominators():
+    from kiji_inspector.experiments.ablation import compute_ablation_metrics
+
+    per_contrast = {
+        # 3 testable types (>=10 nonzero deltas), strong positive shifts
+        **{
+            f"strong_{i}": _make_type(50, [0.01 * (j + 1) for j in range(20)])
+            for i in range(3)
+        },
+        # 2 excluded types: tested but too few nonzero deltas
+        **{f"null_{i}": _make_type(25, [0.0] * 24 + [0.001]) for i in range(2)},
+    }
+
+    report = compute_ablation_metrics(per_contrast)
+    agg = report["aggregate"]
+
+    assert agg["wilcoxon_tested_types"] == 3
+    assert sorted(agg["wilcoxon_excluded_types"]) == ["null_0", "null_1"]
+    # Strong types are all significant, raw and BH-adjusted alike.
+    assert agg["wilcoxon_significant_count"] == 3
+    assert agg["wilcoxon_significant_count_bh"] == 3
+    assert agg["wilcoxon_significant_rate_tested"] == pytest.approx(1.0)
+    # Honest denominator counts the 2 excluded types as not-significant.
+    assert agg["wilcoxon_significant_rate_all"] == pytest.approx(3 / 5)
+    assert agg["fisher_combined_p_value"] is not None
+    assert "mean_wilcoxon_p_value" not in agg
+
+    strong = report["per_contrast_type"]["strong_0"]
+    assert "wilcoxon_p_value_bh" in strong["contrastive_ablation"]
+    assert strong["contrastive_ablation"]["wilcoxon_p_value_bh"] >= (
+        strong["contrastive_ablation"]["wilcoxon_p_value"]
+    )
+    # Raw counts preserved for post-hoc reanalysis, not popped.
+    assert strong["raw_counts"]["contrastive_flips"] == 2
+    assert strong["raw_counts"]["contrastive_feature_indices"] == [1, 2, 3]
+
+
+def test_metrics_random_and_recon_get_wilcoxon():
+    from kiji_inspector.experiments.ablation import compute_ablation_metrics
+
+    t = _make_type(50, [0.01] * 20)
+    t["prob_deltas"]["random"] = [0.005 * (j + 1) for j in range(20)]
+    t["prob_deltas"]["reconstruction"] = [0.0] * 20  # too few nonzero -> None
+
+    report = compute_ablation_metrics({"only": t})
+    info = report["per_contrast_type"]["only"]
+
+    assert info["random_ablation"]["wilcoxon_p_value"] is not None
+    assert info["reconstruction_baseline"]["wilcoxon_p_value"] is None
