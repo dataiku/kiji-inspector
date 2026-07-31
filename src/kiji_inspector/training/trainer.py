@@ -253,6 +253,18 @@ class _AdaptiveL1Controller:
     windows), so all control and safeguard decisions run on an EMA of L0
     rather than the raw window value.
 
+    The error is computed in **log space** (``log(l0_ema / target)``) and the
+    per-update multiplicative adjustment is clamped to a narrow band. Both
+    are load-bearing: a linear normalized error is unbounded above but
+    bounded at -1 below, and combined with a wide clamp a previous version
+    slammed l1 from 0.005 to l1_max in ~8 updates on an early L0 spike, then
+    could not descend faster than ~1% per update after L0 had crashed two
+    orders of magnitude below target — l1 stayed pinned at max for the last
+    40% of the run and reconstruction MSE doubled. Log-space error responds
+    symmetrically to overshoot and undershoot, and the narrow clamp spreads
+    large corrections over many windows so the (lagging) EMA can catch up
+    before l1 saturates.
+
     Three safeguards keep the loop from destroying a run when it cannot
     actually reach the target — without letting a noisy early measurement
     permanently disable it (which is exactly what a previous version did:
@@ -280,14 +292,15 @@ class _AdaptiveL1Controller:
         self,
         target_l0: float,
         initial_l1: float,
-        kp: float = 0.01,
-        ki: float = 0.001,
+        kp: float = 0.1,
+        ki: float = 0.01,
         l1_min: float = 1e-5,
-        l1_max: float = 1.0,
+        l1_max: float = 0.1,
         authority_ratio: float = 4.0,
         authority_l0_drop: float = 0.10,
         min_updates_before_guard: int = 10,
         l0_ema_alpha: float = 0.3,
+        max_step: float = 1.2,
     ):
         self.target_l0 = target_l0
         self.l1 = initial_l1
@@ -299,6 +312,7 @@ class _AdaptiveL1Controller:
         self.authority_l0_drop = authority_l0_drop
         self.min_updates_before_guard = min_updates_before_guard
         self.l0_ema_alpha = l0_ema_alpha
+        self.max_step = max_step
         self._integral = 0.0
         self._frozen = False
         self._frozen_l0: float | None = None
@@ -364,13 +378,18 @@ class _AdaptiveL1Controller:
                 # L0 did respond — re-arm the reference and keep going.
                 self._ref_l1, self._ref_l0 = self.l1, l0
 
-        # Positive error → L0 too high → need more sparsity → increase l1
-        error = (l0 - self.target_l0) / self.target_l0  # normalized
+        # Positive error → L0 too high → need more sparsity → increase l1.
+        # Log-space error responds symmetrically to overshoot and undershoot:
+        # a linear (l0 - target) / target error is bounded at -1 below but
+        # unbounded above, which made descent from an overshoot ~100x slower
+        # than the climb that caused it.
+        error = float(np.log(max(l0, 1e-6) / self.target_l0))
 
         # Conditional integration: don't wind up while the output is saturated
         # or already pinned to an l1 bound in the direction of the error.
+        lo, hi = 1.0 / self.max_step, self.max_step
         raw = 1.0 + self.kp * error + self.ki * (self._integral + error)
-        saturated = raw > 2.0 or raw < 0.5
+        saturated = raw > hi or raw < lo
         at_bound = (self.l1 >= self.l1_max and error > 0) or (self.l1 <= self.l1_min and error < 0)
         if not (saturated or at_bound):
             self._integral += error
@@ -378,7 +397,9 @@ class _AdaptiveL1Controller:
             self._integral *= 0.9  # decay so the loop can recover when L0 moves
 
         adjustment = 1.0 + self.kp * error + self.ki * self._integral
-        adjustment = max(0.5, min(2.0, adjustment))  # clamp per-step change
+        # Narrow per-step clamp: large corrections spread over many windows so
+        # the lagging EMA can catch up before l1 saturates at a bound.
+        adjustment = max(lo, min(hi, adjustment))
         self.l1 = max(self.l1_min, min(self.l1_max, self.l1 * adjustment))
         return self.l1
 
