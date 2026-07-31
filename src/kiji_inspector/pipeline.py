@@ -536,9 +536,10 @@ def extract_activations(
     elif allow_thinking:
         template_kwargs = None
     else:
-        template_kwargs = recommended_chat_template_kwargs(
-            subject_model, getattr(extractor, "tokenizer", None)
-        ) or None
+        template_kwargs = (
+            recommended_chat_template_kwargs(subject_model, getattr(extractor, "tokenizer", None))
+            or None
+        )
         if template_kwargs:
             print(f"  Auto-disabling reasoning for {subject_model} ({template_kwargs})")
 

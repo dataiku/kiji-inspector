@@ -319,9 +319,7 @@ class _AdaptiveL1Controller:
         # or already pinned to an l1 bound in the direction of the error.
         raw = 1.0 + self.kp * error + self.ki * (self._integral + error)
         saturated = raw > 2.0 or raw < 0.5
-        at_bound = (self.l1 >= self.l1_max and error > 0) or (
-            self.l1 <= self.l1_min and error < 0
-        )
+        at_bound = (self.l1 >= self.l1_max and error > 0) or (self.l1 <= self.l1_min and error < 0)
         if not (saturated or at_bound):
             self._integral += error
         elif at_bound:
