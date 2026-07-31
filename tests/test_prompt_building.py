@@ -1,4 +1,5 @@
 from kiji_inspector.extraction.extractor import (
+    _DEFAULT_ASSISTANT_PREFILL,
     build_agent_prompt,
     build_agent_prompt_from_tokenizer,
 )
@@ -35,8 +36,30 @@ class FakeTokenizer:
 def test_prompt_ends_with_prefill_by_default():
     tok = FakeTokenizer()
     prompt = build_agent_prompt_from_tokenizer(tok, "You are an agent.", TOOLS, "Find API limits")
-    assert prompt.endswith("<|im_start|>assistant\nI'll use the ")
+    assert prompt.endswith("<|im_start|>assistant\nI'll use the")
     assert tok.last_template_kwargs == {}
+
+
+def test_default_prefill_has_no_trailing_whitespace():
+    """The decision token must be the tool name, not whitespace.
+
+    Both tokenizer families fold a leading space into the following token
+    ("▁ticket" / "Ġticket"), so a prompt ending in a bare space is
+    off-distribution: gemma-4 then predicts a newline and Nemotron starts a
+    numbered list, and the extracted activation is not a decision point.
+    """
+    assert _DEFAULT_ASSISTANT_PREFILL == _DEFAULT_ASSISTANT_PREFILL.rstrip()
+
+    for tok in (FakeTokenizer(), FakeTokenizer(thinking_generation_prompt=True)):
+        prompt = build_agent_prompt_from_tokenizer(tok, "You are an agent.", TOOLS, "Find limits")
+        assert prompt == prompt.rstrip(), "tokenizer-template prompt ends with whitespace"
+
+    # Same invariant through the public entrypoint and the manual fallbacks.
+    for model_type in ("auto", "nemotron", "llama", "mistral", "generic"):
+        prompt = build_agent_prompt(
+            "You are an agent.", TOOLS, "Find API limits", model_type=model_type
+        )
+        assert prompt == prompt.rstrip(), f"model_type={model_type} ends with whitespace"
 
 
 def test_chat_template_kwargs_are_forwarded():
@@ -50,7 +73,7 @@ def test_chat_template_kwargs_are_forwarded():
     )
     assert tok.last_template_kwargs == {"enable_thinking": False}
     assert "<think>" not in prompt
-    assert prompt.endswith("I'll use the ")
+    assert prompt.endswith("I'll use the")
 
 
 def test_close_think_block_closes_open_think_tag():
@@ -63,7 +86,7 @@ def test_close_think_block_closes_open_think_tag():
         "Find API limits",
         close_think_block=True,
     )
-    assert prompt.endswith("<think>\n\n</think>\n\nI'll use the ")
+    assert prompt.endswith("<think>\n\n</think>\n\nI'll use the")
 
 
 def test_close_think_block_noop_without_open_think_tag():
@@ -76,7 +99,7 @@ def test_close_think_block_noop_without_open_think_tag():
         close_think_block=True,
     )
     assert "</think>" not in prompt
-    assert prompt.endswith("<|im_start|>assistant\nI'll use the ")
+    assert prompt.endswith("<|im_start|>assistant\nI'll use the")
 
 
 def test_build_agent_prompt_passes_thinking_options_through():
@@ -91,4 +114,4 @@ def test_build_agent_prompt_passes_thinking_options_through():
     )
     assert tok.last_template_kwargs == {"enable_thinking": False}
     assert "<think>" not in prompt
-    assert prompt.endswith("I'll use the ")
+    assert prompt.endswith("I'll use the")

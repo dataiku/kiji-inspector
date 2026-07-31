@@ -19,13 +19,32 @@ from tqdm import tqdm
 
 from kiji_inspector.data.contrastive_dataset import ContrastivePair
 
+# The prefill must NOT end with whitespace. Both tokenizer families in use fold
+# a leading space into the following token — SentencePiece as "▁billing", BPE as
+# "Ġbilling" — so a prompt ending in a bare space is off-distribution and the
+# model continues with something other than a tool name:
+#
+#   gemma-4-E4B-it   "...use the "  -> '\n' (then <b>, <strong>, emoji);
+#                                      correct tool at rank 5-10, 1/12 prompts
+#                    "...use the"   -> correct tool rank 0.5 mean, 12/12
+#   Nemotron-3-Nano  "...use the "  -> '1' (starting a numbered list), logit
+#                                      19.6; correct tool rank 5 at 17.9
+#                    "...use the"   -> 'Ġknowledge' rank 1 at 25.4, top-3 all
+#                                      tool names
+#
+# With the trailing space the extracted "decision token" is not a decision
+# point at all, which silently invalidates any tool-selection analysis built
+# on it. Keep this literal free of trailing whitespace; test_prompt_building
+# asserts it.
+_DEFAULT_ASSISTANT_PREFILL = "I'll use the"
+
 
 def build_agent_prompt_from_tokenizer(
     tokenizer,
     system_prompt: str,
     tools: list[dict],
     user_request: str,
-    assistant_prefill: str = "I'll use the ",
+    assistant_prefill: str = _DEFAULT_ASSISTANT_PREFILL,
     chat_template_kwargs: dict[str, Any] | None = None,
     close_think_block: bool = False,
 ) -> str:
@@ -88,7 +107,7 @@ def build_agent_prompt(
     user_request: str,
     model_type: str = "auto",
     tokenizer=None,
-    assistant_prefill: str = "I'll use the ",
+    assistant_prefill: str = _DEFAULT_ASSISTANT_PREFILL,
     chat_template_kwargs: dict[str, Any] | None = None,
     close_think_block: bool = False,
 ) -> str:
