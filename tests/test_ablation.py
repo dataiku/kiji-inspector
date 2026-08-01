@@ -356,3 +356,35 @@ def test_metrics_random_and_recon_get_wilcoxon():
 
     assert info["random_ablation"]["wilcoxon_p_value"] is not None
     assert info["reconstruction_baseline"]["wilcoxon_p_value"] is None
+
+
+def test_compute_type_conditional_rates(tmp_path):
+    """Rates must be computed on the type's anchor rows only (row 2*i)."""
+    import numpy as np
+
+    from kiji_inspector.analysis.shard_io import open_layer_shards
+    from kiji_inspector.experiments.ablation import compute_type_conditional_rates
+
+    class _SparseSAE(_FakeSAE):
+        d_sae = 4
+
+        def encode(self, x):
+            return (x > 0.5).to(x.dtype)
+
+    # 4 pairs -> 8 rows. Anchor rows (0,2,4,6) fire dim 0; contrast rows
+    # (1,3,5,7) fire dim 1. Pair indices {0, 2} -> anchor rows {0, 4}, where
+    # dim 2 fires only on row 4.
+    data = np.zeros((8, 4), dtype=np.float32)
+    data[0::2, 0] = 1.0
+    data[1::2, 1] = 1.0
+    data[4, 2] = 1.0
+    np.save(tmp_path / "shard_000000.npy", data)
+
+    memmaps, offsets = open_layer_shards(tmp_path)
+    rates = compute_type_conditional_rates(
+        _SparseSAE(), memmaps, offsets, np.array([0, 2]), chunk_size=2
+    )
+
+    # dim 0: fires on both anchor rows -> 1.0; dim 1: contrast-only -> 0.0;
+    # dim 2: fires on one of the two anchors -> 0.5.
+    np.testing.assert_allclose(rates, [1.0, 0.0, 0.5, 0.0])

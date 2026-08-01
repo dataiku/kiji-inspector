@@ -186,6 +186,64 @@ def compute_firing_rates(
     return (fire_count / max(total, 1)).cpu().numpy()
 
 
+def compute_type_conditional_rates(
+    sae,
+    memmaps: list[np.memmap],
+    cum_offsets: np.ndarray,
+    pair_indices: np.ndarray,
+    max_rows: int = 400,
+    chunk_size: int = 512,
+) -> np.ndarray:
+    """Per-feature firing rates conditioned on one contrast type's prompts.
+
+    Corpus-level firing rates are the wrong yardstick for the random
+    control: a feature firing on 5% of corpus tokens usually does not fire
+    on any particular prompt, while the contrastive features under test fire
+    on nearly all of their type's prompts by construction. Matching on
+    corpus rates therefore still leaves the control a near-no-op (measured:
+    ~87% of prompts showed random deltas identical to the reconstruction
+    baseline). This computes rates over the type's own anchor rows (row
+    2*i for pair index i, the step 1 shard layout), so the control can be
+    matched on activity where it matters.
+
+    Args:
+        sae: Loaded JumpReLUSAE.
+        memmaps / cum_offsets: From shard_io.open_layer_shards.
+        pair_indices: Global pair indices for this contrast type.
+        max_rows: Cap on rows sampled (evenly spaced across the type).
+        chunk_size: Rows per encode batch.
+
+    Returns:
+        Array (d_sae,) of firing fractions on this type's anchor prompts.
+    """
+    from kiji_inspector.analysis.shard_io import gather_rows
+
+    idx = np.asarray(pair_indices, dtype=np.int64)
+    if len(idx) > max_rows:
+        idx = idx[np.linspace(0, len(idx) - 1, max_rows).astype(int)]
+    anchor_rows = 2 * idx
+
+    sae_device = next(sae.parameters()).device
+    sae_dtype = next(sae.parameters()).dtype
+
+    fire_count = torch.zeros(sae.d_sae, device=sae_device)
+    total = 0
+    for s in range(0, len(anchor_rows), chunk_size):
+        block = gather_rows(memmaps, cum_offsets, anchor_rows[s : s + chunk_size]).astype(
+            np.float32
+        )
+        block = block[np.isfinite(block).all(axis=1)]
+        if block.shape[0] == 0:
+            continue
+        x = torch.from_numpy(block).to(device=sae_device, dtype=sae_dtype)
+        with torch.inference_mode():
+            feats = sae.encode(sae.normalize_input(x))
+            fire_count += (feats.abs() > 0).float().sum(dim=0)
+        total += x.shape[0]
+
+    return (fire_count / max(total, 1)).cpu().numpy()
+
+
 def sample_frequency_matched(
     rng: random.Random,
     contrastive_indices: list[int],
@@ -638,13 +696,13 @@ def run_ablation_experiment(
     # the dictionary lands overwhelmingly on near-silent features and the
     # "random ablation" arm degenerates into the reconstruction baseline.
     firing_rates: np.ndarray | None = None
+    acts_dir = activations_dir or str(Path(contrastive_features_path).parent)
     if random_control != "legacy":
         rates_path = Path(sae_checkpoint).parent / "firing_rates.npy"
         if rates_path.exists():
             firing_rates = np.load(rates_path)
             print(f"  Loaded firing rates from {rates_path}")
         else:
-            acts_dir = activations_dir or str(Path(contrastive_features_path).parent)
             print(f"  Computing firing rates from {acts_dir} (no persisted firing_rates.npy)...")
             firing_rates = compute_firing_rates(sae, acts_dir, device=device)
         n_alive = int((firing_rates > ALIVE_RATE_THRESHOLD).sum())
@@ -654,6 +712,36 @@ def run_ablation_experiment(
             f"  Firing rates: {n_alive} alive (> {ALIVE_RATE_THRESHOLD:g}), "
             f"{n_ultra_rare} ultra-rare, {n_dead} dead of {len(firing_rates)}"
         )
+
+    # For frequency matching, corpus rates are not enough: the contrastive
+    # features fire on nearly all of their own type's prompts, while a
+    # corpus-rate-matched feature usually fires on none of them. Matching on
+    # rates conditioned on each type's own prompts needs the step 1 shards
+    # (row 2*i is pair i's anchor — the same layout step 3 validates).
+    type_rate_memmaps = None
+    type_rate_offsets = None
+    pair_indices_by_type: dict[str, np.ndarray] = {}
+    if random_control == "frequency-matched":
+        from kiji_inspector.analysis.shard_io import open_layer_shards
+
+        try:
+            type_rate_memmaps, type_rate_offsets = open_layer_shards(Path(acts_dir))
+            total_rows = int(type_rate_offsets[-1])
+            if total_rows != 2 * len(dataset.pairs):
+                print(
+                    f"  WARNING: shard rows ({total_rows}) != 2x pairs "
+                    f"({2 * len(dataset.pairs)}); falling back to corpus-rate matching."
+                )
+                type_rate_memmaps = None
+            else:
+                by_type: dict[str, list[int]] = {}
+                for i, pair in enumerate(dataset.pairs):
+                    by_type.setdefault(pair.contrast_type, []).append(i)
+                pair_indices_by_type = {
+                    ct: np.asarray(v, dtype=np.int64) for ct, v in by_type.items()
+                }
+        except FileNotFoundError:
+            print(f"  WARNING: no shards in {acts_dir}; falling back to corpus-rate matching.")
 
     # Dedicated RNG for control draws: reproducible and isolated from the
     # global random module (which also shuffles pairs).
@@ -737,9 +825,19 @@ def run_ablation_experiment(
 
         # Control features. "frequency-matched" redraws per prompt (below);
         # "alive" and "legacy" keep one draw per contrast type.
+        match_rates = firing_rates
+        matched_on = "corpus" if firing_rates is not None else None
         if random_control == "frequency-matched":
+            # Prefer rates conditioned on this type's own prompts (the
+            # honest null: features active *here* but not contrastively
+            # selected); corpus rates only as fallback.
+            if type_rate_memmaps is not None and ct_key in pair_indices_by_type:
+                match_rates = compute_type_conditional_rates(
+                    sae, type_rate_memmaps, type_rate_offsets, pair_indices_by_type[ct_key]
+                )
+                matched_on = "type-conditional"
             random_indices = sample_frequency_matched(
-                control_rng, contrastive_indices, firing_rates, all_contrastive_indices
+                control_rng, contrastive_indices, match_rates, all_contrastive_indices
             )
         elif random_control == "alive":
             alive_pool = [
@@ -843,7 +941,7 @@ def run_ablation_experiment(
             # to one; zero extra forward passes (this arm already runs one).
             if random_control == "frequency-matched":
                 random_indices = sample_frequency_matched(
-                    control_rng, contrastive_indices, firing_rates, all_contrastive_indices
+                    control_rng, contrastive_indices, match_rates, all_contrastive_indices
                 )
             hook_handle = target_layer.register_forward_pre_hook(
                 make_ablation_hook(sae, random_indices), with_kwargs=True
@@ -878,15 +976,16 @@ def run_ablation_experiment(
             "prob_deltas": prob_deltas,  # ← this is the key new data
             "random_control": {
                 "mode": random_control,
+                "matched_on": matched_on,
                 "n_features": len(random_indices),
                 "firing_rate_bins_of_contrastive": (
                     [
                         int(np.clip(b - 1, 0, len(FIRING_RATE_BIN_EDGES) - 2))
                         for b in np.digitize(
-                            firing_rates[contrastive_indices], FIRING_RATE_BIN_EDGES
+                            match_rates[contrastive_indices], FIRING_RATE_BIN_EDGES
                         )
                     ]
-                    if firing_rates is not None
+                    if match_rates is not None
                     else None
                 ),
             },
