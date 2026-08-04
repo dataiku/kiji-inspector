@@ -52,6 +52,7 @@ class SAETrainingConfig:
     # Sparsity
     l1_coefficient: float = 5e-3
     target_l0: float | None = None  # If set, auto-tune l1_coefficient to hit this L0
+    l1_max: float = 0.1  # Ceiling for the adaptive controller; raise if l1 saturates
     sparsity_warmup_steps: int = 10000
 
     # Dead feature resampling
@@ -829,7 +830,11 @@ def train_sae(
 
     # Adaptive L0 controller (if target_l0 is set)
     l1_controller = (
-        _AdaptiveL1Controller(target_l0=config.target_l0, initial_l1=config.l1_coefficient)
+        _AdaptiveL1Controller(
+            target_l0=config.target_l0,
+            initial_l1=config.l1_coefficient,
+            l1_max=config.l1_max,
+        )
         if config.target_l0 is not None
         else None
     )

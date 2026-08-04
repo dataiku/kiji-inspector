@@ -312,6 +312,14 @@ def parse_args() -> argparse.Namespace:
         "training to hit this target (recommended: 50-100).",
     )
     p.add_argument(
+        "--l1-max",
+        type=float,
+        default=0.1,
+        help="Ceiling on the adaptive l1-coefficient (default: 0.1). Raise it "
+        "when a layer's l1 saturates at the cap and its achieved L0 stays far "
+        "above --target-l0 (check sparsity/current_l1_coef in metrics.jsonl).",
+    )
+    p.add_argument(
         "--sae-checkpoint-dir",
         type=str,
         default=None,
@@ -583,6 +591,7 @@ def train_sae_step(
     resume_from: str | None,
     auto_scale_steps: bool = True,
     target_l0: float | None = None,
+    l1_max: float = 0.1,
 ) -> str:
     """Train a JumpReLU SAE on the numpy activation shards from Step 1."""
     from kiji_inspector.training import SAETrainingConfig, train_sae
@@ -593,6 +602,7 @@ def train_sae_step(
         learning_rate=learning_rate,
         l1_coefficient=l1_coefficient,
         target_l0=target_l0,
+        l1_max=l1_max,
         total_steps=total_steps,
         num_epochs=num_epochs,
         output_dir=checkpoint_dir,
@@ -699,6 +709,7 @@ def _run_step2(args) -> dict[str, str]:
             resume_from=args.sae_resume,
             auto_scale_steps=not args.no_auto_scale_steps,
             target_l0=args.target_l0,
+            l1_max=args.l1_max,
         )
         elapsed = time.time() - t0
         print(f"    SAE training complete ({elapsed:.1f}s): {final_path}")
