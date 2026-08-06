@@ -12,6 +12,10 @@ class TestResolveRepoId:
         repo = resolve_repo_id("Qwen/Qwen3.6-35B-A3B")
         assert repo == "575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B"
 
+    def test_gemma4_model_returns_repo(self):
+        repo = resolve_repo_id("google/gemma-4-E4B-it")
+        assert repo == "575-lab/kiji-inspector-google-gemma-4-E4B-it"
+
     def test_unknown_model_raises_keyerror(self):
         with pytest.raises(KeyError, match="No SAE repo registered"):
             resolve_repo_id("unknown/model")
