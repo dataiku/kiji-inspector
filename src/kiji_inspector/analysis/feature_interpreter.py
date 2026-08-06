@@ -163,8 +163,7 @@ def collect_max_activating_examples(
         ):
             end = min(i + chunk_size, n_prompts)
             chunk = torch.from_numpy(activations[i:end]).to(device=device, dtype=sae_dtype)
-            if sae.rms_scale is not None and sae.rms_scale > 0:
-                chunk = chunk / sae.rms_scale
+            chunk = sae.normalize_input(chunk)
             features = sae.encode(chunk)  # (chunk, d_sae)
             # Project to only the features we care about, move to CPU as fp32
             feat_sub = features.index_select(1, feat_idx_t).to(torch.float32).cpu()

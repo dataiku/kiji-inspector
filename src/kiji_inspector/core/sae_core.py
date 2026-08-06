@@ -13,6 +13,7 @@ Architecture:
 
 from __future__ import annotations
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -66,13 +67,46 @@ class JumpReLUSAE(nn.Module):
         self.d_sae = d_sae
         self.dtype = dtype
         self.bandwidth = bandwidth
-        self.rms_scale: float | None = None  # Set from training; used to normalize inputs
+        # Set from training; callers normalize inputs as (x - mean_vec) / rms_scale.
+        # mean_vec is None for checkpoints trained before centering was added,
+        # in which case rms_scale alone is applied (uncentered, legacy behavior).
+        self.rms_scale: float | None = None
+        self.mean_vec: np.ndarray | None = None
 
         self.W_enc = nn.Parameter(torch.empty(d_model, d_sae, dtype=dtype))
         self.b_enc = nn.Parameter(torch.zeros(d_sae, dtype=dtype))
         self.threshold = nn.Parameter(torch.full((d_sae,), threshold_init, dtype=dtype))
         self.W_dec = nn.Parameter(torch.empty(d_sae, d_model, dtype=dtype))
         self.b_dec = nn.Parameter(torch.zeros(d_model, dtype=dtype))
+
+    def normalize_input(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply the same input normalization the SAE was trained under.
+
+        Training feeds ``(x - mean_vec) / rms_scale``. Raw activations must be
+        put on that scale before ``encode``, or the JumpReLU thresholds are
+        meaningless. ``mean_vec`` is absent on checkpoints trained before
+        centering was added, which fall back to the uncentered scaling.
+        """
+        if self.mean_vec is not None:
+            x = x - torch.from_numpy(self.mean_vec).to(device=x.device, dtype=x.dtype)
+        if self.rms_scale is not None and self.rms_scale > 0:
+            x = x / self.rms_scale
+        return x
+
+    def denormalize_output(self, x: torch.Tensor) -> torch.Tensor:
+        """Invert :meth:`normalize_input`, mapping a reconstruction back to
+        raw activation space.
+
+        Needed by callers that round-trip through the SAE and write the result
+        back into the model — e.g. ablation, which replaces a hidden state with
+        ``decode(encode(x))``. Scaling back without re-adding ``mean_vec``
+        would shift the hidden state by the full activation offset.
+        """
+        if self.rms_scale is not None and self.rms_scale > 0:
+            x = x * self.rms_scale
+        if self.mean_vec is not None:
+            x = x + torch.from_numpy(self.mean_vec).to(device=x.device, dtype=x.dtype)
+        return x
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         x = x.contiguous()
@@ -165,5 +199,7 @@ class JumpReLUSAE(nn.Module):
             model.b_dec.data = checkpoint["b_dec"]
 
         model.rms_scale = config.get("rms_scale", None)
+        mean_vec = config.get("mean_vec", None)
+        model.mean_vec = np.asarray(mean_vec, dtype=np.float32) if mean_vec is not None else None
 
         return model.to(device)

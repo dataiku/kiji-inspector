@@ -417,7 +417,18 @@ def parse_args() -> argparse.Namespace:
         "extraction prompts: passes enable_thinking=False to the chat "
         "template and closes any <think> block the template still opens. "
         "Recommended for reasoning models such as Qwen/Qwen3.6-35B-A3B so "
-        "the decision token sits at the final-answer position.",
+        "the decision token sits at the final-answer position. Since this is "
+        "now auto-detected from the subject model's chat template, the flag is "
+        "only needed to force suppression when detection misses.",
+    )
+    p.add_argument(
+        "--thinking",
+        action="store_true",
+        dest="allow_thinking",
+        help="Opt out of the automatic reasoning suppression and extract at the "
+        "position the template produces by default. For reasoning models that "
+        "puts the decision token inside the <think> block, which is rarely "
+        "what tool-selection analysis wants.",
     )
     p.add_argument(
         "--disable-p2p",
@@ -449,6 +460,7 @@ def extract_activations(
     dp_size: int = 1,
     tp_size: int = 1,
     no_thinking: bool = False,
+    allow_thinking: bool = False,
 ) -> dict[str, Path]:
     """Load subject model, extract raw activations for all layers, save as numpy shards.
 
@@ -457,6 +469,9 @@ def extract_activations(
     """
     from kiji_inspector.extraction import create_extractor
     from kiji_inspector.extraction.extractor import RawActivationExtractor
+    from kiji_inspector.extraction.vllm_activation_extractor import (
+        recommended_chat_template_kwargs,
+    )
 
     layer_keys = [f"residual_{layer}" for layer in layers]
 
@@ -503,10 +518,37 @@ def extract_activations(
             tensor_parallel_size=tp_size,
         )
 
+    # Reasoning models open a <think> block in their generation prompt, which
+    # puts the decision token inside the reasoning channel instead of at the
+    # final-answer position. Nemotron-3-Nano does this by default:
+    #
+    #   {}                        -> "<|im_start|>assistant\n<think>\n"
+    #   {enable_thinking: False}  -> "<|im_start|>assistant\n<think></think>"
+    #
+    # so the flag is what moves the prefill to the answer position. Detect it
+    # from the tokenizer's own template rather than relying on the caller to
+    # remember --no-thinking per model; gemma-4, whose template defaults
+    # enable_thinking to false, renders identically either way so this is a
+    # no-op there. --thinking opts out when reasoning-position activations are
+    # actually wanted.
+    if no_thinking:
+        template_kwargs = {"enable_thinking": False}
+    elif allow_thinking:
+        template_kwargs = None
+    else:
+        template_kwargs = (
+            recommended_chat_template_kwargs(subject_model, getattr(extractor, "tokenizer", None))
+            or None
+        )
+        if template_kwargs:
+            print(f"  Auto-disabling reasoning for {subject_model} ({template_kwargs})")
+
     raw_extractor = RawActivationExtractor(
         base_extractor=extractor,
-        chat_template_kwargs={"enable_thinking": False} if no_thinking else None,
-        close_think_block=no_thinking,
+        chat_template_kwargs=template_kwargs,
+        # Fallback for templates that accept the kwarg but still leave <think>
+        # open; a no-op when the template closes it itself, as Nemotron's does.
+        close_think_block=bool(template_kwargs),
     )
 
     layer_dirs = raw_extractor.extract_to_shards(
@@ -620,6 +662,7 @@ def _run_step1(args, pairs_dir: str) -> dict[str, Path]:
         dp_size=args.extraction_dp_size,
         tp_size=args.extraction_tp_size,
         no_thinking=args.no_thinking,
+        allow_thinking=args.allow_thinking,
     )
     elapsed = time.time() - t0
     print(f"  Extraction complete ({elapsed:.1f}s)")

@@ -228,7 +228,7 @@ class ActivationExtractor:
         )
 
     def _register_hooks(self):
-        """Register forward hooks to capture activations at specified layers."""
+        """Register forward pre-hooks to capture activations entering each layer."""
         layers = self._get_model_layers()
         num_layers = len(layers)
 
@@ -241,21 +241,34 @@ class ActivationExtractor:
                 continue
 
             layer = layers[layer_idx]
-            hook = layer.register_forward_hook(self._make_hook(f"residual_{layer_idx}"))
+            hook = layer.register_forward_pre_hook(
+                self._make_hook(f"residual_{layer_idx}"), with_kwargs=True
+            )
             self._hooks.append(hook)
 
     def _make_hook(self, name: str):
-        """Create a hook function that stores the full activation sequence.
+        """Create a pre-hook that stores the residual stream entering the layer.
+
+        This captures the layer's *input*, not its output. vLLM's aux-hidden-
+        state extraction (used to build the SAE training data) records the
+        residual stream entering layer N, with N=0 seeded at the embedding
+        output before any layer runs — matching HF's own
+        ``output_hidden_states`` tuple convention (``hidden_states[0]`` is the
+        embedding, ``hidden_states[N]`` is the input to layer N). Hooking
+        ``layers[N]``'s *output* instead would be off by one relative to the
+        activations the SAE was actually trained on. A pre-hook on
+        ``layers[N]`` matches the convention exactly, including at N=0 where
+        there is no ``layers[-1]`` to hook.
 
         Activations are moved to CPU and cast to float32 immediately.
         Token position selection is deferred to extract/extract_batch.
         """
 
-        def hook(module, input, output):
-            if isinstance(output, tuple):
-                activation = output[0]
+        def hook(module, args, kwargs):
+            if args:
+                activation = args[0]
             else:
-                activation = output
+                activation = kwargs["hidden_states"]
             self._activations[name] = activation.detach().to(device="cpu", dtype=torch.float32)
 
         return hook

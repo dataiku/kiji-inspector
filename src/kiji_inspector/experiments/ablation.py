@@ -45,9 +45,11 @@ def build_tool_token_map(
 ) -> tuple[dict[int, str], dict[str, int]]:
     """Map between tool names and their first token ID.
 
-    The prompt ends with "I'll use the " so the next token starts with a
-    space followed by the tool name.  We try multiple tokenization variants
-    to handle different tokenizer behaviors.
+    The prompt ends with "I'll use the" (no trailing space), so the next token
+    is the space-prefixed tool name — "▁ticket" under SentencePiece,
+    "Ġticket" under BPE. The " {name}" variant below is therefore the one that
+    normally matches; the others are fallbacks for tokenizers that split
+    differently.
 
     Returns:
         (token_id_to_tool, tool_to_token_id)
@@ -115,11 +117,17 @@ def make_ablation_hook(
     feature_indices: list[int] | None = None,
     decision_token_only: bool = True,
 ):
-    """Create a forward hook that ablates specific SAE features.
+    """Create a forward pre-hook that ablates specific SAE features.
 
-    The hook intercepts the layer output, encodes through the SAE, zeros
-    out the specified features, decodes back, and returns the modified
-    activation.
+    The hook intercepts the layer's *input* — the residual stream entering
+    the layer — encodes it through the SAE, zeros out the specified
+    features, decodes back, and returns the modified activation as the
+    layer's new input. This must be the layer's input rather than its
+    output: the SAE is trained on activations extracted via vLLM's
+    aux-hidden-state mechanism, which records the residual entering layer N
+    (see activation_extractor.py's ``_make_hook`` for the full convention).
+    Hooking the layer's output would intervene one layer downstream of
+    where the SAE's features actually live.
 
     When feature_indices is None (or empty), this becomes a reconstruction-only
     hook: the activation is encoded and decoded through the SAE without zeroing
@@ -135,50 +143,49 @@ def make_ablation_hook(
     sae_device = next(sae.parameters()).device
     sae_dtype = next(sae.parameters()).dtype
 
-    def hook(module, input, output):
-        if isinstance(output, tuple):
-            hidden = output[0]
-            rest = output[1:]
+    def hook(module, args, kwargs):
+        if args:
+            hidden = args[0]
+            rest_args = args[1:]
+            hidden_from_kwargs = False
         else:
-            hidden = output
-            rest = None
+            hidden = kwargs["hidden_states"]
+            rest_args = None
+            hidden_from_kwargs = True
 
         orig_device = hidden.device
         orig_dtype = hidden.dtype
 
         with torch.no_grad():
-            _rms = sae.rms_scale if (sae.rms_scale is not None and sae.rms_scale > 0) else None
+            # normalize_input/denormalize_output apply the full transform the
+            # SAE was trained under — (x - mean_vec) / rms_scale and its
+            # inverse. Scaling by rms_scale alone leaves the activation offset
+            # in place, which for a residual stream dwarfs the signal.
             if decision_token_only:
                 # Only modify the last token position
                 last_tok = hidden[:, -1:, :]  # (1, 1, d_model)
                 flat = last_tok.reshape(-1, last_tok.shape[-1]).to(
                     device=sae_device, dtype=sae_dtype
                 )
-                if _rms is not None:
-                    flat = flat / _rms
-                features = sae.encode(flat)
+                features = sae.encode(sae.normalize_input(flat))
                 for idx in feat_set:
                     features[:, idx] = 0.0
-                modified = sae.decode(features)
-                if _rms is not None:
-                    modified = modified * _rms
+                modified = sae.denormalize_output(sae.decode(features))
                 modified = modified.reshape(last_tok.shape).to(device=orig_device, dtype=orig_dtype)
                 hidden = torch.cat([hidden[:, :-1, :], modified], dim=1)
             else:
                 flat = hidden.reshape(-1, hidden.shape[-1]).to(device=sae_device, dtype=sae_dtype)
-                if _rms is not None:
-                    flat = flat / _rms
-                features = sae.encode(flat)
+                features = sae.encode(sae.normalize_input(flat))
                 for idx in feat_set:
                     features[:, idx] = 0.0
-                modified = sae.decode(features)
-                if _rms is not None:
-                    modified = modified * _rms
+                modified = sae.denormalize_output(sae.decode(features))
                 hidden = modified.reshape(hidden.shape).to(device=orig_device, dtype=orig_dtype)
 
-        if rest is not None:
-            return (hidden,) + rest
-        return hidden
+        if hidden_from_kwargs:
+            new_kwargs = dict(kwargs)
+            new_kwargs["hidden_states"] = hidden
+            return args, new_kwargs
+        return (hidden,) + rest_args, kwargs
 
     return hook
 
@@ -361,6 +368,7 @@ def run_ablation_experiment(
     n_features: int = 10,
     n_prompts_per_type: int = 100,
     seed: int = 42,
+    min_baseline_pass_rate: float = 0.2,
 ) -> dict:
     """Run the full ablation experiment.
 
@@ -374,12 +382,17 @@ def run_ablation_experiment(
         n_features: Number of top contrastive features to ablate.
         n_prompts_per_type: Max prompts to test per contrast type.
         seed: Random seed.
+        min_baseline_pass_rate: Abort if the fraction of prompts whose
+            unablated prediction matches the expected tool falls below this.
+            Guards against publishing a report built on a handful of prompts.
+            Set to 0 to disable.
     """
     from kiji_inspector.core.sae_core import JumpReLUSAE
     from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
     from kiji_inspector.data.scenario import load_scenarios_meta
     from kiji_inspector.extraction.activation_extractor import ActivationConfig, ActivationExtractor
     from kiji_inspector.extraction.extractor import build_agent_prompt
+    from kiji_inspector.extraction.vllm_activation_extractor import recommended_chat_template_kwargs
 
     random.seed(seed)
     np.random.seed(seed)
@@ -392,8 +405,20 @@ def run_ablation_experiment(
     with open(contrastive_features_path) as f:
         contrastive = json.load(f)
 
-    # Load pairs
+    # Load pairs. Excludes anchor_tool == contrast_tool pairs, matching
+    # pipeline.py's _load_pairs() (used by steps 1/3/4/5) -- for those pairs
+    # the expected tool is identical either way, so "did ablation flip toward
+    # the contrast tool" is degenerate. Step 3's feature selection never saw
+    # these (its pair count is validated against step 1's filtered shards),
+    # so leaving them in here would test features against noise the features
+    # weren't selected to explain.
     dataset = ContrastiveDataset.from_parquet(pairs_dir)
+    total_pairs = len(dataset.pairs)
+    dataset.pairs = [p for p in dataset.pairs if p.anchor_tool != p.contrast_tool]
+    excluded_pairs = total_pairs - len(dataset.pairs)
+    print(f"  Loaded {len(dataset.pairs)} pairs from {pairs_dir}")
+    if excluded_pairs:
+        print(f"  Excluded {excluded_pairs} pairs where anchor_tool == contrast_tool")
     scenarios = load_scenarios_meta(pairs_dir)
 
     # Load SAE
@@ -412,6 +437,13 @@ def run_ablation_experiment(
     model = extractor.model
     tokenizer = extractor.tokenizer
     input_device = extractor._input_device
+
+    # Reasoning models (e.g. Nemotron-3-Nano) open a <think> block in their
+    # generation prompt by default, which would put the decision token inside
+    # the reasoning channel instead of at the tool-name position -- the same
+    # bug fixed for step 1 extraction, but ablation builds its own prompts
+    # here and needs the same suppression applied.
+    _tpl_kwargs = recommended_chat_template_kwargs(model_name, tokenizer) or None
 
     # Get the layer module for hook registration
     model_layers = extractor._get_model_layers()
@@ -513,6 +545,8 @@ def run_ablation_experiment(
                 tools=sc.tools,
                 user_request=pair.anchor_prompt,
                 tokenizer=tokenizer,
+                chat_template_kwargs=_tpl_kwargs,
+                close_think_block=bool(_tpl_kwargs),
             )
 
             expected_tool = pair.anchor_tool.split(",")[0].strip()
@@ -533,8 +567,8 @@ def run_ablation_experiment(
             n_tested += 1
 
             # Reconstruction-only baseline
-            hook_handle = target_layer.register_forward_hook(
-                make_ablation_hook(sae, feature_indices=None)
+            hook_handle = target_layer.register_forward_pre_hook(
+                make_ablation_hook(sae, feature_indices=None), with_kwargs=True
             )
             recon_tool, recon_tid, recon_prob_contrast = get_tool_prediction(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
@@ -544,8 +578,8 @@ def run_ablation_experiment(
                 reconstruction_flips += 1
 
             # Contrastive ablation
-            hook_handle = target_layer.register_forward_hook(
-                make_ablation_hook(sae, contrastive_indices)
+            hook_handle = target_layer.register_forward_pre_hook(
+                make_ablation_hook(sae, contrastive_indices), with_kwargs=True
             )
             ablated_tool, ablated_tid, ablated_prob_contrast = get_tool_prediction(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
@@ -557,8 +591,8 @@ def run_ablation_experiment(
                     contrastive_directed_flips += 1
 
             # Random ablation
-            hook_handle = target_layer.register_forward_hook(
-                make_ablation_hook(sae, random_indices)
+            hook_handle = target_layer.register_forward_pre_hook(
+                make_ablation_hook(sae, random_indices), with_kwargs=True
             )
             rand_tool, rand_tid, rand_prob_contrast = get_tool_prediction(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
@@ -576,6 +610,11 @@ def run_ablation_experiment(
         per_contrast[ct_key] = {
             "n_pairs_available": len(ct_pairs),
             "n_tested": n_tested,
+            # Recorded so the baseline-pass-rate guard below (and anyone reading
+            # the report) can tell "the features did nothing" apart from "almost
+            # no prompt reached the intervention".
+            "n_baseline_mismatches": n_baseline_mismatches,
+            "n_unknown_baseline": n_unknown_baseline,
             "contrastive_flips": contrastive_flips,
             "contrastive_directed_flips": contrastive_directed_flips,
             "random_flips": random_flips,
@@ -610,6 +649,30 @@ def run_ablation_experiment(
             )
         else:
             print("    No prompts with correct baseline prediction")
+
+    # Refuse to publish a report the baseline filter has already invalidated.
+    # A prompt the model does not answer with a tool name yields n_tested ~= 0
+    # per contrast type, and every downstream statistic then degenerates
+    # silently: CATE and directed-flip come out as exactly 0.0, Wilcoxon p as
+    # None, and flip-rate CIs as [0, 0.975] -- a report that looks complete but
+    # measures nothing. The usual cause is a prompt whose decision token is not
+    # a tool name (see _DEFAULT_ASSISTANT_PREFILL in extraction/extractor.py),
+    # or a --model that does not match the SAE's subject model.
+    kept = sum(v.get("n_tested", 0) for v in per_contrast.values())
+    tried = sum(
+        v.get("n_tested", 0) + v.get("n_baseline_mismatches", 0) + v.get("n_unknown_baseline", 0)
+        for v in per_contrast.values()
+    )
+    if tried and kept / tried < min_baseline_pass_rate:
+        raise RuntimeError(
+            f"Baseline filter kept only {kept}/{tried} prompts "
+            f"({100 * kept / tried:.1f}%), below the {100 * min_baseline_pass_rate:.0f}% "
+            f"minimum — the model is not predicting tool names at the decision "
+            f"token, so ablation would measure nothing. Check that --model "
+            f"({model_name}) matches the SAE's subject model and that the "
+            f"assistant prefill leaves the tool name as the next token. "
+            f"Pass min_baseline_pass_rate=0 to override."
+        )
 
     # Compute metrics and save
     report = compute_ablation_metrics(per_contrast)
@@ -661,6 +724,14 @@ if __name__ == "__main__":
         "--n-prompts-per-type", type=int, default=100, help="Max prompts per contrast type"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--min-baseline-pass-rate",
+        type=float,
+        default=0.2,
+        help="Abort if fewer than this fraction of prompts predict the expected "
+        "tool before ablation (default: 0.2; 0 disables). Protects against a "
+        "report computed from a handful of prompts.",
+    )
 
     args = parser.parse_args()
 
@@ -674,4 +745,5 @@ if __name__ == "__main__":
         n_features=args.n_features,
         n_prompts_per_type=args.n_prompts_per_type,
         seed=args.seed,
+        min_baseline_pass_rate=args.min_baseline_pass_rate,
     )
