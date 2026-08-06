@@ -23,8 +23,9 @@ class SAE(JumpReLUSAE):
             layer=20,
         )
 
-        features = sae.encode(activations)
-        reconstruction = sae.decode(features)
+        # encode/decode operate in the SAE's normalized space
+        features = sae.encode(sae.normalize_input(activations))
+        reconstruction = sae.denormalize_output(sae.decode(features))
     """
 
     @classmethod

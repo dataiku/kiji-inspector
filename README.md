@@ -67,13 +67,20 @@ from the repository [Dockerfile](Dockerfile), which compiles vLLM from the
 from kiji_inspector import SAE
 
 sae, feature_descriptions = SAE.from_pretrained(
-    base_model="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
-    layer=20,
+    repo_id="575-lab/kiji-inspector-google-gemma-4-E4B-it",
+    layer=30,
 )
 
-features = sae.encode(activations)
-reconstruction = sae.decode(features)
+# encode/decode operate in the SAE's normalized space
+features = sae.encode(sae.normalize_input(activations))
+reconstruction = sae.denormalize_output(sae.decode(features))
 ```
+
+`normalize_input` applies the exact transform the SAE was trained under —
+`(x - mean_vec) / rms_scale`, a single global mean vector and RMS constant
+computed over the training set. Raw activations must go through it or the
+JumpReLU thresholds are meaningless; `denormalize_output` inverts it when a
+reconstruction is written back into the model.
 
 Training and data-generation entrypoints live under the package namespace:
 
@@ -149,11 +156,11 @@ exact-match registry of hub IDs, so it won't match a local path — pass
 
 ## 📓 Examples
 
-Two end-to-end notebooks demonstrate the library. Both run on Colab — the first works on a free T4, the second needs an A100 high-RAM runtime.
+Two end-to-end notebooks demonstrate the library. Both run on Colab — the first needs an L4 (24 GB), the second an A100 high-RAM runtime.
 
 | Notebook | What it shows | Open |
 |---|---|---|
-| [`quickstart_colab.ipynb`](demo/quickstart_colab.ipynb) | Minimal walkthrough: capture a hidden state from `google/gemma-4-E4B-it` via a forward hook, load a pretrained SAE with `SAE.from_pretrained`, and describe the top features firing on a single prompt. Also covers the vLLM extraction path. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/quickstart_colab.ipynb) |
+| [`quickstart_colab.ipynb`](demo/quickstart_colab.ipynb) | Minimal walkthrough: capture the decision-token activation of `google/gemma-4-E4B-it` via a forward pre-hook, load the layer-30 SAE with `SAE.from_pretrained`, normalize with `sae.normalize_input`, and describe the top features firing on a single prompt. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/quickstart_colab.ipynb) |
 | [`home_repair_colab.ipynb`](demo/home_repair/home_repair_colab.ipynb) | Full agent demo: a Nemotron-3-Nano-30B home repair advisor calls four tools across three appliance problems, the residual stream is captured at every decision point, and a trained JumpReLU SAE decomposes those activations into themed features. Includes the interactive `index.html` viewer served from Colab. | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/home_repair/home_repair_colab.ipynb) |
 
 ---
