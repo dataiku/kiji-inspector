@@ -45,9 +45,9 @@ def test_ema_absorbs_l0_noise():
     assert l1_values[-1] > l1_values[0], "l1 did not rise despite mean L0 far above target"
     # Monotone non-decreasing after the EMA has burned in.
     settled = l1_values[10:]
-    assert all(
-        b >= a for a, b in zip(settled, settled[1:], strict=False)
-    ), "l1 direction flapped on noise"
+    assert all(b >= a for a, b in zip(settled, settled[1:], strict=False)), (
+        "l1 direction flapped on noise"
+    )
 
 
 def test_freeze_then_rearm_when_l0_moves():

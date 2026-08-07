@@ -6,10 +6,11 @@ by zeroing them out during the forward pass and measuring whether the model's
 tool prediction changes.
 
 For each contrast type:
-  1. Ablate top-K contrastive features -> measure flip rate + CATE (with bootstrap CI)
-  2. Ablate K random features as control -> measure flip rate + CATE (with bootstrap CI)
-  3. Fisher's exact test comparing the two
-  4. One-sided Wilcoxon signed-rank test on probability shifts
+  1. Select top-K features that are more active on the anchor prompts
+  2. Measure targeted, frequency-matched-random, and reconstruction-only arms
+  3. Estimate CATE as the paired targeted-minus-reconstruction probability shift
+  4. Compare paired flip outcomes with exact McNemar/binomial tests
+  5. Apply one-sided paired Wilcoxon tests with BH correction across types
 
 Usage:
     python ablation.py \
@@ -105,6 +106,49 @@ def get_tool_prediction(
                 break
 
     return predicted_tool, predicted_tid, prob_contrast
+
+
+def select_directional_features(
+    top_features: list[dict],
+    n_features: int,
+    direction: str = "anchor",
+) -> list[dict]:
+    """Select ranked features whose mean activation supports one side of a pair.
+
+    Ablation evaluates the anchor prompt and asks whether removing features
+    moves probability toward the contrast tool. A feature that is more active
+    on contrast prompts is generally absent from the anchor-side state, so
+    including it dilutes the intervention and gives the directed-flip metric
+    the wrong sign. ``direction="any"`` is retained only to reproduce legacy
+    reports that selected by absolute effect size alone.
+    """
+    if direction == "any":
+        eligible = top_features
+    elif direction in {"anchor", "contrast"}:
+        required = {"anchor_mean_activation", "contrast_mean_activation"}
+        missing = [f.get("feature_index") for f in top_features if not required <= f.keys()]
+        if missing:
+            raise ValueError(
+                "Direction-aware ablation requires anchor_mean_activation and "
+                "contrast_mean_activation in contrastive_features.json; missing "
+                f"for feature(s) {missing[:5]}"
+            )
+        if direction == "anchor":
+            eligible = [
+                f
+                for f in top_features
+                if f["anchor_mean_activation"] > f["contrast_mean_activation"]
+            ]
+        else:
+            eligible = [
+                f
+                for f in top_features
+                if f["contrast_mean_activation"] > f["anchor_mean_activation"]
+            ]
+    else:
+        raise ValueError(f"Unknown feature direction: {direction}")
+
+    return eligible[:n_features]
 
 
 # ---------------------------------------------------------------------------
@@ -408,16 +452,53 @@ def _wilcoxon_greater(deltas: list[float], min_nonzero: int = 10) -> float | Non
         return None
 
 
+def _paired_flip_test(
+    treatment: list[bool],
+    control: list[bool],
+) -> dict[str, int | float]:
+    """Exact one-sided paired test for a higher treatment flip probability.
+
+    This is the exact small-sample form of McNemar's test: only prompts where
+    the treatment and control disagree are informative. Treating the two arms
+    as independent binomial samples (for example with Fisher's exact test)
+    discards the paired design and gives the wrong null distribution.
+    """
+    from scipy.stats import binomtest
+
+    if len(treatment) != len(control):
+        raise ValueError(
+            f"Paired flip arms must have the same length: {len(treatment)} != {len(control)}"
+        )
+
+    treatment_only = sum(t and not c for t, c in zip(treatment, control, strict=True))
+    control_only = sum(c and not t for t, c in zip(treatment, control, strict=True))
+    discordant = treatment_only + control_only
+    p_value = (
+        float(binomtest(treatment_only, discordant, 0.5, alternative="greater").pvalue)
+        if discordant
+        else 1.0
+    )
+    return {
+        "treatment_only_flips": treatment_only,
+        "control_only_flips": control_only,
+        "discordant_pairs": discordant,
+        "p_value": round(p_value, 6),
+    }
+
+
 def compute_ablation_metrics(
     per_contrast: dict[str, dict],
 ) -> dict:
-    """Compute aggregate metrics across contrast types, including causal CATE
-    (Conditional Average Treatment Effect per contrast type), bootstrap CIs,
-    and Wilcoxon signed-rank test statistics (both per contrast type and in
-    aggregate, with Benjamini-Hochberg correction across contrast types).
+    """Compute paired causal metrics and aggregates across contrast types.
+
+    The targeted and random arms both pass the hidden state through the SAE,
+    so their raw shifts from the unmodified model include reconstruction
+    distortion. The primary CATE therefore compares targeted ablation with the
+    reconstruction-only arm on the *same prompt*. A second paired estimand
+    compares targeted with frequency-matched random ablation.
     """
     import numpy as np
-    from scipy.stats import combine_pvalues, false_discovery_control, fisher_exact
+    from scipy.stats import combine_pvalues, false_discovery_control
 
     def bootstrap_ci(data: list[float], n_boot: int = 5000, alpha: float = 0.05):
         """Non-parametric bootstrap 95% CI.
@@ -427,12 +508,12 @@ def compute_ablation_metrics(
         lower, upper : bootstrap percentile confidence interval."""
         if not data:
             return 0.0, 0.0, 0.0
-        data = np.array(data)
+        data = np.asarray(data, dtype=np.float64)
         boot_means = np.array(
             [np.mean(np.random.choice(data, size=len(data), replace=True)) for _ in range(n_boot)]
         )
-        lower = np.percentile(boot_means, 100 * alpha / 2)
-        upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
+        lower = float(np.percentile(boot_means, 100 * alpha / 2))
+        upper = float(np.percentile(boot_means, 100 * (1 - alpha / 2)))
         mean = float(np.mean(data))
         return mean, lower, upper
 
@@ -470,54 +551,100 @@ def compute_ablation_metrics(
             "flip_rate_ci_95": [round(v, 4) for v in _clopper_pearson_ci(recon_flips, n)],
         }
 
-        # Fisher's exact test
-        table = [[c_flips, n - c_flips], [r_flips, n - r_flips]]
-        _, p_value = fisher_exact(table, alternative="greater")
-        info["fisher_exact_p_value"] = round(float(p_value), 6)
+        # Exact paired flip tests. Each arm is evaluated on the same prompts,
+        # so only discordant outcomes identify a treatment-control difference.
+        flip_outcomes = info.get("flip_outcomes", {})
+        if flip_outcomes:
+            contrastive_flip_outcomes = flip_outcomes.get("contrastive", [])
+            info["paired_flip_test_vs_random"] = _paired_flip_test(
+                contrastive_flip_outcomes,
+                flip_outcomes.get("random", []),
+            )
+            info["paired_flip_test_vs_reconstruction"] = _paired_flip_test(
+                contrastive_flip_outcomes,
+                flip_outcomes.get("reconstruction", []),
+            )
 
-        # === Causal metrics using probability deltas ===
+        # Paired probability estimands. Raw arrays remain in the report for
+        # post-hoc analysis, but are not themselves called causal effects.
         deltas = info.get("prob_deltas", {})
-        contrastive_deltas = deltas.get("contrastive", [])
+        contrastive_deltas = np.asarray(deltas.get("contrastive", []), dtype=np.float64)
+        random_deltas = np.asarray(deltas.get("random", []), dtype=np.float64)
+        reconstruction_deltas = np.asarray(deltas.get("reconstruction", []), dtype=np.float64)
+        lengths = {len(contrastive_deltas), len(random_deltas), len(reconstruction_deltas)}
+        if len(lengths) != 1:
+            raise ValueError(
+                f"Probability-delta arms for {ct_key} must have equal lengths; "
+                f"got contrastive={len(contrastive_deltas)}, random={len(random_deltas)}, "
+                f"reconstruction={len(reconstruction_deltas)}"
+            )
 
-        if contrastive_deltas:
-            cate, ci_lower, ci_upper = bootstrap_ci(contrastive_deltas)
+        if len(contrastive_deltas):
+            contrastive_vs_reconstruction = contrastive_deltas - reconstruction_deltas
+            contrastive_vs_random = contrastive_deltas - random_deltas
+            random_vs_reconstruction = random_deltas - reconstruction_deltas
+
+            cate, ci_lower, ci_upper = bootstrap_ci(contrastive_vs_reconstruction.tolist())
+            cate_random, cate_random_lower, cate_random_upper = bootstrap_ci(
+                contrastive_vs_random.tolist()
+            )
             info["contrastive_ablation"].update(
                 {
                     "CATE": round(cate, 4),
                     "CATE_ci_95_lower": round(ci_lower, 4),
                     "CATE_ci_95_upper": round(ci_upper, 4),
+                    "CATE_estimand": "contrastive_ablation_minus_reconstruction_only",
+                    "CATE_vs_random": round(cate_random, 4),
+                    "CATE_vs_random_ci_95_lower": round(cate_random_lower, 4),
+                    "CATE_vs_random_ci_95_upper": round(cate_random_upper, 4),
+                    "raw_probability_shift_vs_unablated": round(
+                        float(contrastive_deltas.mean()), 4
+                    ),
                 }
             )
 
-            wilcoxon_p = _wilcoxon_greater(contrastive_deltas)
+            wilcoxon_p = _wilcoxon_greater(contrastive_vs_reconstruction.tolist())
             info["contrastive_ablation"]["wilcoxon_p_value"] = (
                 round(wilcoxon_p, 6) if wilcoxon_p is not None else None
+            )
+            wilcoxon_random_p = _wilcoxon_greater(contrastive_vs_random.tolist())
+            info["contrastive_ablation"]["wilcoxon_vs_random_p_value"] = (
+                round(wilcoxon_random_p, 6) if wilcoxon_random_p is not None else None
             )
             if wilcoxon_p is not None:
                 wilcoxon_tested.append((ct_key, wilcoxon_p))
             else:
                 wilcoxon_excluded.append(ct_key)
+
+            random_cate, random_lower, random_upper = bootstrap_ci(
+                random_vs_reconstruction.tolist()
+            )
+            info["random_ablation"].update(
+                {
+                    "CATE": round(random_cate, 4),
+                    "CATE_ci_95_lower": round(random_lower, 4),
+                    "CATE_ci_95_upper": round(random_upper, 4),
+                    "CATE_estimand": "random_ablation_minus_reconstruction_only",
+                    "raw_probability_shift_vs_unablated": round(float(random_deltas.mean()), 4),
+                }
+            )
+            p = _wilcoxon_greater(random_vs_reconstruction.tolist())
+            info["random_ablation"]["wilcoxon_p_value"] = round(p, 6) if p is not None else None
+
+            recon_shift, recon_lower, recon_upper = bootstrap_ci(reconstruction_deltas.tolist())
+            info["reconstruction_baseline"].update(
+                {
+                    "mean_probability_shift_vs_unablated": round(recon_shift, 4),
+                    "probability_shift_ci_95_lower": round(recon_lower, 4),
+                    "probability_shift_ci_95_upper": round(recon_upper, 4),
+                }
+            )
+            p = _wilcoxon_greater(reconstruction_deltas.tolist())
+            info["reconstruction_baseline"]["wilcoxon_vs_unablated_p_value"] = (
+                round(p, 6) if p is not None else None
+            )
         else:
             wilcoxon_excluded.append(ct_key)
-
-        # Random / reconstruction arms: CATE plus the same Wilcoxon test.
-        # Under a healthy frequency-matched control these p-values should be
-        # unremarkable; a control arm that comes out "significant" is itself
-        # a red flag worth surfacing.
-        if deltas.get("random"):
-            random_cate, _, _ = bootstrap_ci(deltas["random"])
-            info["random_ablation"]["CATE"] = round(random_cate, 4)
-            p = _wilcoxon_greater(deltas["random"])
-            info["random_ablation"]["wilcoxon_p_value"] = (
-                round(p, 6) if p is not None else None
-            )
-        if deltas.get("reconstruction"):
-            recon_cate, _, _ = bootstrap_ci(deltas["reconstruction"])
-            info["reconstruction_baseline"]["CATE"] = round(recon_cate, 4)
-            p = _wilcoxon_greater(deltas["reconstruction"])
-            info["reconstruction_baseline"]["wilcoxon_p_value"] = (
-                round(p, 6) if p is not None else None
-            )
 
         # Preserve raw counts (previously popped, which made reports
         # impossible to re-analyze post hoc).
@@ -539,8 +666,7 @@ def compute_ablation_metrics(
     adjusted_ps: list[float] = []
     if wilcoxon_tested:
         adjusted_ps = [
-            float(p)
-            for p in false_discovery_control([p for _, p in wilcoxon_tested], method="bh")
+            float(p) for p in false_discovery_control([p for _, p in wilcoxon_tested], method="bh")
         ]
         for (ct_key, _), p_adj in zip(wilcoxon_tested, adjusted_ps, strict=True):
             per_contrast[ct_key]["contrastive_ablation"]["wilcoxon_p_value_bh"] = round(p_adj, 6)
@@ -565,6 +691,10 @@ def compute_ablation_metrics(
             "mean_contrastive_CATE": round(
                 np.mean([v["contrastive_ablation"].get("CATE", 0) for v in tested]), 4
             ),
+            "mean_contrastive_CATE_vs_random": round(
+                np.mean([v["contrastive_ablation"].get("CATE_vs_random", 0) for v in tested]),
+                4,
+            ),
         }
 
         # Wilcoxon aggregates. Two significance rates are reported: over
@@ -572,9 +702,10 @@ def compute_ablation_metrics(
         # types counted as not-significant) — the first is what a naive
         # reading produces, the second is the honest denominator. BH-adjusted
         # counts control the false-discovery rate across the type family.
-        # Fisher's method replaces the former mean-of-p-values (which has no
-        # inferential meaning); it assumes independent tests, which contrast
-        # types only approximately satisfy.
+        # Fisher's method combines the paired per-type Wilcoxon p-values and
+        # replaces the former mean-of-p-values (which has no inferential
+        # meaning). It assumes independent tests, which contrast types only
+        # approximately satisfy.
         n_tested_types = len(wilcoxon_tested)
         n_excluded_types = len(wilcoxon_excluded)
         agg["wilcoxon_tested_types"] = n_tested_types
@@ -625,6 +756,7 @@ def run_ablation_experiment(
     min_baseline_pass_rate: float = 0.2,
     random_control: str = "frequency-matched",
     activations_dir: str | None = None,
+    feature_direction: str = "anchor",
 ) -> dict:
     """Run the full ablation experiment.
 
@@ -652,6 +784,10 @@ def run_ablation_experiment(
             compute firing rates when no persisted firing_rates.npy exists
             next to the SAE checkpoint. Defaults to the directory containing
             contrastive_features_path.
+        feature_direction: Which side's features are eligible. ``"anchor"``
+            (default) selects features with greater mean activation on anchor
+            prompts, matching the prompts actually ablated. ``"any"``
+            reproduces the legacy absolute-effect-size selection.
     """
     from kiji_inspector.core.sae_core import JumpReLUSAE
     from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
@@ -802,6 +938,7 @@ def run_ablation_experiment(
     print(f"  SAE checkpoint    : {sae_checkpoint}")
     print(f"  Layer             : {layer}")
     print(f"  Features to ablate: {n_features}")
+    print(f"  Feature direction : {feature_direction}")
     print(f"  Prompts per type  : {n_prompts_per_type}")
     print(f"  Contrast types    : {sum(1 for k in contrastive if not k.startswith('_'))}")
     print(f"{'=' * 70}\n")
@@ -817,11 +954,26 @@ def run_ablation_experiment(
             continue
 
         top_features = ct_info.get("top_features", [])
-        if len(top_features) < n_features:
-            print(f"  Skipping {ct_key}: only {len(top_features)} features (need {n_features})")
+        selected_features = select_directional_features(
+            top_features,
+            n_features=n_features,
+            direction=feature_direction,
+        )
+        eligible_directional_count = len(
+            select_directional_features(
+                top_features,
+                n_features=len(top_features),
+                direction=feature_direction,
+            )
+        )
+        if len(selected_features) < n_features:
+            print(
+                f"  Skipping {ct_key}: only {len(selected_features)} "
+                f"{feature_direction}-direction features (need {n_features})"
+            )
             continue
 
-        contrastive_indices = [f["feature_index"] for f in top_features[:n_features]]
+        contrastive_indices = [f["feature_index"] for f in selected_features]
 
         # Control features. "frequency-matched" redraws per prompt (below);
         # "alive" and "legacy" keep one draw per contrast type.
@@ -866,6 +1018,11 @@ def run_ablation_experiment(
 
         # === NEW: collect probability deltas for causal metrics ===
         prob_deltas = {
+            "contrastive": [],
+            "random": [],
+            "reconstruction": [],
+        }
+        flip_outcomes = {
             "contrastive": [],
             "random": [],
             "reconstruction": [],
@@ -920,7 +1077,9 @@ def run_ablation_experiment(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
-            if recon_tid != baseline_tid:
+            recon_flipped = recon_tid != baseline_tid
+            flip_outcomes["reconstruction"].append(recon_flipped)
+            if recon_flipped:
                 reconstruction_flips += 1
 
             # Contrastive ablation
@@ -931,7 +1090,9 @@ def run_ablation_experiment(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
-            if ablated_tid != baseline_tid:
+            contrastive_flipped = ablated_tid != baseline_tid
+            flip_outcomes["contrastive"].append(contrastive_flipped)
+            if contrastive_flipped:
                 contrastive_flips += 1
                 if ablated_tool == contrast_tool:
                     contrastive_directed_flips += 1
@@ -950,7 +1111,9 @@ def run_ablation_experiment(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
-            if rand_tid != baseline_tid:
+            random_flipped = rand_tid != baseline_tid
+            flip_outcomes["random"].append(random_flipped)
+            if random_flipped:
                 random_flips += 1
 
             # === NEW: store probability shifts ===
@@ -974,6 +1137,12 @@ def run_ablation_experiment(
             "contrastive_feature_indices": contrastive_indices,
             "n_random_features": len(random_indices),
             "prob_deltas": prob_deltas,  # ← this is the key new data
+            "flip_outcomes": flip_outcomes,
+            "feature_selection": {
+                "direction": feature_direction,
+                "available_ranked_features": len(top_features),
+                "eligible_directional_features": eligible_directional_count,
+            },
             "random_control": {
                 "mode": random_control,
                 "matched_on": matched_on,
@@ -1058,6 +1227,8 @@ def run_ablation_experiment(
         print(f"  Mean contrastive flip : {agg['mean_contrastive_flip_rate']:.1%}")
         print(f"  Mean directed flip    : {agg['mean_directed_flip_rate']:.1%}")
         print(f"  Mean random flip      : {agg['mean_random_flip_rate']:.1%}")
+        print(f"  Mean CATE vs recon    : {agg['mean_contrastive_CATE']:+.4f}")
+        print(f"  Mean CATE vs random   : {agg['mean_contrastive_CATE_vs_random']:+.4f}")
         recon_rate = agg.get("mean_reconstruction_flip_rate", 0)
         if recon_rate > 0.3:
             print(f"\n  WARNING: Reconstruction-only flip rate is {recon_rate:.1%}.")
@@ -1116,6 +1287,14 @@ if __name__ == "__main__":
         "rates (default: directory containing --contrastive-features). Only "
         "used when no firing_rates.npy exists next to the SAE checkpoint.",
     )
+    parser.add_argument(
+        "--feature-direction",
+        choices=["anchor", "any"],
+        default="anchor",
+        help="Feature-selection direction: 'anchor' (default) ablates only "
+        "features whose mean activation is greater on anchor prompts; 'any' "
+        "reproduces legacy absolute-effect-size selection.",
+    )
 
     args = parser.parse_args()
 
@@ -1132,4 +1311,5 @@ if __name__ == "__main__":
         min_baseline_pass_rate=args.min_baseline_pass_rate,
         random_control=args.random_control,
         activations_dir=args.activations_dir,
+        feature_direction=args.feature_direction,
     )

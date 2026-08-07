@@ -157,6 +157,39 @@ def test_baseline_pass_rate_guard_arithmetic():
     assert pass_rate(healthy) >= 0.2, "guard would reject a healthy run"
 
 
+def test_directional_selection_keeps_anchor_supporting_features_in_rank_order():
+    from kiji_inspector.experiments.ablation import select_directional_features
+
+    features = [
+        {
+            "feature_index": 10,
+            "anchor_mean_activation": 0.2,
+            "contrast_mean_activation": 0.8,
+        },
+        {
+            "feature_index": 11,
+            "anchor_mean_activation": 0.7,
+            "contrast_mean_activation": 0.1,
+        },
+        {
+            "feature_index": 12,
+            "anchor_mean_activation": 0.6,
+            "contrast_mean_activation": 0.4,
+        },
+    ]
+
+    selected = select_directional_features(features, n_features=2, direction="anchor")
+
+    assert [feature["feature_index"] for feature in selected] == [11, 12]
+
+
+def test_directional_selection_rejects_reports_without_signed_means():
+    from kiji_inspector.experiments.ablation import select_directional_features
+
+    with pytest.raises(ValueError, match="requires anchor_mean_activation"):
+        select_directional_features([{"feature_index": 7}], n_features=1, direction="anchor")
+
+
 # ---------------------------------------------------------------------------
 # Frequency-matched random control
 # ---------------------------------------------------------------------------
@@ -289,13 +322,14 @@ def test_compute_firing_rates_fake_sae(tmp_path):
 
 
 def _make_type(n_tested, deltas_contrastive, flips=2):
+    random_flips = 1
     return {
         "n_tested": n_tested,
         "n_baseline_mismatches": 0,
         "n_unknown_baseline": 0,
         "contrastive_flips": flips,
         "contrastive_directed_flips": 1,
-        "random_flips": 1,
+        "random_flips": random_flips,
         "reconstruction_flips": 0,
         "contrastive_feature_indices": [1, 2, 3],
         "n_random_features": 3,
@@ -303,6 +337,11 @@ def _make_type(n_tested, deltas_contrastive, flips=2):
             "contrastive": deltas_contrastive,
             "random": [0.0] * len(deltas_contrastive),
             "reconstruction": [0.0] * len(deltas_contrastive),
+        },
+        "flip_outcomes": {
+            "contrastive": [i < flips for i in range(n_tested)],
+            "random": [i < random_flips for i in range(n_tested)],
+            "reconstruction": [False] * n_tested,
         },
     }
 
@@ -312,10 +351,7 @@ def test_metrics_bh_and_denominators():
 
     per_contrast = {
         # 3 testable types (>=10 nonzero deltas), strong positive shifts
-        **{
-            f"strong_{i}": _make_type(50, [0.01 * (j + 1) for j in range(20)])
-            for i in range(3)
-        },
+        **{f"strong_{i}": _make_type(50, [0.01 * (j + 1) for j in range(20)]) for i in range(3)},
         # 2 excluded types: tested but too few nonzero deltas
         **{f"null_{i}": _make_type(25, [0.0] * 24 + [0.001]) for i in range(2)},
     }
@@ -336,8 +372,9 @@ def test_metrics_bh_and_denominators():
 
     strong = report["per_contrast_type"]["strong_0"]
     assert "wilcoxon_p_value_bh" in strong["contrastive_ablation"]
-    assert strong["contrastive_ablation"]["wilcoxon_p_value_bh"] >= (
-        strong["contrastive_ablation"]["wilcoxon_p_value"]
+    assert (
+        strong["contrastive_ablation"]["wilcoxon_p_value_bh"]
+        >= (strong["contrastive_ablation"]["wilcoxon_p_value"])
     )
     # Raw counts preserved for post-hoc reanalysis, not popped.
     assert strong["raw_counts"]["contrastive_flips"] == 2
@@ -355,7 +392,42 @@ def test_metrics_random_and_recon_get_wilcoxon():
     info = report["per_contrast_type"]["only"]
 
     assert info["random_ablation"]["wilcoxon_p_value"] is not None
-    assert info["reconstruction_baseline"]["wilcoxon_p_value"] is None
+    assert info["reconstruction_baseline"]["wilcoxon_vs_unablated_p_value"] is None
+
+
+def test_cate_subtracts_reconstruction_and_random_control():
+    """Identical arm shifts contain no feature-ablation treatment effect."""
+    from kiji_inspector.experiments.ablation import compute_ablation_metrics
+
+    t = _make_type(20, [0.01] * 20, flips=5)
+    t["prob_deltas"]["random"] = [0.01] * 20
+    t["prob_deltas"]["reconstruction"] = [0.01] * 20
+    t["flip_outcomes"]["random"] = list(t["flip_outcomes"]["contrastive"])
+    t["flip_outcomes"]["reconstruction"] = list(t["flip_outcomes"]["contrastive"])
+
+    info = compute_ablation_metrics({"same_effect": t})["per_contrast_type"]["same_effect"]
+
+    assert info["contrastive_ablation"]["raw_probability_shift_vs_unablated"] == 0.01
+    assert info["contrastive_ablation"]["CATE"] == 0.0
+    assert info["contrastive_ablation"]["CATE_vs_random"] == 0.0
+    assert info["contrastive_ablation"]["wilcoxon_p_value"] is None
+    assert info["paired_flip_test_vs_random"]["discordant_pairs"] == 0
+    assert info["paired_flip_test_vs_random"]["p_value"] == 1.0
+
+
+def test_flip_comparison_uses_paired_discordant_outcomes():
+    from kiji_inspector.experiments.ablation import compute_ablation_metrics
+
+    t = _make_type(20, [0.01] * 20, flips=5)
+    info = compute_ablation_metrics({"paired": t})["per_contrast_type"]["paired"]
+    paired = info["paired_flip_test_vs_random"]
+
+    # Random's sole flip is a subset of treatment flips: four prompts are
+    # treatment-only and no prompt is random-only.
+    assert paired["treatment_only_flips"] == 4
+    assert paired["control_only_flips"] == 0
+    assert paired["discordant_pairs"] == 4
+    assert paired["p_value"] == pytest.approx(0.0625)
 
 
 def test_compute_type_conditional_rates(tmp_path):
