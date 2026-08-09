@@ -52,6 +52,7 @@ class SAETrainingConfig:
     # Sparsity
     l1_coefficient: float = 5e-3
     target_l0: float | None = None  # If set, auto-tune l1_coefficient to hit this L0
+    l1_max: float = 0.1  # Ceiling for the adaptive controller; raise if l1 saturates
     sparsity_warmup_steps: int = 10000
 
     # Dead feature resampling
@@ -248,30 +249,59 @@ class _AdaptiveL1Controller:
     After the sparsity warmup period, measures the running average L0
     and nudges l1_coefficient up/down to converge on the target.
 
-    Two safeguards keep the loop from destroying a run when it cannot actually
-    reach the target:
+    The per-window L0 measurement is extremely noisy early in training (a
+    real run recorded window averages of 525 → 6089 → 2207 across adjacent
+    windows), so all control and safeguard decisions run on an EMA of L0
+    rather than the raw window value.
+
+    The error is computed in **log space** (``log(l0_ema / target)``) and the
+    per-update multiplicative adjustment is clamped to a narrow band. Both
+    are load-bearing: a linear normalized error is unbounded above but
+    bounded at -1 below, and combined with a wide clamp a previous version
+    slammed l1 from 0.005 to l1_max in ~8 updates on an early L0 spike, then
+    could not descend faster than ~1% per update after L0 had crashed two
+    orders of magnitude below target — l1 stayed pinned at max for the last
+    40% of the run and reconstruction MSE doubled. Log-space error responds
+    symmetrically to overshoot and undershoot, and the narrow clamp spreads
+    large corrections over many windows so the (lagging) EMA can catch up
+    before l1 saturates.
+
+    Three safeguards keep the loop from destroying a run when it cannot
+    actually reach the target — without letting a noisy early measurement
+    permanently disable it (which is exactly what a previous version did:
+    the authority reference was set from the first noisy window and the
+    controller froze for the rest of the run after four updates):
 
     * **Anti-windup.** The integral only accumulates while the controller has
       authority, so a large constant error cannot ratchet it without bound.
-    * **Authority check.** A multiplicative controller facing a constant error
-      raises l1 exponentially regardless of the integral, so anti-windup alone
-      is not enough. If l1 rises by ``authority_ratio`` without L0 falling
-      meaningfully, the L1 penalty is not what is binding — in a JumpReLU SAE
-      that is typically the threshold — and further escalation only destroys
-      reconstruction. The controller then freezes l1 and warns instead of
-      running to ``l1_max``.
+    * **Deferred authority check.** A multiplicative controller facing a
+      constant error raises l1 exponentially regardless of the integral, so
+      anti-windup alone is not enough. If l1 rises by ``authority_ratio``
+      without the (EMA) L0 falling meaningfully, the L1 penalty is not what
+      is binding — in a JumpReLU SAE that is typically the threshold — and
+      further escalation only destroys reconstruction. The controller then
+      freezes l1 and warns instead of running to ``l1_max``. The check only
+      arms after ``min_updates_before_guard`` updates, so the reference point
+      reflects a stabilized L0 estimate rather than one noisy window.
+    * **Re-arm on movement.** A freeze is not terminal: if the EMA L0 later
+      moves by more than ``authority_l0_drop`` relative to its value at
+      freeze time, the controller unfreezes, resets its references and
+      integral, and resumes adjusting.
     """
 
     def __init__(
         self,
         target_l0: float,
         initial_l1: float,
-        kp: float = 0.01,
-        ki: float = 0.001,
+        kp: float = 0.1,
+        ki: float = 0.01,
         l1_min: float = 1e-5,
-        l1_max: float = 1.0,
+        l1_max: float = 0.1,
         authority_ratio: float = 4.0,
         authority_l0_drop: float = 0.10,
+        min_updates_before_guard: int = 10,
+        l0_ema_alpha: float = 0.3,
+        max_step: float = 1.2,
     ):
         self.target_l0 = target_l0
         self.l1 = initial_l1
@@ -281,44 +311,86 @@ class _AdaptiveL1Controller:
         self.l1_max = l1_max
         self.authority_ratio = authority_ratio
         self.authority_l0_drop = authority_l0_drop
+        self.min_updates_before_guard = min_updates_before_guard
+        self.l0_ema_alpha = l0_ema_alpha
+        self.max_step = max_step
         self._integral = 0.0
         self._frozen = False
+        self._frozen_l0: float | None = None
+        self._n_updates = 0
+        self._l0_ema: float | None = None
         # Reference point for the authority check: l1 and L0 when last re-armed.
         self._ref_l1: float | None = None
         self._ref_l0: float | None = None
 
+    @property
+    def frozen(self) -> bool:
+        return self._frozen
+
+    @property
+    def l0_ema(self) -> float | None:
+        return self._l0_ema
+
     def update(self, current_l0: float) -> float:
         """Update l1_coefficient based on current L0. Returns new l1."""
+        self._n_updates += 1
+        a = self.l0_ema_alpha
+        self._l0_ema = (
+            current_l0 if self._l0_ema is None else (1 - a) * self._l0_ema + a * current_l0
+        )
+        l0 = self._l0_ema
+
         if self._frozen:
-            return self.l1
-
-        if self._ref_l1 is None:
-            self._ref_l1, self._ref_l0 = self.l1, current_l0
-
-        # Authority check: has a large l1 increase actually moved L0?
-        if self.l1 >= self._ref_l1 * self.authority_ratio:
-            if current_l0 > self._ref_l0 * (1.0 - self.authority_l0_drop):
-                self._frozen = True
+            # Re-arm: a freeze means "l1 had no authority at the time", not
+            # "never adjust again". If L0 has since moved meaningfully, the
+            # regime changed — resume control from a fresh reference.
+            if abs(l0 - self._frozen_l0) / max(self._frozen_l0, 1e-9) > self.authority_l0_drop:
+                self._frozen = False
+                self._frozen_l0 = None
+                self._ref_l1, self._ref_l0 = self.l1, l0
+                self._integral = 0.0
                 print(
-                    f"\n  WARNING: adaptive L1 has no authority over L0 — l1 rose "
-                    f"{self.l1 / self._ref_l1:.1f}x ({self._ref_l1:.4g} -> {self.l1:.4g}) "
-                    f"while L0 held at ~{current_l0:.0f} (target {self.target_l0:.0f}).\n"
-                    f"           Sparsity is bound by the JumpReLU threshold, not the L1 "
-                    f"penalty; escalating further would wreck reconstruction.\n"
-                    f"           Freezing l1 at {self.l1:.4g}. Target L0 is not reachable "
-                    f"with these settings."
+                    f"\n  Adaptive L1 re-armed: L0 moved to ~{l0:.0f} since the freeze; "
+                    f"resuming control from l1={self.l1:.4g}."
                 )
+            else:
                 return self.l1
-            # L0 did respond — re-arm the reference and keep going.
-            self._ref_l1, self._ref_l0 = self.l1, current_l0
 
-        # Positive error → L0 too high → need more sparsity → increase l1
-        error = (current_l0 - self.target_l0) / self.target_l0  # normalized
+        # The authority guard only arms once the EMA has had enough windows
+        # to stabilize; a reference taken from the first noisy window makes
+        # the guard fire on noise.
+        if self._n_updates >= self.min_updates_before_guard:
+            if self._ref_l1 is None:
+                self._ref_l1, self._ref_l0 = self.l1, l0
+            # Authority check: has a large l1 increase actually moved L0?
+            elif self.l1 >= self._ref_l1 * self.authority_ratio:
+                if l0 > self._ref_l0 * (1.0 - self.authority_l0_drop):
+                    self._frozen = True
+                    self._frozen_l0 = l0
+                    print(
+                        f"\n  WARNING: adaptive L1 has no authority over L0 — l1 rose "
+                        f"{self.l1 / self._ref_l1:.1f}x ({self._ref_l1:.4g} -> {self.l1:.4g}) "
+                        f"while L0 held at ~{l0:.0f} (target {self.target_l0:.0f}).\n"
+                        f"           Sparsity is bound by the JumpReLU threshold, not the "
+                        f"L1 penalty; escalating further would wreck reconstruction.\n"
+                        f"           Freezing l1 at {self.l1:.4g}; will re-arm if L0 moves."
+                    )
+                    return self.l1
+                # L0 did respond — re-arm the reference and keep going.
+                self._ref_l1, self._ref_l0 = self.l1, l0
+
+        # Positive error → L0 too high → need more sparsity → increase l1.
+        # Log-space error responds symmetrically to overshoot and undershoot:
+        # a linear (l0 - target) / target error is bounded at -1 below but
+        # unbounded above, which made descent from an overshoot ~100x slower
+        # than the climb that caused it.
+        error = float(np.log(max(l0, 1e-6) / self.target_l0))
 
         # Conditional integration: don't wind up while the output is saturated
         # or already pinned to an l1 bound in the direction of the error.
+        lo, hi = 1.0 / self.max_step, self.max_step
         raw = 1.0 + self.kp * error + self.ki * (self._integral + error)
-        saturated = raw > 2.0 or raw < 0.5
+        saturated = raw > hi or raw < lo
         at_bound = (self.l1 >= self.l1_max and error > 0) or (self.l1 <= self.l1_min and error < 0)
         if not (saturated or at_bound):
             self._integral += error
@@ -326,7 +398,9 @@ class _AdaptiveL1Controller:
             self._integral *= 0.9  # decay so the loop can recover when L0 moves
 
         adjustment = 1.0 + self.kp * error + self.ki * self._integral
-        adjustment = max(0.5, min(2.0, adjustment))  # clamp per-step change
+        # Narrow per-step clamp: large corrections spread over many windows so
+        # the lagging EMA can catch up before l1 saturates at a bound.
+        adjustment = max(lo, min(hi, adjustment))
         self.l1 = max(self.l1_min, min(self.l1_max, self.l1 * adjustment))
         return self.l1
 
@@ -593,6 +667,11 @@ def analyze_feature_health(
     with open(out_path, "w") as f:
         json.dump(health, f, indent=2)
 
+    # Persist per-feature firing rates alongside the aggregates. The ablation
+    # experiment needs these for its frequency-matched random control and
+    # otherwise has to recompute them from the activation shards.
+    np.save(Path(output_dir) / "firing_rates.npy", firing_rates)
+
     # Print summary
     print("\n" + "=" * 70)
     print("  Feature Health Analysis")
@@ -751,7 +830,11 @@ def train_sae(
 
     # Adaptive L0 controller (if target_l0 is set)
     l1_controller = (
-        _AdaptiveL1Controller(target_l0=config.target_l0, initial_l1=config.l1_coefficient)
+        _AdaptiveL1Controller(
+            target_l0=config.target_l0,
+            initial_l1=config.l1_coefficient,
+            l1_max=config.l1_max,
+        )
         if config.target_l0 is not None
         else None
     )
@@ -798,13 +881,19 @@ def train_sae(
         if step % config.log_every == 0 and running:
             avg = {k: sum(v) / len(v) for k, v in running.items()}
             avg["sparsity/current_l1_coef"] = current_l1
-            logger.log(step, avg)
-            logger.print_metrics(step, avg, scheduler.get_last_lr()[0])
 
-            # Adaptive L0: adjust l1_coefficient after sparsity warmup
+            # Adaptive L0: adjust l1_coefficient after sparsity warmup.
+            # The controller's EMA and frozen state go into the log so a
+            # misbehaving run is diagnosable from metrics.jsonl alone.
             if l1_controller is not None and step >= config.sparsity_warmup_steps:
                 avg_l0 = avg.get("sparsity/l0", 0)
                 l1_controller.update(avg_l0)
+                if l1_controller.l0_ema is not None:
+                    avg["sparsity/l0_ema"] = l1_controller.l0_ema
+                avg["sparsity/l1_controller_frozen"] = float(l1_controller.frozen)
+
+            logger.log(step, avg)
+            logger.print_metrics(step, avg, scheduler.get_last_lr()[0])
 
             running = {}
 

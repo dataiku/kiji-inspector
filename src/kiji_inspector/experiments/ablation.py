@@ -6,10 +6,11 @@ by zeroing them out during the forward pass and measuring whether the model's
 tool prediction changes.
 
 For each contrast type:
-  1. Ablate top-K contrastive features -> measure flip rate + CATE (with bootstrap CI)
-  2. Ablate K random features as control -> measure flip rate + CATE (with bootstrap CI)
-  3. Fisher's exact test comparing the two
-  4. One-sided Wilcoxon signed-rank test on probability shifts
+  1. Select top-K features that are more active on the anchor prompts
+  2. Measure targeted, frequency-matched-random, and reconstruction-only arms
+  3. Estimate CATE as the paired targeted-minus-reconstruction probability shift
+  4. Compare paired flip outcomes with exact McNemar/binomial tests
+  5. Apply one-sided paired Wilcoxon tests with BH correction across types
 
 Usage:
     python ablation.py \
@@ -107,6 +108,239 @@ def get_tool_prediction(
     return predicted_tool, predicted_tid, prob_contrast
 
 
+def select_directional_features(
+    top_features: list[dict],
+    n_features: int,
+    direction: str = "anchor",
+) -> list[dict]:
+    """Select ranked features whose mean activation supports one side of a pair.
+
+    Ablation evaluates the anchor prompt and asks whether removing features
+    moves probability toward the contrast tool. A feature that is more active
+    on contrast prompts is generally absent from the anchor-side state, so
+    including it dilutes the intervention and gives the directed-flip metric
+    the wrong sign. ``direction="any"`` is retained only to reproduce legacy
+    reports that selected by absolute effect size alone.
+    """
+    if direction == "any":
+        eligible = top_features
+    elif direction in {"anchor", "contrast"}:
+        required = {"anchor_mean_activation", "contrast_mean_activation"}
+        missing = [f.get("feature_index") for f in top_features if not required <= f.keys()]
+        if missing:
+            raise ValueError(
+                "Direction-aware ablation requires anchor_mean_activation and "
+                "contrast_mean_activation in contrastive_features.json; missing "
+                f"for feature(s) {missing[:5]}"
+            )
+        if direction == "anchor":
+            eligible = [
+                f
+                for f in top_features
+                if f["anchor_mean_activation"] > f["contrast_mean_activation"]
+            ]
+        else:
+            eligible = [
+                f
+                for f in top_features
+                if f["contrast_mean_activation"] > f["anchor_mean_activation"]
+            ]
+    else:
+        raise ValueError(f"Unknown feature direction: {direction}")
+
+    return eligible[:n_features]
+
+
+# ---------------------------------------------------------------------------
+# Random-control sampling
+# ---------------------------------------------------------------------------
+
+# Log-spaced firing-rate bins for frequency matching. A feature's bin is
+# determined by how often it fires on the training corpus; the matched
+# control draws a feature from the same bin as each contrastive feature.
+FIRING_RATE_BIN_EDGES = [0.0, 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1.01]
+
+# Firing rate above which a feature counts as "alive" — same threshold the
+# trainer's analyze_feature_health uses.
+ALIVE_RATE_THRESHOLD = 1e-3
+
+
+def compute_firing_rates(
+    sae,
+    activations_dir: str | Path,
+    target_rows: int = 1_600_000,
+    chunk_size: int = 8192,
+    device: str = "cuda",
+) -> np.ndarray:
+    """Compute per-feature firing rates by encoding cached activations.
+
+    The ablation's random control must be frequency-matched to the
+    contrastive features being ablated — a uniform draw over the dictionary
+    lands overwhelmingly on features that never fire (50-80% of a trained
+    dictionary is near-silent), making the control a no-op. That requires
+    per-feature firing rates, which the trainer computes for
+    feature_health.json but historically did not persist; this recomputes
+    them the same way, from the step 1 activation shards already on disk.
+
+    Chunks are sampled at evenly spaced offsets across each shard (rows are
+    written in prompt order, so reading only shard heads would bias the
+    sample toward early prompts).
+
+    Args:
+        sae: Loaded JumpReLUSAE (provides encode + normalize_input).
+        activations_dir: Directory containing shard_*.npy files.
+        target_rows: Total rows to sample across all shards.
+        chunk_size: Rows per encoded batch.
+        device: Device to run the SAE on.
+
+    Returns:
+        Array of shape (d_sae,) with each feature's firing rate in [0, 1].
+    """
+    shard_files = sorted(Path(activations_dir).glob("shard_*.npy"))
+    if not shard_files:
+        raise FileNotFoundError(f"No shard_*.npy files in {activations_dir}")
+
+    sae_device = next(sae.parameters()).device
+    sae_dtype = next(sae.parameters()).dtype
+
+    rows_per_shard = max(chunk_size, target_rows // len(shard_files))
+    fire_count = torch.zeros(sae.d_sae, device=sae_device)
+    total = 0
+
+    for path in shard_files:
+        arr = np.load(path, mmap_mode="r")
+        n_rows = arr.shape[0]
+        if n_rows < chunk_size:
+            starts = [0]
+        else:
+            n_chunks = max(1, rows_per_shard // chunk_size)
+            starts = np.linspace(0, n_rows - chunk_size, n_chunks).astype(int).tolist()
+        for s in starts:
+            block = np.asarray(arr[s : s + chunk_size], dtype=np.float32)
+            block = block[np.isfinite(block).all(axis=1)]
+            if block.shape[0] == 0:
+                continue
+            x = torch.from_numpy(block).to(device=sae_device, dtype=sae_dtype)
+            with torch.inference_mode():
+                feats = sae.encode(sae.normalize_input(x))
+                fire_count += (feats.abs() > 0).float().sum(dim=0)
+            total += x.shape[0]
+        del arr
+
+    return (fire_count / max(total, 1)).cpu().numpy()
+
+
+def compute_type_conditional_rates(
+    sae,
+    memmaps: list[np.memmap],
+    cum_offsets: np.ndarray,
+    pair_indices: np.ndarray,
+    max_rows: int = 400,
+    chunk_size: int = 512,
+) -> np.ndarray:
+    """Per-feature firing rates conditioned on one contrast type's prompts.
+
+    Corpus-level firing rates are the wrong yardstick for the random
+    control: a feature firing on 5% of corpus tokens usually does not fire
+    on any particular prompt, while the contrastive features under test fire
+    on nearly all of their type's prompts by construction. Matching on
+    corpus rates therefore still leaves the control a near-no-op (measured:
+    ~87% of prompts showed random deltas identical to the reconstruction
+    baseline). This computes rates over the type's own anchor rows (row
+    2*i for pair index i, the step 1 shard layout), so the control can be
+    matched on activity where it matters.
+
+    Args:
+        sae: Loaded JumpReLUSAE.
+        memmaps / cum_offsets: From shard_io.open_layer_shards.
+        pair_indices: Global pair indices for this contrast type.
+        max_rows: Cap on rows sampled (evenly spaced across the type).
+        chunk_size: Rows per encode batch.
+
+    Returns:
+        Array (d_sae,) of firing fractions on this type's anchor prompts.
+    """
+    from kiji_inspector.analysis.shard_io import gather_rows
+
+    idx = np.asarray(pair_indices, dtype=np.int64)
+    if len(idx) > max_rows:
+        idx = idx[np.linspace(0, len(idx) - 1, max_rows).astype(int)]
+    anchor_rows = 2 * idx
+
+    sae_device = next(sae.parameters()).device
+    sae_dtype = next(sae.parameters()).dtype
+
+    fire_count = torch.zeros(sae.d_sae, device=sae_device)
+    total = 0
+    for s in range(0, len(anchor_rows), chunk_size):
+        block = gather_rows(memmaps, cum_offsets, anchor_rows[s : s + chunk_size]).astype(
+            np.float32
+        )
+        block = block[np.isfinite(block).all(axis=1)]
+        if block.shape[0] == 0:
+            continue
+        x = torch.from_numpy(block).to(device=sae_device, dtype=sae_dtype)
+        with torch.inference_mode():
+            feats = sae.encode(sae.normalize_input(x))
+            fire_count += (feats.abs() > 0).float().sum(dim=0)
+        total += x.shape[0]
+
+    return (fire_count / max(total, 1)).cpu().numpy()
+
+
+def sample_frequency_matched(
+    rng: random.Random,
+    contrastive_indices: list[int],
+    firing_rates: np.ndarray,
+    excluded: set[int],
+) -> list[int]:
+    """Draw control features frequency-matched to the contrastive set.
+
+    For each contrastive feature, picks an unused, non-excluded feature from
+    the same firing-rate bin (FIRING_RATE_BIN_EDGES), walking outward to the
+    nearest non-empty bin when the target bin is exhausted. This makes the
+    "random ablation" arm intervene on features comparably active to the
+    ones under test, instead of near-silent ones.
+
+    Args:
+        rng: Dedicated random.Random instance (reproducible, isolated from
+            other random consumers).
+        contrastive_indices: The features being ablated in the treatment arm.
+        firing_rates: Per-feature firing rates from compute_firing_rates.
+        excluded: Feature indices never eligible as controls (typically the
+            union of all contrastive features across contrast types).
+
+    Returns:
+        List of matched control indices, same length as contrastive_indices
+        (shorter only if the entire eligible pool is smaller than that).
+    """
+    n_bins = len(FIRING_RATE_BIN_EDGES) - 1
+    bin_of = np.digitize(firing_rates, FIRING_RATE_BIN_EDGES) - 1
+    bin_of = np.clip(bin_of, 0, n_bins - 1)
+
+    pool_by_bin: dict[int, list[int]] = {
+        b: [int(i) for i in np.where(bin_of == b)[0] if int(i) not in excluded]
+        for b in range(n_bins)
+    }
+
+    matched: list[int] = []
+    used: set[int] = set()
+    for ci in contrastive_indices:
+        target_bin = int(bin_of[ci])
+        # Walk outward: 0, +1, -1, +2, -2, ...
+        for delta in [0] + [d for k in range(1, n_bins) for d in (k, -k)]:
+            b = target_bin + delta
+            if b < 0 or b >= n_bins:
+                continue
+            candidates = [i for i in pool_by_bin[b] if i not in used]
+            if candidates:
+                pick = candidates[rng.randrange(len(candidates))]
+                matched.append(pick)
+                used.add(pick)
+                break
+    return matched
+
+
 # ---------------------------------------------------------------------------
 # Ablation hook
 # ---------------------------------------------------------------------------
@@ -198,15 +432,73 @@ def make_ablation_hook(
 # ---------------------------------------------------------------------------
 
 
+def _wilcoxon_greater(deltas: list[float], min_nonzero: int = 10) -> float | None:
+    """One-sided Wilcoxon signed-rank p-value, or None when undertested.
+
+    Returns None when fewer than min_nonzero deltas are nonzero (the test
+    discards zeros via zero_method="wilcox", so it has no power below that)
+    or when scipy rejects the input. Callers must count None results in
+    their denominators explicitly — silently dropping them inflates any
+    significance rate.
+    """
+    from scipy.stats import wilcoxon
+
+    if np.count_nonzero(deltas) < min_nonzero:
+        return None
+    try:
+        _, p = wilcoxon(deltas, alternative="greater", zero_method="wilcox")
+        return float(p)
+    except ValueError:
+        return None
+
+
+def _paired_flip_test(
+    treatment: list[bool],
+    control: list[bool],
+) -> dict[str, int | float]:
+    """Exact one-sided paired test for a higher treatment flip probability.
+
+    This is the exact small-sample form of McNemar's test: only prompts where
+    the treatment and control disagree are informative. Treating the two arms
+    as independent binomial samples (for example with Fisher's exact test)
+    discards the paired design and gives the wrong null distribution.
+    """
+    from scipy.stats import binomtest
+
+    if len(treatment) != len(control):
+        raise ValueError(
+            f"Paired flip arms must have the same length: {len(treatment)} != {len(control)}"
+        )
+
+    treatment_only = sum(t and not c for t, c in zip(treatment, control, strict=True))
+    control_only = sum(c and not t for t, c in zip(treatment, control, strict=True))
+    discordant = treatment_only + control_only
+    p_value = (
+        float(binomtest(treatment_only, discordant, 0.5, alternative="greater").pvalue)
+        if discordant
+        else 1.0
+    )
+    return {
+        "treatment_only_flips": treatment_only,
+        "control_only_flips": control_only,
+        "discordant_pairs": discordant,
+        "p_value": round(p_value, 6),
+    }
+
+
 def compute_ablation_metrics(
     per_contrast: dict[str, dict],
 ) -> dict:
-    """Compute aggregate metrics across contrast types, including causal CATE
-    (Conditional Average Treatment Effect per contrast type), bootstrap CIs,
-    and Wilcoxon signed-rank test statistics (both per contrast type and in aggregate).
+    """Compute paired causal metrics and aggregates across contrast types.
+
+    The targeted and random arms both pass the hidden state through the SAE,
+    so their raw shifts from the unmodified model include reconstruction
+    distortion. The primary CATE therefore compares targeted ablation with the
+    reconstruction-only arm on the *same prompt*. A second paired estimand
+    compares targeted with frequency-matched random ablation.
     """
     import numpy as np
-    from scipy.stats import fisher_exact, wilcoxon
+    from scipy.stats import combine_pvalues, false_discovery_control
 
     def bootstrap_ci(data: list[float], n_boot: int = 5000, alpha: float = 0.05):
         """Non-parametric bootstrap 95% CI.
@@ -216,18 +508,21 @@ def compute_ablation_metrics(
         lower, upper : bootstrap percentile confidence interval."""
         if not data:
             return 0.0, 0.0, 0.0
-        data = np.array(data)
+        data = np.asarray(data, dtype=np.float64)
         boot_means = np.array(
             [np.mean(np.random.choice(data, size=len(data), replace=True)) for _ in range(n_boot)]
         )
-        lower = np.percentile(boot_means, 100 * alpha / 2)
-        upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
+        lower = float(np.percentile(boot_means, 100 * alpha / 2))
+        upper = float(np.percentile(boot_means, 100 * (1 - alpha / 2)))
         mean = float(np.mean(data))
         return mean, lower, upper
 
-    wilcoxon_p_values = []  # for aggregate statistics
+    # (ct_key, p) for BH correction; excluded types tracked so significance
+    # denominators can count them instead of silently dropping them.
+    wilcoxon_tested: list[tuple[str, float]] = []
+    wilcoxon_excluded: list[str] = []
 
-    for _ct_key, info in per_contrast.items():
+    for ct_key, info in per_contrast.items():
         n = info.get("n_tested", 0)
         if n == 0:
             continue
@@ -256,63 +551,125 @@ def compute_ablation_metrics(
             "flip_rate_ci_95": [round(v, 4) for v in _clopper_pearson_ci(recon_flips, n)],
         }
 
-        # Fisher's exact test
-        table = [[c_flips, n - c_flips], [r_flips, n - r_flips]]
-        _, p_value = fisher_exact(table, alternative="greater")
-        info["fisher_exact_p_value"] = round(float(p_value), 6)
+        # Exact paired flip tests. Each arm is evaluated on the same prompts,
+        # so only discordant outcomes identify a treatment-control difference.
+        flip_outcomes = info.get("flip_outcomes", {})
+        if flip_outcomes:
+            contrastive_flip_outcomes = flip_outcomes.get("contrastive", [])
+            info["paired_flip_test_vs_random"] = _paired_flip_test(
+                contrastive_flip_outcomes,
+                flip_outcomes.get("random", []),
+            )
+            info["paired_flip_test_vs_reconstruction"] = _paired_flip_test(
+                contrastive_flip_outcomes,
+                flip_outcomes.get("reconstruction", []),
+            )
 
-        # === Causal metrics using probability deltas ===
+        # Paired probability estimands. Raw arrays remain in the report for
+        # post-hoc analysis, but are not themselves called causal effects.
         deltas = info.get("prob_deltas", {})
-        contrastive_deltas = deltas.get("contrastive", [])
+        contrastive_deltas = np.asarray(deltas.get("contrastive", []), dtype=np.float64)
+        random_deltas = np.asarray(deltas.get("random", []), dtype=np.float64)
+        reconstruction_deltas = np.asarray(deltas.get("reconstruction", []), dtype=np.float64)
+        lengths = {len(contrastive_deltas), len(random_deltas), len(reconstruction_deltas)}
+        if len(lengths) != 1:
+            raise ValueError(
+                f"Probability-delta arms for {ct_key} must have equal lengths; "
+                f"got contrastive={len(contrastive_deltas)}, random={len(random_deltas)}, "
+                f"reconstruction={len(reconstruction_deltas)}"
+            )
 
-        if contrastive_deltas:
-            cate, ci_lower, ci_upper = bootstrap_ci(contrastive_deltas)
+        if len(contrastive_deltas):
+            contrastive_vs_reconstruction = contrastive_deltas - reconstruction_deltas
+            contrastive_vs_random = contrastive_deltas - random_deltas
+            random_vs_reconstruction = random_deltas - reconstruction_deltas
+
+            cate, ci_lower, ci_upper = bootstrap_ci(contrastive_vs_reconstruction.tolist())
+            cate_random, cate_random_lower, cate_random_upper = bootstrap_ci(
+                contrastive_vs_random.tolist()
+            )
             info["contrastive_ablation"].update(
                 {
                     "CATE": round(cate, 4),
                     "CATE_ci_95_lower": round(ci_lower, 4),
                     "CATE_ci_95_upper": round(ci_upper, 4),
+                    "CATE_estimand": "contrastive_ablation_minus_reconstruction_only",
+                    "CATE_vs_random": round(cate_random, 4),
+                    "CATE_vs_random_ci_95_lower": round(cate_random_lower, 4),
+                    "CATE_vs_random_ci_95_upper": round(cate_random_upper, 4),
+                    "raw_probability_shift_vs_unablated": round(
+                        float(contrastive_deltas.mean()), 4
+                    ),
                 }
             )
 
-            # Wilcoxon signed-rank test (per contrast type)
-            if np.count_nonzero(contrastive_deltas) >= 10:
-                try:
-                    _, wilcoxon_p = wilcoxon(
-                        contrastive_deltas, alternative="greater", zero_method="wilcox"
-                    )
-                    wilcoxon_p = float(wilcoxon_p)
-                except ValueError:
-                    wilcoxon_p = None
-            else:
-                wilcoxon_p = None
-
+            wilcoxon_p = _wilcoxon_greater(contrastive_vs_reconstruction.tolist())
             info["contrastive_ablation"]["wilcoxon_p_value"] = (
                 round(wilcoxon_p, 6) if wilcoxon_p is not None else None
             )
-
-            # Collect for aggregate
+            wilcoxon_random_p = _wilcoxon_greater(contrastive_vs_random.tolist())
+            info["contrastive_ablation"]["wilcoxon_vs_random_p_value"] = (
+                round(wilcoxon_random_p, 6) if wilcoxon_random_p is not None else None
+            )
             if wilcoxon_p is not None:
-                wilcoxon_p_values.append(wilcoxon_p)
+                wilcoxon_tested.append((ct_key, wilcoxon_p))
+            else:
+                wilcoxon_excluded.append(ct_key)
 
-        # Optional CATE for random / reconstruction
-        if deltas.get("random"):
-            random_cate, _, _ = bootstrap_ci(deltas["random"])
-            info["random_ablation"]["CATE"] = round(random_cate, 4)
-        if deltas.get("reconstruction"):
-            recon_cate, _, _ = bootstrap_ci(deltas["reconstruction"])
-            info["reconstruction_baseline"]["CATE"] = round(recon_cate, 4)
+            random_cate, random_lower, random_upper = bootstrap_ci(
+                random_vs_reconstruction.tolist()
+            )
+            info["random_ablation"].update(
+                {
+                    "CATE": round(random_cate, 4),
+                    "CATE_ci_95_lower": round(random_lower, 4),
+                    "CATE_ci_95_upper": round(random_upper, 4),
+                    "CATE_estimand": "random_ablation_minus_reconstruction_only",
+                    "raw_probability_shift_vs_unablated": round(float(random_deltas.mean()), 4),
+                }
+            )
+            p = _wilcoxon_greater(random_vs_reconstruction.tolist())
+            info["random_ablation"]["wilcoxon_p_value"] = round(p, 6) if p is not None else None
 
-        # Clean up
-        for key in (
-            "contrastive_flips",
-            "contrastive_directed_flips",
-            "random_flips",
-            "reconstruction_flips",
-            "contrastive_feature_indices",
-            "n_random_features",
-        ):
-            info.pop(key, None)
+            recon_shift, recon_lower, recon_upper = bootstrap_ci(reconstruction_deltas.tolist())
+            info["reconstruction_baseline"].update(
+                {
+                    "mean_probability_shift_vs_unablated": round(recon_shift, 4),
+                    "probability_shift_ci_95_lower": round(recon_lower, 4),
+                    "probability_shift_ci_95_upper": round(recon_upper, 4),
+                }
+            )
+            p = _wilcoxon_greater(reconstruction_deltas.tolist())
+            info["reconstruction_baseline"]["wilcoxon_vs_unablated_p_value"] = (
+                round(p, 6) if p is not None else None
+            )
+        else:
+            wilcoxon_excluded.append(ct_key)
+
+        # Preserve raw counts (previously popped, which made reports
+        # impossible to re-analyze post hoc).
+        info["raw_counts"] = {
+            key: info.pop(key)
+            for key in (
+                "contrastive_flips",
+                "contrastive_directed_flips",
+                "random_flips",
+                "reconstruction_flips",
+                "contrastive_feature_indices",
+                "n_random_features",
+            )
+            if key in info
+        }
+
+    # Benjamini-Hochberg correction across contrast types (one family per
+    # report). Uncorrected p-values are kept alongside for comparison.
+    adjusted_ps: list[float] = []
+    if wilcoxon_tested:
+        adjusted_ps = [
+            float(p) for p in false_discovery_control([p for _, p in wilcoxon_tested], method="bh")
+        ]
+        for (ct_key, _), p_adj in zip(wilcoxon_tested, adjusted_ps, strict=True):
+            per_contrast[ct_key]["contrastive_ablation"]["wilcoxon_p_value_bh"] = round(p_adj, 6)
 
     # === Aggregate across all contrast types ===
     tested = [v for v in per_contrast.values() if v.get("n_tested", 0) > 0]
@@ -334,18 +691,46 @@ def compute_ablation_metrics(
             "mean_contrastive_CATE": round(
                 np.mean([v["contrastive_ablation"].get("CATE", 0) for v in tested]), 4
             ),
+            "mean_contrastive_CATE_vs_random": round(
+                np.mean([v["contrastive_ablation"].get("CATE_vs_random", 0) for v in tested]),
+                4,
+            ),
         }
 
-        # === NEW: Wilcoxon aggregate statistics ===
-        if wilcoxon_p_values:
-            agg["mean_wilcoxon_p_value"] = round(np.mean(wilcoxon_p_values), 6)
-            significant_count = sum(1 for p in wilcoxon_p_values if p < 0.05)
-            agg["wilcoxon_significant_count"] = significant_count
-            agg["wilcoxon_significant_rate"] = round(significant_count / len(wilcoxon_p_values), 4)
+        # Wilcoxon aggregates. Two significance rates are reported: over
+        # tested types only, and over all types with n_tested > 0 (excluded
+        # types counted as not-significant) — the first is what a naive
+        # reading produces, the second is the honest denominator. BH-adjusted
+        # counts control the false-discovery rate across the type family.
+        # Fisher's method combines the paired per-type Wilcoxon p-values and
+        # replaces the former mean-of-p-values (which has no inferential
+        # meaning). It assumes independent tests, which contrast types only
+        # approximately satisfy.
+        n_tested_types = len(wilcoxon_tested)
+        n_excluded_types = len(wilcoxon_excluded)
+        agg["wilcoxon_tested_types"] = n_tested_types
+        agg["wilcoxon_excluded_types"] = sorted(wilcoxon_excluded)
+        if wilcoxon_tested:
+            raw_ps = [p for _, p in wilcoxon_tested]
+            sig_raw = sum(1 for p in raw_ps if p < 0.05)
+            sig_bh = sum(1 for p in adjusted_ps if p < 0.05)
+            denom_all = n_tested_types + n_excluded_types
+            agg["wilcoxon_significant_count"] = sig_raw
+            agg["wilcoxon_significant_count_bh"] = sig_bh
+            agg["wilcoxon_significant_rate_tested"] = round(sig_raw / n_tested_types, 4)
+            agg["wilcoxon_significant_rate_all"] = round(sig_raw / denom_all, 4)
+            agg["wilcoxon_significant_rate_bh_tested"] = round(sig_bh / n_tested_types, 4)
+            agg["wilcoxon_significant_rate_bh_all"] = round(sig_bh / denom_all, 4)
+            _, fisher_p = combine_pvalues(raw_ps, method="fisher")
+            agg["fisher_combined_p_value"] = float(fisher_p)
         else:
-            agg["mean_wilcoxon_p_value"] = None
             agg["wilcoxon_significant_count"] = 0
-            agg["wilcoxon_significant_rate"] = 0.0
+            agg["wilcoxon_significant_count_bh"] = 0
+            agg["wilcoxon_significant_rate_tested"] = 0.0
+            agg["wilcoxon_significant_rate_all"] = 0.0
+            agg["wilcoxon_significant_rate_bh_tested"] = 0.0
+            agg["wilcoxon_significant_rate_bh_all"] = 0.0
+            agg["fisher_combined_p_value"] = None
 
     else:
         agg = {}
@@ -369,6 +754,9 @@ def run_ablation_experiment(
     n_prompts_per_type: int = 100,
     seed: int = 42,
     min_baseline_pass_rate: float = 0.2,
+    random_control: str = "frequency-matched",
+    activations_dir: str | None = None,
+    feature_direction: str = "anchor",
 ) -> dict:
     """Run the full ablation experiment.
 
@@ -386,6 +774,20 @@ def run_ablation_experiment(
             unablated prediction matches the expected tool falls below this.
             Guards against publishing a report built on a handful of prompts.
             Set to 0 to disable.
+        random_control: How the random-control features are drawn.
+            "frequency-matched" (default) matches each contrastive feature's
+            firing-rate bin, redrawn per prompt; "alive" draws uniformly from
+            features firing on >0.1% of inputs; "legacy" reproduces the old
+            behavior (uniform over the whole dictionary, one draw per
+            contrast type) — known to be a near-no-op on sparse dictionaries.
+        activations_dir: Directory with step 1 shard_*.npy files, used to
+            compute firing rates when no persisted firing_rates.npy exists
+            next to the SAE checkpoint. Defaults to the directory containing
+            contrastive_features_path.
+        feature_direction: Which side's features are eligible. ``"anchor"``
+            (default) selects features with greater mean activation on anchor
+            prompts, matching the prompts actually ablated. ``"any"``
+            reproduces the legacy absolute-effect-size selection.
     """
     from kiji_inspector.core.sae_core import JumpReLUSAE
     from kiji_inspector.data.contrastive_dataset import ContrastiveDataset
@@ -425,6 +827,61 @@ def run_ablation_experiment(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sae = JumpReLUSAE.from_pretrained(sae_checkpoint, device=device)
     sae.eval()
+
+    # Firing rates for the random control. Without them, a uniform draw over
+    # the dictionary lands overwhelmingly on near-silent features and the
+    # "random ablation" arm degenerates into the reconstruction baseline.
+    firing_rates: np.ndarray | None = None
+    acts_dir = activations_dir or str(Path(contrastive_features_path).parent)
+    if random_control != "legacy":
+        rates_path = Path(sae_checkpoint).parent / "firing_rates.npy"
+        if rates_path.exists():
+            firing_rates = np.load(rates_path)
+            print(f"  Loaded firing rates from {rates_path}")
+        else:
+            print(f"  Computing firing rates from {acts_dir} (no persisted firing_rates.npy)...")
+            firing_rates = compute_firing_rates(sae, acts_dir, device=device)
+        n_alive = int((firing_rates > ALIVE_RATE_THRESHOLD).sum())
+        n_dead = int((firing_rates == 0).sum())
+        n_ultra_rare = int(((firing_rates > 0) & (firing_rates < 1e-4)).sum())
+        print(
+            f"  Firing rates: {n_alive} alive (> {ALIVE_RATE_THRESHOLD:g}), "
+            f"{n_ultra_rare} ultra-rare, {n_dead} dead of {len(firing_rates)}"
+        )
+
+    # For frequency matching, corpus rates are not enough: the contrastive
+    # features fire on nearly all of their own type's prompts, while a
+    # corpus-rate-matched feature usually fires on none of them. Matching on
+    # rates conditioned on each type's own prompts needs the step 1 shards
+    # (row 2*i is pair i's anchor — the same layout step 3 validates).
+    type_rate_memmaps = None
+    type_rate_offsets = None
+    pair_indices_by_type: dict[str, np.ndarray] = {}
+    if random_control == "frequency-matched":
+        from kiji_inspector.analysis.shard_io import open_layer_shards
+
+        try:
+            type_rate_memmaps, type_rate_offsets = open_layer_shards(Path(acts_dir))
+            total_rows = int(type_rate_offsets[-1])
+            if total_rows != 2 * len(dataset.pairs):
+                print(
+                    f"  WARNING: shard rows ({total_rows}) != 2x pairs "
+                    f"({2 * len(dataset.pairs)}); falling back to corpus-rate matching."
+                )
+                type_rate_memmaps = None
+            else:
+                by_type: dict[str, list[int]] = {}
+                for i, pair in enumerate(dataset.pairs):
+                    by_type.setdefault(pair.contrast_type, []).append(i)
+                pair_indices_by_type = {
+                    ct: np.asarray(v, dtype=np.int64) for ct, v in by_type.items()
+                }
+        except FileNotFoundError:
+            print(f"  WARNING: no shards in {acts_dir}; falling back to corpus-rate matching.")
+
+    # Dedicated RNG for control draws: reproducible and isolated from the
+    # global random module (which also shuffles pairs).
+    control_rng = random.Random(seed)
 
     # Load subject model
     print(f"Loading subject model: {model_name}")
@@ -481,6 +938,7 @@ def run_ablation_experiment(
     print(f"  SAE checkpoint    : {sae_checkpoint}")
     print(f"  Layer             : {layer}")
     print(f"  Features to ablate: {n_features}")
+    print(f"  Feature direction : {feature_direction}")
     print(f"  Prompts per type  : {n_prompts_per_type}")
     print(f"  Contrast types    : {sum(1 for k in contrastive if not k.startswith('_'))}")
     print(f"{'=' * 70}\n")
@@ -496,14 +954,54 @@ def run_ablation_experiment(
             continue
 
         top_features = ct_info.get("top_features", [])
-        if len(top_features) < n_features:
-            print(f"  Skipping {ct_key}: only {len(top_features)} features (need {n_features})")
+        selected_features = select_directional_features(
+            top_features,
+            n_features=n_features,
+            direction=feature_direction,
+        )
+        eligible_directional_count = len(
+            select_directional_features(
+                top_features,
+                n_features=len(top_features),
+                direction=feature_direction,
+            )
+        )
+        if len(selected_features) < n_features:
+            print(
+                f"  Skipping {ct_key}: only {len(selected_features)} "
+                f"{feature_direction}-direction features (need {n_features})"
+            )
             continue
 
-        contrastive_indices = [f["feature_index"] for f in top_features[:n_features]]
-        random_indices = random.sample(
-            non_contrastive_indices, min(n_features, len(non_contrastive_indices))
-        )
+        contrastive_indices = [f["feature_index"] for f in selected_features]
+
+        # Control features. "frequency-matched" redraws per prompt (below);
+        # "alive" and "legacy" keep one draw per contrast type.
+        match_rates = firing_rates
+        matched_on = "corpus" if firing_rates is not None else None
+        if random_control == "frequency-matched":
+            # Prefer rates conditioned on this type's own prompts (the
+            # honest null: features active *here* but not contrastively
+            # selected); corpus rates only as fallback.
+            if type_rate_memmaps is not None and ct_key in pair_indices_by_type:
+                match_rates = compute_type_conditional_rates(
+                    sae, type_rate_memmaps, type_rate_offsets, pair_indices_by_type[ct_key]
+                )
+                matched_on = "type-conditional"
+            random_indices = sample_frequency_matched(
+                control_rng, contrastive_indices, match_rates, all_contrastive_indices
+            )
+        elif random_control == "alive":
+            alive_pool = [
+                i
+                for i in np.where(firing_rates > ALIVE_RATE_THRESHOLD)[0].tolist()
+                if i not in all_contrastive_indices
+            ]
+            random_indices = control_rng.sample(alive_pool, min(n_features, len(alive_pool)))
+        else:  # legacy
+            random_indices = random.sample(
+                non_contrastive_indices, min(n_features, len(non_contrastive_indices))
+            )
 
         # Get pairs for this contrast type
         ct_pairs = dataset.get_by_contrast_type(ct_key)
@@ -520,6 +1018,11 @@ def run_ablation_experiment(
 
         # === NEW: collect probability deltas for causal metrics ===
         prob_deltas = {
+            "contrastive": [],
+            "random": [],
+            "reconstruction": [],
+        }
+        flip_outcomes = {
             "contrastive": [],
             "random": [],
             "reconstruction": [],
@@ -574,7 +1077,9 @@ def run_ablation_experiment(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
-            if recon_tid != baseline_tid:
+            recon_flipped = recon_tid != baseline_tid
+            flip_outcomes["reconstruction"].append(recon_flipped)
+            if recon_flipped:
                 reconstruction_flips += 1
 
             # Contrastive ablation
@@ -585,12 +1090,20 @@ def run_ablation_experiment(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
-            if ablated_tid != baseline_tid:
+            contrastive_flipped = ablated_tid != baseline_tid
+            flip_outcomes["contrastive"].append(contrastive_flipped)
+            if contrastive_flipped:
                 contrastive_flips += 1
                 if ablated_tool == contrast_tool:
                     contrastive_directed_flips += 1
 
-            # Random ablation
+            # Random ablation. Frequency-matched mode redraws per prompt so
+            # the control is an average over many draws rather than hostage
+            # to one; zero extra forward passes (this arm already runs one).
+            if random_control == "frequency-matched":
+                random_indices = sample_frequency_matched(
+                    control_rng, contrastive_indices, match_rates, all_contrastive_indices
+                )
             hook_handle = target_layer.register_forward_pre_hook(
                 make_ablation_hook(sae, random_indices), with_kwargs=True
             )
@@ -598,7 +1111,9 @@ def run_ablation_experiment(
                 model, tokenizer, prompt, input_device, token_to_tool, contrast_tool=contrast_tool
             )
             hook_handle.remove()
-            if rand_tid != baseline_tid:
+            random_flipped = rand_tid != baseline_tid
+            flip_outcomes["random"].append(random_flipped)
+            if random_flipped:
                 random_flips += 1
 
             # === NEW: store probability shifts ===
@@ -622,6 +1137,27 @@ def run_ablation_experiment(
             "contrastive_feature_indices": contrastive_indices,
             "n_random_features": len(random_indices),
             "prob_deltas": prob_deltas,  # ← this is the key new data
+            "flip_outcomes": flip_outcomes,
+            "feature_selection": {
+                "direction": feature_direction,
+                "available_ranked_features": len(top_features),
+                "eligible_directional_features": eligible_directional_count,
+            },
+            "random_control": {
+                "mode": random_control,
+                "matched_on": matched_on,
+                "n_features": len(random_indices),
+                "firing_rate_bins_of_contrastive": (
+                    [
+                        int(np.clip(b - 1, 0, len(FIRING_RATE_BIN_EDGES) - 2))
+                        for b in np.digitize(
+                            match_rates[contrastive_indices], FIRING_RATE_BIN_EDGES
+                        )
+                    ]
+                    if match_rates is not None
+                    else None
+                ),
+            },
         }
 
         # ... (the rest of the diagnostics print remains unchanged)
@@ -691,6 +1227,8 @@ def run_ablation_experiment(
         print(f"  Mean contrastive flip : {agg['mean_contrastive_flip_rate']:.1%}")
         print(f"  Mean directed flip    : {agg['mean_directed_flip_rate']:.1%}")
         print(f"  Mean random flip      : {agg['mean_random_flip_rate']:.1%}")
+        print(f"  Mean CATE vs recon    : {agg['mean_contrastive_CATE']:+.4f}")
+        print(f"  Mean CATE vs random   : {agg['mean_contrastive_CATE_vs_random']:+.4f}")
         recon_rate = agg.get("mean_reconstruction_flip_rate", 0)
         if recon_rate > 0.3:
             print(f"\n  WARNING: Reconstruction-only flip rate is {recon_rate:.1%}.")
@@ -732,6 +1270,31 @@ if __name__ == "__main__":
         "tool before ablation (default: 0.2; 0 disables). Protects against a "
         "report computed from a handful of prompts.",
     )
+    parser.add_argument(
+        "--random-control",
+        choices=["frequency-matched", "alive", "legacy"],
+        default="frequency-matched",
+        help="Random-control sampling: 'frequency-matched' (default) matches "
+        "each contrastive feature's firing-rate bin, redrawn per prompt; "
+        "'alive' draws uniformly from features firing on >0.1%% of inputs; "
+        "'legacy' reproduces the old uniform-over-dictionary draw (a "
+        "near-no-op on sparse dictionaries, kept for comparison).",
+    )
+    parser.add_argument(
+        "--activations-dir",
+        default=None,
+        help="Directory with step 1 shard_*.npy files for computing firing "
+        "rates (default: directory containing --contrastive-features). Only "
+        "used when no firing_rates.npy exists next to the SAE checkpoint.",
+    )
+    parser.add_argument(
+        "--feature-direction",
+        choices=["anchor", "any"],
+        default="anchor",
+        help="Feature-selection direction: 'anchor' (default) ablates only "
+        "features whose mean activation is greater on anchor prompts; 'any' "
+        "reproduces legacy absolute-effect-size selection.",
+    )
 
     args = parser.parse_args()
 
@@ -746,4 +1309,7 @@ if __name__ == "__main__":
         n_prompts_per_type=args.n_prompts_per_type,
         seed=args.seed,
         min_baseline_pass_rate=args.min_baseline_pass_rate,
+        random_control=args.random_control,
+        activations_dir=args.activations_dir,
+        feature_direction=args.feature_direction,
     )
