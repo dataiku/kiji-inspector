@@ -5,8 +5,8 @@
 # value but nothing dispatches it -- so it runs as its own module. It also
 # must use the HuggingFace backend: vLLM cannot intervene mid-forward.
 #
-# Unlike the Nemotron runs this needs no mamba_ssm/causal-conv1d build; Qwen3.5
-# MoE uses linear attention rather than Mamba2. If HF asks for a kernel package
+# This needs no mamba_ssm/causal-conv1d build; Qwen3.5 MoE uses linear attention
+# rather than Mamba2. If HF asks for a kernel package
 # (e.g. flash-linear-attention) the first layer will say so -- install it once
 # in this long-lived container rather than per layer.
 #

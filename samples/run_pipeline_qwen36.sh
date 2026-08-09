@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Pipeline steps 1-4 for Qwen/Qwen3.6-35B-A3B, to compare against the
-# Nemotron-H GA sweep under identical methodology.
+# Pipeline steps 1-4 for Qwen/Qwen3.6-35B-A3B.
 #
-# Geometry differs from the Nemotron runs and is set explicitly:
+# Model geometry is set explicitly:
 #   40 layers, hidden_size 2048 (nested under config.text_config -- this is a
 #   multimodal MoE, Qwen3_5MoeForConditionalGeneration) -> d-sae 8192 (4x).
 #   Layers 12/20/28/36 sit at 30/50/70/90% depth and are all `linear_attention`
@@ -10,7 +9,7 @@
 #   layer-type confound across the sweep.
 #
 # Subject is a hub model, not a local checkpoint, so only the HF cache is
-# mounted -- no read-only model bind mount as the Nemotron scripts needed.
+# mounted; no read-only model bind mount is required.
 #
 # NOTE ON THE LABELER: step 4 labels with Qwen3.6-35B-A3B, which is also the
 # subject here. That is deliberate -- it keeps the labeler and judge identical
@@ -44,8 +43,7 @@ HF_CACHE="${HF_CACHE:-$HOME/.cache/huggingface}"
 CONTAINER_NAME="${CONTAINER_NAME:-kiji-pipeline-qwen36}"
 
 # Disk guard. Step 1 writes 3,149,046 vectors x 2048 dims x 4 bytes ~= 26 GB
-# per layer, ~103 GB for four layers -- roughly half the Nemotron sweep's 192 GB
-# because d_model is 2048 rather than 2688 and there are four layers not six.
+# per layer, ~103 GB for four layers.
 MIN_FREE_GB="${MIN_FREE_GB:-140}"
 ABORT_FREE_GB="${ABORT_FREE_GB:-25}"
 
