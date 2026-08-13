@@ -12,6 +12,10 @@ class TestResolveRepoId:
         repo = resolve_repo_id("Qwen/Qwen3.6-35B-A3B")
         assert repo == "575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B"
 
+    def test_nemotron_3_5_nano_model_returns_repo(self):
+        repo = resolve_repo_id("nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16")
+        assert repo == "575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+
     def test_gemma4_model_returns_repo(self):
         repo = resolve_repo_id("google/gemma-4-E4B-it")
         assert repo == "575-lab/kiji-inspector-google-gemma-4-E4B-it"
