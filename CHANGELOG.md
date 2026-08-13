@@ -1,3 +1,10 @@
+## kiji-inspector-v0.7.0 (2026-08-13)
+
+### Feat
+
+- register Nemotron 3.5 SAE (#58)
+- improve causal ablation and adaptive L1 experiments (#57)
+
 ## kiji-inspector-v0.6.0 (2026-08-06)
 
 ### Feat
