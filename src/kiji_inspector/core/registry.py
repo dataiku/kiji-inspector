@@ -7,6 +7,7 @@ MODEL_REGISTRY: dict[str, str] = {
     # NVIDIA
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16": "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16",
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8": "575-lab/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-FP8",
+    "nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16": "575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
     # Google
     "google/gemma-4-E4B-it": "575-lab/kiji-inspector-google-gemma-4-E4B-it",
     # EXPERIMENTAL
