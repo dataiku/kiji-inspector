@@ -42,6 +42,9 @@ class SAETrainingConfig:
     d_sae: int = 16384
     bandwidth: float = 0.001
     threshold_init: float = 0.01
+    auto_calibrate_threshold: bool = False
+    threshold_calibration_multiplier: float = 4.0
+    threshold_calibration_batches: int = 8
 
     # Optimiser
     batch_size: int = 8192
@@ -241,6 +244,62 @@ def _sparsity_warmup(step: int, target: float, warmup_steps: int) -> float:
     if step >= warmup_steps:
         return target
     return target * (step / warmup_steps)
+
+
+@torch.no_grad()
+def _auto_calibrate_thresholds(
+    sae: JumpReLUSAE,
+    activation_buffer: CachedActivationBuffer,
+    target_l0: float,
+    num_batches: int = 8,
+) -> dict[str, float]:
+    """Set per-feature thresholds from empirical pre-activation quantiles.
+
+    Each feature receives the quantile that gives it the requested activation
+    rate on a representative sample. Averaged across features, that rate
+    corresponds to ``target_l0 / d_sae`` and therefore warm-starts the SAE at
+    approximately ``target_l0`` active features per vector.
+    """
+    if not 0 < target_l0 < sae.d_sae:
+        raise ValueError(f"Calibration L0 must be between 0 and d_sae ({sae.d_sae})")
+    if num_batches < 1:
+        raise ValueError("threshold_calibration_batches must be at least 1")
+
+    device = next(sae.parameters()).device
+    was_training = sae.training
+    sae.eval()
+    pre_activations = []
+
+    for batch_idx, batch in enumerate(activation_buffer):
+        if batch_idx >= num_batches:
+            break
+        batch = batch.to(device=device, dtype=sae.W_enc.dtype)
+        pre_activation = (batch - sae.b_dec) @ sae.W_enc + sae.b_enc
+        pre_activations.append(pre_activation.float())
+
+    if not pre_activations:
+        raise ValueError("Activation buffer produced no batches for threshold calibration")
+
+    sample = torch.cat(pre_activations, dim=0)
+    quantile = 1.0 - target_l0 / sae.d_sae
+    calibrated = torch.quantile(sample, quantile, dim=0)
+    sae.threshold.copy_(calibrated.to(dtype=sae.threshold.dtype))
+
+    # Measure after casting thresholds to the model dtype; bf16 rounding can
+    # move values that land directly on a quantile boundary.
+    achieved_l0 = (sample > sae.threshold.float()).float().sum(dim=-1).mean().item()
+    stats = {
+        "requested_l0": float(target_l0),
+        "achieved_l0": achieved_l0,
+        "sample_vectors": float(sample.shape[0]),
+        "threshold_mean": sae.threshold.float().mean().item(),
+        "threshold_std": sae.threshold.float().std().item(),
+        "threshold_min": sae.threshold.float().min().item(),
+        "threshold_max": sae.threshold.float().max().item(),
+    }
+
+    sae.train(was_training)
+    return stats
 
 
 class _AdaptiveL1Controller:
@@ -827,6 +886,13 @@ def train_sae(
     print(f"  L1 coefficient    : {config.l1_coefficient}")
     if config.target_l0 is not None:
         print(f"  Target L0         : {config.target_l0} (adaptive l1)")
+    if config.auto_calibrate_threshold:
+        print(
+            f"  Threshold init    : auto ({config.threshold_calibration_multiplier:g}x target, "
+            f"{config.threshold_calibration_batches} batches)"
+        )
+    else:
+        print(f"  Threshold init    : {config.threshold_init}")
     print(
         f"  Warmup steps      : {config.warmup_steps} ({100 * config.warmup_steps / total_steps:.1f}%)"
     )
@@ -852,6 +918,34 @@ def train_sae(
         threshold_init=config.threshold_init,
     ).to(device)
     print(f"SAE parameters: {sae.get_num_parameters():,}")
+
+    if config.auto_calibrate_threshold:
+        if config.target_l0 is None:
+            raise ValueError("--auto-calibrate-threshold requires --target-l0")
+        if config.threshold_calibration_multiplier <= 0:
+            raise ValueError("threshold_calibration_multiplier must be positive")
+        if config.resume_from:
+            print("Skipping threshold calibration because training is resuming from a checkpoint")
+        else:
+            calibration_l0 = min(
+                config.d_sae - 1.0,
+                config.target_l0 * config.threshold_calibration_multiplier,
+            )
+            stats = _auto_calibrate_thresholds(
+                sae,
+                buffer,
+                target_l0=calibration_l0,
+                num_batches=config.threshold_calibration_batches,
+            )
+            print(
+                "Threshold calibration: "
+                f"requested L0={stats['requested_l0']:.1f}, "
+                f"achieved L0={stats['achieved_l0']:.1f} on "
+                f"{int(stats['sample_vectors']):,} vectors; "
+                f"threshold mean={stats['threshold_mean']:.4f}, "
+                f"std={stats['threshold_std']:.4f}, "
+                f"range=[{stats['threshold_min']:.4f}, {stats['threshold_max']:.4f}]"
+            )
 
     if config.use_torch_compile and torch.cuda.is_available():
         print("Compiling SAE with torch.compile...")
