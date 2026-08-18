@@ -446,10 +446,11 @@ def _resample_dead_features(
     with torch.no_grad():
         for i in range(n):
             idx = dead_indices[i].item()
-            direction = high_loss_inputs[i % len(high_loss_inputs)]
+            direction = high_loss_inputs[i]
             direction = direction / (direction.norm() + 1e-8)
-            noise = torch.randn_like(direction) * noise_scale
-            direction = direction + noise
+            noise = torch.randn_like(direction)
+            noise = noise / (noise.norm() + 1e-8)
+            direction = direction + noise_scale * noise
             direction = direction / (direction.norm() + 1e-8)
 
             sae.W_enc[:, idx] = direction.to(dtype)
