@@ -905,6 +905,7 @@ def train_sae(
     print(
         f"  Checkpoint every  : {config.checkpoint_every} ({100 * config.checkpoint_every / total_steps:.1f}%)"
     )
+    print(f"  Dead resampling   : {config.resample_dead_features}")
     print(f"  Auto-scaled       : {config.auto_scale_steps}")
     print(f"  Device            : {device}")
     print("=" * 70)

@@ -319,6 +319,13 @@ def parse_args() -> argparse.Namespace:
         "quantiles at 4x --target-l0 before SAE training.",
     )
     p.add_argument(
+        "--no-sae-resampling",
+        action="store_true",
+        default=False,
+        help="Disable dead-feature resampling during SAE training. Useful with "
+        "calibrated thresholds, because resampling reinitializes features.",
+    )
+    p.add_argument(
         "--l1-max",
         type=float,
         default=0.1,
@@ -600,6 +607,7 @@ def train_sae_step(
     target_l0: float | None = None,
     l1_max: float = 0.1,
     auto_calibrate_threshold: bool = False,
+    resample_dead_features: bool = True,
 ) -> str:
     """Train a JumpReLU SAE on the numpy activation shards from Step 1."""
     from kiji_inspector.training import SAETrainingConfig, train_sae
@@ -612,6 +620,7 @@ def train_sae_step(
         target_l0=target_l0,
         l1_max=l1_max,
         auto_calibrate_threshold=auto_calibrate_threshold,
+        resample_dead_features=resample_dead_features,
         total_steps=total_steps,
         num_epochs=num_epochs,
         output_dir=checkpoint_dir,
@@ -720,6 +729,7 @@ def _run_step2(args) -> dict[str, str]:
             target_l0=args.target_l0,
             l1_max=args.l1_max,
             auto_calibrate_threshold=args.auto_calibrate_threshold,
+            resample_dead_features=not args.no_sae_resampling,
         )
         elapsed = time.time() - t0
         print(f"    SAE training complete ({elapsed:.1f}s): {final_path}")
