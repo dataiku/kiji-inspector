@@ -37,7 +37,7 @@ INDEX_NAME = "model.safetensors.index.json"
 # Repo metadata not worth carrying into the stripped variant.
 EXCLUDED_REPO_FILES = {"README.md", ".gitattributes"}
 # Config keys that describe the MTP stack (beyond num_nextn_predict_layers).
-MTP_CONFIG_KEYS = ("mtp_hybrid_override_pattern",)
+MTP_CONFIG_KEYS = ("mtp_hybrid_override_pattern", "mtp_layers_block_type")
 
 
 def _read_safetensors_header(path: Path) -> dict:
