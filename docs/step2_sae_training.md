@@ -2,294 +2,338 @@
 
 ## Purpose
 
-Train a **JumpReLU Sparse Autoencoder** on the raw activation vectors from Step 1 to discover a dictionary of monosemantic features in the model's hidden representation space. The SAE learns to reconstruct each activation vector using a sparse linear combination of learned feature directions, where each feature ideally corresponds to a single interpretable concept.
+Step 2 trains one JumpReLU sparse autoencoder (SAE) per selected transformer
+layer using the decision-token activation vectors produced by Step 1. The SAE
+learns a sparse dictionary whose decoder reconstructs the normalized residual
+stream and whose active dimensions become the candidate features analyzed in
+Steps 3-5.
+
+When multiple layers are passed to the pipeline, they are trained sequentially
+and each layer receives its own checkpoint directory.
 
 ## Source Files
 
-| File | Key Components |
+| File | Key components |
 |------|----------------|
-| `src/pipeline.py` | `_run_step2()`, `train_sae_step()` |
-| `src/sae/model.py` | `JumpReLUSAE`, `JumpReLUFunction` |
-| `src/sae/trainer.py` | `SAETrainingConfig`, `CachedActivationBuffer`, `train_sae()`, `analyze_feature_health()` |
+| `src/kiji_inspector/pipeline.py` | `_run_step2()`, `train_sae_step()`, Step 2 CLI arguments |
+| `src/kiji_inspector/training/model.py` | Training-time `JumpReLUSAE`, loss computation, initialization |
+| `src/kiji_inspector/training/trainer.py` | `SAETrainingConfig`, activation buffer, calibration, adaptive L1, resampling, checkpointing, health analysis |
+| `src/kiji_inspector/core/sae_core.py` | Shared JumpReLU operation and inference-time SAE methods |
+
+## Recommended Invocation
+
+The calibrated, target-L0 configuration used for the six-layer Nemotron run is:
+
+```bash
+uv run python -m kiji_inspector.pipeline \
+  --step 2 \
+  --pairs-dir output/pairs \
+  --output-dir output \
+  --subject-model /home/shadeform/models/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16-no-mtp \
+  --layers 6 13 20 27 34 43 \
+  --d-sae 10752 \
+  --sae-batch-size 256 \
+  --sae-epochs 10 \
+  --target-l0 75 \
+  --auto-calibrate-threshold \
+  --no-sae-resampling
+```
+
+This writes each SAE to
+`output/layer_<N>/sae_checkpoints/sae_final.pt`. Keep the default per-layer
+checkpoint directories for a multi-layer run; a single shared
+`--sae-checkpoint-dir` would make the layers write into the same directory.
+
+Step 2 reads its training vectors from `--output-dir`. `--pairs-dir` is used
+only to display scenario metadata at pipeline startup; if
+`scenarios_meta.json` is absent, the loader falls back to the built-in default
+scenario.
+
+## Input Normalization
+
+`CachedActivationBuffer` reads `shard_*.npy` and `metadata.json` from each
+layer's Step 1 activation directory. It computes, over all finite vectors:
+
+$$
+\boldsymbol{\mu} = \mathbb{E}[\mathbf{x}], \qquad
+s = \sqrt{\frac{1}{d_{\text{model}}}
+    \sum_k \operatorname{Var}(x_k)}
+$$
+
+and trains on centered, RMS-scaled activations:
+
+$$
+\mathbf{x}_{\text{norm}} = \frac{\mathbf{x} - \boldsymbol{\mu}}{s}.
+$$
+
+Centering is important because residual streams can have a large constant
+offset. Without centering, the same threshold and sparsity settings can produce
+very different behavior at different layers.
+
+The mean vector and centered RMS scale are embedded in `sae_final.pt`. Inference
+code operating on raw model activations must use:
+
+```python
+x_norm = sae.normalize_input(x_raw)
+features = sae.encode(x_norm)
+reconstruction_raw = sae.denormalize_output(sae.decode(features))
+```
+
+Reported training and feature-health reconstruction MSE values are in this
+normalized space.
+
+The buffer shuffles shard order and rows for training, drops non-finite rows,
+converts vectors to bfloat16, and drops incomplete batches at the end of each
+shard. Consequently, the available number of steps is the sum of complete
+batches per shard multiplied by `--sae-epochs`. A larger `--sae-steps` value is
+clamped to that available count.
 
 ## JumpReLU SAE Architecture
 
-### Mathematical Formulation
+For normalized input $\mathbf{x} \in \mathbb{R}^{d_{\text{model}}}$:
 
-Given an input activation vector $\mathbf{x} \in \mathbb{R}^{d_{\text{model}}}$:
+$$
+\mathbf{z} = (\mathbf{x} - \mathbf{b}_{\text{dec}})W_{\text{enc}}
+             + \mathbf{b}_{\text{enc}},
+$$
 
-**Encoder:**
+$$
+\mathbf{f} = \operatorname{JumpReLU}(\mathbf{z}, \boldsymbol{\theta})
+            = \mathbf{z} \odot \mathbb{1}[\mathbf{z} > \boldsymbol{\theta}],
+$$
 
-$$\mathbf{z} = W_{\text{enc}} (\mathbf{x} - \mathbf{b}_{\text{dec}}) + \mathbf{b}_{\text{enc}}$$
+$$
+\hat{\mathbf{x}} = \mathbf{f}W_{\text{dec}} + \mathbf{b}_{\text{dec}}.
+$$
 
-$$\mathbf{f} = \text{JumpReLU}(\mathbf{z}, \boldsymbol{\theta}) = \mathbf{z} \odot H(\mathbf{z} - \boldsymbol{\theta})$$
-
-where $H$ is the Heaviside step function and $\boldsymbol{\theta} \in \mathbb{R}^{d_{\text{sae}}}$ are learnable per-feature thresholds.
-
-**Decoder:**
-
-$$\hat{\mathbf{x}} = W_{\text{dec}} \mathbf{f} + \mathbf{b}_{\text{dec}}$$
-
-Note that $\mathbf{b}_{\text{dec}}$ is shared: it is subtracted from the input before encoding and added back after decoding.
-
-### Parameters
+The decoder bias is shared: it is subtracted before encoding and added after
+decoding.
 
 | Parameter | Shape | Description |
 |-----------|-------|-------------|
-| $W_{\text{enc}}$ | $(d_{\text{model}}, d_{\text{sae}})$ | Encoder weight matrix |
+| $W_{\text{enc}}$ | $(d_{\text{model}}, d_{\text{sae}})$ | Encoder directions |
 | $\mathbf{b}_{\text{enc}}$ | $(d_{\text{sae}},)$ | Encoder bias |
-| $\boldsymbol{\theta}$ | $(d_{\text{sae}},)$ | Per-feature JumpReLU thresholds |
-| $W_{\text{dec}}$ | $(d_{\text{sae}}, d_{\text{model}})$ | Decoder weight matrix |
+| $\boldsymbol{\theta}$ | $(d_{\text{sae}},)$ | Learnable per-feature thresholds |
+| $W_{\text{dec}}$ | $(d_{\text{sae}}, d_{\text{model}})$ | Decoder directions |
 | $\mathbf{b}_{\text{dec}}$ | $(d_{\text{model}},)$ | Shared decoder/pre-encoder bias |
 
-With default dimensions ($d_{\text{model}} = 4096$, $d_{\text{sae}} = 16384$):
-- Total parameters: $2 \times 4096 \times 16384 + 2 \times 16384 + 4096 \approx 134M$
+The pipeline auto-selects $d_{\text{sae}} = 4d_{\text{model}}$ when `--d-sae`
+is omitted. The parameter count is
+$2d_{\text{model}}d_{\text{sae}} + 2d_{\text{sae}} + d_{\text{model}}$.
 
-### JumpReLU Activation Function
+### Gradients through JumpReLU
 
-The JumpReLU function creates **exact sparsity** (true zeros) rather than near-zero values:
+The forward pass creates exact zeros. For the pre-activation, gradients pass
+only through active features:
 
-$$\text{JumpReLU}(z_j, \theta_j) = \begin{cases} z_j & \text{if } z_j > \theta_j \\ 0 & \text{otherwise} \end{cases}$$
+$$
+\frac{\partial \mathcal{L}}{\partial z_j}
+= \frac{\partial \mathcal{L}}{\partial f_j}
+  \mathbb{1}[z_j > \theta_j].
+$$
 
-The Heaviside step function $H$ is non-differentiable. We use a **Straight-Through Estimator (STE)** for the gradient of $\mathbf{z}$ and a **rectangular kernel approximation** for the gradient of $\boldsymbol{\theta}$.
+The threshold gradient uses a rectangular approximation around the jump:
 
-### Gradient Computation
+$$
+\frac{\partial \mathcal{L}}{\partial \theta_j}
+= -\sum_i \frac{\partial \mathcal{L}}{\partial f_{ij}} z_{ij}
+  \frac{\mathbb{1}[|z_{ij}-\theta_j| < \epsilon]}{2\epsilon},
+$$
 
-**Forward pass:**
-```python
-mask = (z > threshold)  # Boolean, shape (batch, d_sae)
-output = z * mask       # Exact zeros where inactive
+where `bandwidth` $\epsilon$ defaults to `0.001`.
+
+## Loss and Sparsity Control
+
+The reconstruction loss is mean squared error:
+
+$$
+\mathcal{L}_{\text{recon}} = \operatorname{MSE}(\hat{\mathbf{x}}, \mathbf{x}).
+$$
+
+The differentiable sparsity term is a tanh-smoothed approximation to L0:
+
+$$
+\mathcal{L}_{\text{sparse}}
+= \frac{1}{B}\sum_i\sum_j
+  \operatorname{ReLU}\left(
+    \tanh\left(\frac{z_{ij}-\theta_j}{\epsilon}\right)
+  \right).
+$$
+
+The total loss is:
+
+$$
+\mathcal{L}_{\text{total}}
+= \mathcal{L}_{\text{recon}} + \lambda(t)\mathcal{L}_{\text{sparse}}.
+$$
+
+The true L0 used for monitoring is the mean number of nonzero SAE features per
+input vector.
+
+### Fixed-L1 Mode
+
+If `--target-l0` is omitted, the trainer uses `--l1-coefficient` as the target
+coefficient after sparsity warmup. This preserves the original training mode,
+but one coefficient can yield different L0 values across layers.
+
+### Target-L0 Mode
+
+If `--target-l0` is set, an adaptive controller adjusts the L1 coefficient at
+each logging interval after sparsity warmup. It:
+
+- tracks an exponential moving average of L0;
+- computes error in log space so over- and undershoot are treated symmetrically;
+- uses proportional-integral updates with a maximum 1.2x change per update;
+- clamps L1 between `1e-5` and `--l1-max` (default `0.1`);
+- freezes escalation when changing L1 has no measurable authority over L0, and
+  re-arms if L0 later moves into a new regime.
+
+Inspect `sparsity/l0`, `sparsity/l0_ema`,
+`sparsity/current_l1_coef`, and `sparsity/l1_controller_frozen` in
+`metrics.jsonl` when diagnosing convergence.
+
+### Threshold Auto-Calibration
+
+`--auto-calibrate-threshold` requires `--target-l0`. Before training, the
+trainer collects eight activation batches, computes each feature's empirical
+pre-activation quantile, and initializes its threshold to a common target firing
+rate. The CLI calibration target is four times the requested training L0:
+
+$$
+L_{0,\text{calibration}}
+= \min(d_{\text{sae}} - 1,\;4L_{0,\text{target}}).
+$$
+
+For example, `--target-l0 75` warm-starts at approximately L0 300. The looser
+initial target leaves room for features to learn before the adaptive sparsity
+controller brings the run toward its final target.
+
+Calibration is skipped when `--sae-resume` is supplied because the checkpoint
+already contains trained thresholds.
+
+## Training Schedule
+
+AdamW uses a peak learning rate of `3e-4`, betas `(0.9, 0.999)`, zero weight
+decay, fused CUDA kernels when available, and gradient clipping at norm `1.0`.
+After every optimizer step, each decoder row is normalized to unit norm.
+
+The learning rate has a 5% linear warmup followed by cosine decay with a floor
+of 10% of the peak learning rate. The sparsity coefficient has an independent
+10% linear warmup.
+
+With `auto_scale_steps=True` (the default), step-based settings are derived from
+the effective total step count:
+
+| Setting | Fraction of training |
+|---------|---------------------|
+| Learning-rate warmup | 5% |
+| Sparsity warmup | 10% |
+| Dead-feature check interval | 20% |
+| Checkpoint interval | 25% |
+| Metrics logging interval | 2% |
+
+Pass `--no-auto-scale-steps` to retain the dataclass values instead. On CUDA,
+the SAE is compiled with `torch.compile(mode="max-autotune", fullgraph=True)`.
+SAE training uses one GPU; it does not use `DataParallel`.
+
+## Dead-Feature Resampling
+
+Dead-feature resampling is enabled by default and can be disabled with
+`--no-sae-resampling`. At each eligible resampling interval, the trainer checks
+20 batches and marks as dead every feature that never exceeds
+`dead_feature_threshold=1e-6`.
+
+The last interval is reserved for recovery: a resampling event runs only if at
+least one full `resample_every` interval remains before training ends.
+
+For up to as many dead features as there are candidate inputs, the trainer:
+
+1. Collects the top 10% highest-reconstruction-loss inputs from five batches.
+2. Uses a normalized high-loss input plus normalized Gaussian noise (`0.2`
+   scale) as a new encoder and decoder direction.
+3. Resets the feature's encoder bias to zero.
+4. Sets its threshold from the empirical pre-activation quantile corresponding
+   to `target_l0 / d_sae` in target-L0 mode. In fixed-L1 mode, it preserves the
+   trained threshold scale by using the current median threshold.
+5. Clears the Adam moments for the resampled encoder column, decoder row,
+   encoder bias, and threshold so stale optimizer state cannot immediately push
+   the replacement back toward its old state.
+
+Target-aware thresholds prevent a large resampling event from making roughly
+half of the replacement features active and destroying calibrated sparsity.
+
+For a controlled calibrated baseline, use `--no-sae-resampling`. Enable
+resampling when intermediate diagnostics show that dead capacity is the problem
+and the run leaves enough post-resampling steps for replacement features to
+train.
+
+## Checkpointing and Resume
+
+Periodic checkpoints contain model, optimizer, scheduler, step, configuration,
+recent metrics, and a timestamp. Only the latest three `step_*.pt` checkpoints
+are retained. `sae_final.pt` is the compact inference checkpoint and includes
+the input mean and RMS scale.
+
+`--sae-resume PATH` restores the model, optimizer, scheduler, and step. Threshold
+auto-calibration is skipped on resume. The adaptive L0 controller's internal EMA
+and integral state are not checkpointed; target-L0 control restarts from the
+configured `--l1-coefficient`.
+
+Per-layer outputs are:
+
+```text
+output/layer_<N>/sae_checkpoints/
+    sae_final.pt          # Compact final model for Steps 3-5
+    step_<K>.pt           # Up to three resumable checkpoints
+    config.json           # Effective training configuration
+    metrics.jsonl         # Logged loss, L0, threshold, and controller metrics
+    feature_health.json   # Aggregate post-training diagnostics
+    firing_rates.npy      # Per-feature firing rates
 ```
 
-**Backward pass for $\mathbf{z}$** (STE):
-$$\frac{\partial \mathcal{L}}{\partial z_j} = \frac{\partial \mathcal{L}}{\partial f_j} \cdot \mathbb{1}[z_j > \theta_j]$$
-
-The gradient passes through only where the feature is active.
-
-**Backward pass for $\boldsymbol{\theta}$** (rectangular kernel):
-
-$$\frac{\partial \mathcal{L}}{\partial \theta_j} = -\sum_{i} \frac{\partial \mathcal{L}}{\partial f_{ij}} \cdot z_{ij} \cdot \frac{\mathbb{1}[|z_{ij} - \theta_j| < \epsilon]}{2\epsilon}$$
-
-where $\epsilon$ is the `bandwidth` hyperparameter (default: 0.001). This approximates the Dirac delta with a rectangular window of width $2\epsilon$, providing a smooth gradient signal for threshold learning.
-
-## Loss Function
-
-The total loss combines reconstruction accuracy with a differentiable sparsity penalty:
-
-### Reconstruction Loss
-
-$$\mathcal{L}_{\text{recon}} = \text{MSE}(\hat{\mathbf{x}}, \mathbf{x}) = \frac{1}{d_{\text{model}}} \|\hat{\mathbf{x}} - \mathbf{x}\|_2^2$$
-
-### Tanh Sparsity Loss
-
-A smooth, differentiable approximation of the L0 norm that provides gradients to both the encoder weights and the thresholds:
-
-$$\mathcal{L}_{\text{sparse}} = \frac{1}{B} \sum_{i=1}^{B} \sum_{j=1}^{d_{\text{sae}}} \text{ReLU}\left(\tanh\left(\frac{z_{ij} - \theta_j}{\epsilon}\right)\right)$$
-
-The $\tanh$ smoothly transitions from 0 to 1 around $z_j = \theta_j$, and the ReLU clips negative values (where $z_j \ll \theta_j$).
-
-### L0 Pseudo-Norm (Monitoring Only)
-
-$$L_0 = \frac{1}{B} \sum_{i=1}^{B} \sum_{j=1}^{d_{\text{sae}}} \mathbb{1}[|f_{ij}| > 0]$$
-
-This is the true count of active features per input. It is non-differentiable and used only for logging.
-
-### Total Loss
-
-$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{recon}} + \lambda(t) \cdot \mathcal{L}_{\text{sparse}}$$
-
-where $\lambda(t)$ is the sparsity coefficient with warmup (see below).
-
-## Training Loop
-
-### Data Loading: CachedActivationBuffer
-
-The buffer loads pre-computed numpy shards from Step 1 and yields shuffled batches:
-
-```
-For each epoch:
-    1. Shuffle shard file order
-    2. For each shard:
-        a. Load numpy array from disk
-        b. Shuffle rows in-place
-        c. Convert to PyTorch tensor (CPU, bfloat16)
-        d. Yield batches of size batch_size to GPU
-        e. Free shard memory, empty CUDA cache
-```
-
-### Learning Rate Schedule
-
-Cosine decay with linear warmup:
-
-$$\text{lr}(t) = \begin{cases}
-\text{lr}_{\text{peak}} \cdot \frac{t}{t_{\text{warmup}}} & \text{if } t < t_{\text{warmup}} \\
-\text{lr}_{\text{peak}} \cdot \max\left(0.1, \; \frac{1 + \cos\left(\pi \cdot \frac{t - t_{\text{warmup}}}{T - t_{\text{warmup}}}\right)}{2}\right) & \text{otherwise}
-\end{cases}$$
-
-The minimum LR ratio is 0.1 (LR decays to 10% of peak, not to zero).
-
-### Sparsity Warmup
-
-The sparsity coefficient ramps linearly from 0 to the target value:
-
-$$\lambda(t) = \begin{cases}
-\lambda_{\text{target}} \cdot \frac{t}{t_{\text{sparse\_warmup}}} & \text{if } t < t_{\text{sparse\_warmup}} \\
-\lambda_{\text{target}} & \text{otherwise}
-\end{cases}$$
-
-This prevents the sparsity penalty from dominating early training when the encoder hasn't learned meaningful directions yet.
-
-### Auto-Scaling of Step Parameters
-
-When `auto_scale_steps=True` (default), step-based hyperparameters are set as fractions of `total_steps`:
-
-| Parameter | Fraction | Example (100K steps) |
-|-----------|----------|---------------------|
-| `warmup_steps` | 5% | 5,000 |
-| `sparsity_warmup_steps` | 10% | 10,000 |
-| `resample_every` | 20% | 20,000 |
-| `checkpoint_every` | 25% | 25,000 |
-| `log_every` | 2% | 2,000 |
-
-### Decoder Weight Normalization
-
-After each optimizer step, decoder weight rows are normalized to unit norm:
-
-$$W_{\text{dec}}[j, :] \leftarrow \frac{W_{\text{dec}}[j, :]}{\|W_{\text{dec}}[j, :]\|_2}$$
-
-This prevents the decoder from compensating for low feature activations by scaling up weight norms, which would undermine the sparsity incentive.
-
-### Optimizer
-
-AdamW with the following settings:
-
-| Parameter | Value |
-|-----------|-------|
-| Learning rate | $3 \times 10^{-4}$ |
-| Betas | $(0.9, 0.999)$ |
-| Weight decay | 0.0 |
-| Gradient clipping | Max norm 1.0 |
-| Fused | True (on CUDA) |
-
-### Training Step Pseudocode
-
-```python
-for batch in activation_buffer:                  # (batch_size, d_model)
-    current_l1 = sparsity_warmup(step, target_l1, warmup_steps)
-    loss, metrics = sae.compute_loss(batch, l1_coefficient=current_l1)
-    loss.backward()
-    clip_grad_norm_(sae.parameters(), max_norm=1.0)
-    optimizer.step()
-    optimizer.zero_grad()
-    scheduler.step()
-    sae.normalize_decoder()                       # Unit-norm decoder rows
-```
-
-## Dead Feature Resampling
-
-Features that never activate (or activate below `dead_feature_threshold=1e-6`) are "dead" and waste representational capacity.
-
-### Detection
-
-Every `resample_every` steps, the trainer checks which features fired across 20 batches:
-
-```python
-activated = torch.zeros(d_sae, dtype=torch.bool)
-for batch in buffer[:20]:
-    features = sae.encode(batch)
-    activated |= (features.abs() > 1e-6).any(dim=0)
-dead_indices = torch.where(~activated)[0]
-```
-
-### Resampling Algorithm
-
-1. Collect the **top 10% highest-loss inputs** from 5 batches (inputs the SAE reconstructs worst)
-2. For each dead feature index $j$:
-   - Sample a high-loss input vector $\mathbf{v}$
-   - Normalize: $\hat{\mathbf{v}} = \mathbf{v} / \|\mathbf{v}\|$
-   - Add noise: $\hat{\mathbf{v}}' = \hat{\mathbf{v}} + 0.2 \cdot \mathcal{N}(0, I)$, then re-normalize
-   - Set $W_{\text{enc}}[:, j] = \hat{\mathbf{v}}'$ and $W_{\text{dec}}[j, :] = \hat{\mathbf{v}}'$
-   - Reset $b_{\text{enc}}[j] = 0$ and $\theta_j = 0.01$
-
-This gives dead features a fresh direction pointing toward inputs the SAE currently fails to reconstruct.
-
-## Post-Training: Feature Health Analysis
-
-After training completes, `analyze_feature_health()` iterates over up to 200 batches and reports:
-
-| Metric | Definition | Healthy Range |
-|--------|-----------|--------------|
-| **Alive features** | Fire on >0.1% of inputs | 50-80% of total |
-| **Dead features** | Never fire (0%) | <20% |
-| **Ultra-rare** | Fire but <0.01% | Low count |
-| **L0 mean** | Average active features per input | 50-200 |
-| **Reconstruction MSE** | Mean squared error | <0.01 |
-
-Results are saved to `feature_health.json`.
-
-## Weight Initialization
-
-| Parameter | Initialization |
-|-----------|---------------|
-| $W_{\text{enc}}$ | Kaiming uniform (ReLU nonlinearity) |
-| $W_{\text{dec}}$ | Copy of $W_{\text{enc}}^T$ |
-| $\mathbf{b}_{\text{enc}}$ | Zeros |
-| $\mathbf{b}_{\text{dec}}$ | Zeros |
-| $\boldsymbol{\theta}$ | Constant 0.01 |
-
-## torch.compile
-
-When CUDA is available, the SAE is compiled with:
-```python
-torch.compile(sae, mode="max-autotune", fullgraph=True)
-```
-This enables kernel fusion and memory planning optimizations for the training loop.
-
-## Checkpointing
-
-Checkpoints are saved every `checkpoint_every` steps (auto-scaled to 25% of total by default). Each checkpoint contains:
-
-- `model_state_dict`: SAE weights
-- `optimizer_state_dict`: AdamW state (momentum terms)
-- `scheduler_state_dict`: LR scheduler state
-- `step`: Current training step
-- `config`: Full `SAETrainingConfig`
-- `metrics`: Recent loss values
-
-Only the last 3 checkpoints are retained. A final `sae_final.pt` is saved at the end with a simplified format (weights + config only).
-
-## Output Files
-
-```
-output/sae_checkpoints/
-    sae_final.pt          # Final trained model
-    step_75000.pt         # Recent checkpoint
-    step_50000.pt         # Older checkpoint
-    config.json           # Training hyperparameters
-    metrics.jsonl         # Per-step loss curves
-    feature_health.json   # Post-training health analysis
-```
+## Post-Training Feature Health
+
+The final health pass processes up to 200 batches and reports:
+
+| Metric | Definition |
+|--------|------------|
+| Alive features | Fire on more than 0.1% of analyzed vectors |
+| Dead features | Never fire |
+| Ultra-rare features | Fire, but on less than 0.01% of vectors |
+| Moderate features | Fire on 0.01%-0.1% of vectors |
+| L0 | Active features per vector, including distribution and bootstrap CI |
+| Reconstruction MSE | Error in normalized activation space, with bootstrap CI |
+
+There is no universal healthy percentage of alive features or universal MSE
+cutoff: both depend on `d_sae`, the intended L0, the layer, and the dataset.
+Evaluate whether achieved L0 is near the target, reconstruction is stable,
+enough features survive for downstream analysis, and later labeling/fuzzing
+results remain useful.
 
 ## CLI Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--d-sae` | 16384 | SAE hidden dimension (typically 4x d_model) |
-| `--sae-lr` | 3e-4 | Learning rate |
-| `--sae-batch-size` | 8192 | Tokens per training batch |
-| `--sae-epochs` | 10 | Passes over the activation data |
-| `--sae-steps` | Auto | Total training steps (auto-computed if not set) |
-| `--l1-coefficient` | 5e-3 | Sparsity penalty weight |
-| `--sae-checkpoint-dir` | `output/sae_checkpoints` | Output directory |
-| `--sae-resume` | None | Resume from checkpoint path |
-| `--no-auto-scale-steps` | False | Disable auto-scaling of step parameters |
+| `--d-sae` | Auto (`4 * d_model`) | SAE dictionary width |
+| `--sae-lr` | `3e-4` | Peak SAE learning rate |
+| `--sae-batch-size` | `8192` | Activation vectors per training batch |
+| `--sae-epochs` | `10` | Passes over the activation shards |
+| `--sae-steps` | Available steps | Optional step cap; cannot exceed available complete batches |
+| `--l1-coefficient` | `5e-3` | Fixed L1 or initial adaptive-L1 value |
+| `--target-l0` | None | Enable adaptive L1 toward this mean L0; 50-100 is the CLI guidance |
+| `--l1-max` | `0.1` | Upper bound for the adaptive L1 controller |
+| `--auto-calibrate-threshold` | False | Initialize thresholds from activation quantiles; requires `--target-l0` |
+| `--no-sae-resampling` | False | Disable dead-feature resampling |
+| `--no-auto-scale-steps` | False | Disable percentage-based step scheduling |
+| `--sae-checkpoint-dir` | Per-layer directory | Override checkpoint output; safest for a single-layer run |
+| `--sae-resume` | None | Resume from a periodic `step_*.pt` checkpoint |
 
-## Hyperparameter Guidance
+## Initialization
 
-| Parameter | Lower | Higher | Effect |
-|-----------|-------|--------|--------|
-| `d_sae` | 8192 | 65536 | More features = more specific concepts, but more dead features |
-| `l1_coefficient` | 1e-3 | 1e-2 | Higher = sparser features (lower L0), may hurt reconstruction |
-| `bandwidth` | 0.0005 | 0.005 | Wider = smoother threshold gradients, slower threshold learning |
-| `threshold_init` | 0.001 | 0.1 | Higher = more features start dead, may need more resampling |
-| `batch_size` | 4096 | 16384 | Larger = more stable gradients, higher GPU memory |
+| Parameter | Initialization |
+|-----------|----------------|
+| $W_{\text{enc}}$ | Kaiming uniform for ReLU |
+| $W_{\text{dec}}$ | Copy of $W_{\text{enc}}^T$ |
+| $\mathbf{b}_{\text{enc}}$ | Zeros |
+| $\mathbf{b}_{\text{dec}}$ | Zeros |
+| $\boldsymbol{\theta}$ | `0.01`, unless auto-calibrated |

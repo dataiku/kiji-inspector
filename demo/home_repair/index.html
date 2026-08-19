@@ -448,6 +448,14 @@ body {
   color: var(--navy);
   margin-bottom: 20px;
 }
+.method-note {
+  max-width: 760px;
+  margin: -12px auto 24px;
+  color: var(--gray-600);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: center;
+}
 
 /* Grouped bar chart */
 .chart {
@@ -500,9 +508,17 @@ body {
   border-radius: 5px;
   transition: width 0.5s ease;
 }
-.chart-bar-fill--dishwasher { background: var(--navy-light); }
-.chart-bar-fill--disposal { background: var(--green); }
-.chart-bar-fill--water_heater { background: var(--coral); }
+.chart-bar-fill--dishwasher_leak { background: var(--navy-light); }
+.chart-bar-fill--disposal_stuck { background: var(--green); }
+.chart-bar-fill--water_heater_noise { background: var(--coral); }
+.chart-bar-score {
+  width: 32px;
+  flex-shrink: 0;
+  color: var(--gray-600);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
 
 .chart-legend {
   display: flex;
@@ -706,8 +722,8 @@ body {
   <div class="container">
     <h1>How Your AI Advisor Thinks</h1>
     <p class="subtitle">
-      See the reasoning behind every repair recommendation &mdash;
-      what data the AI gathered, what factors it weighed, and why it reached each conclusion.
+      Inspect one sparse activation snapshot at the initial tool choice, then
+      follow the evidence used to produce each repair recommendation.
     </p>
     <p id="data-source" style="font-size: 0.82rem; color: var(--gray-400); margin-bottom: 16px;">Loading...</p>
     <div id="progress-strip" style="display:none; max-width:560px; margin:0 auto 16px; background:rgba(255,255,255,0.08); border-radius:var(--radius); padding:10px 16px; text-align:left;">
@@ -724,9 +740,9 @@ body {
       <div class="content">
         <ol>
           <li><strong>Pick a problem</strong> below to see the full analysis.</li>
-          <li><strong>Follow the timeline</strong> to see each research step the AI took.</li>
-          <li><strong>Colored bars</strong> show which factors mattered most at each step.</li>
-          <li><strong>Scroll down</strong> to compare how the AI thought differently about each problem.</li>
+          <li><strong>Read the SAE snapshot</strong> captured at the initial tool choice.</li>
+          <li><strong>Follow the timeline</strong> through the four scripted evidence sources.</li>
+          <li><strong>Scroll down</strong> to compare labeled top-feature signals across problems.</li>
         </ol>
       </div>
     </details>
@@ -758,8 +774,52 @@ body {
 <section class="comparison-section">
   <div class="container">
     <h2>How the AI's Focus Differed Across Problems</h2>
-    <div id="comparison-chart"></div>
-    <div id="comparison-table"></div>
+    <p class="method-note">Scores summarize matching labels among the displayed
+      top SAE features. Zero means no displayed label matched that dimension;
+      it does not prove the concept was absent from the full activation.</p>
+    <div id="comparison-chart">
+      <!-- This is also the no-JavaScript/error fallback. The live renderer
+           replaces it with values from output/ui_data.json. -->
+      <div class="chart comparison-fallback">
+        <div class="chart-row"><div class="chart-theme-label">Safety Concern</div><div class="chart-bars">
+          <div class="chart-bar-row"><span class="chart-bar-tag">Dishwasher</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--dishwasher_leak" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Disposal</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--disposal_stuck" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Water Heater</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--water_heater_noise" style="width: 72%"></div></div><span class="chart-bar-score">72</span></div>
+        </div></div>
+        <div class="chart-row"><div class="chart-theme-label">Cost Sensitivity</div><div class="chart-bars">
+          <div class="chart-bar-row"><span class="chart-bar-tag">Dishwasher</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--dishwasher_leak" style="width: 92%"></div></div><span class="chart-bar-score">92</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Disposal</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--disposal_stuck" style="width: 80%"></div></div><span class="chart-bar-score">80</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Water Heater</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--water_heater_noise" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+        </div></div>
+        <div class="chart-row"><div class="chart-theme-label">DIY Feasibility</div><div class="chart-bars">
+          <div class="chart-bar-row"><span class="chart-bar-tag">Dishwasher</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--dishwasher_leak" style="width: 96%"></div></div><span class="chart-bar-score">96</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Disposal</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--disposal_stuck" style="width: 89%"></div></div><span class="chart-bar-score">89</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Water Heater</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--water_heater_noise" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+        </div></div>
+        <div class="chart-row"><div class="chart-theme-label">Urgency Level</div><div class="chart-bars">
+          <div class="chart-bar-row"><span class="chart-bar-tag">Dishwasher</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--dishwasher_leak" style="width: 87%"></div></div><span class="chart-bar-score">87</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Disposal</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--disposal_stuck" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Water Heater</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--water_heater_noise" style="width: 74%"></div></div><span class="chart-bar-score">74</span></div>
+        </div></div>
+        <div class="chart-row"><div class="chart-theme-label">Age / Warranty Factor</div><div class="chart-bars">
+          <div class="chart-bar-row"><span class="chart-bar-tag">Dishwasher</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--dishwasher_leak" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Disposal</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--disposal_stuck" style="width: 86%"></div></div><span class="chart-bar-score">86</span></div>
+          <div class="chart-bar-row"><span class="chart-bar-tag">Water Heater</span><div class="chart-bar-track"><div class="chart-bar-fill chart-bar-fill--water_heater_noise" style="width: 0%"></div></div><span class="chart-bar-score">0</span></div>
+        </div></div>
+      </div>
+    </div>
+    <div id="comparison-table">
+      <div class="comparison-table-wrap">
+        <table class="comparison-table">
+          <thead><tr><th></th><th>Dishwasher Leak</th><th>Stuck Disposal</th><th>Water Heater Noise</th></tr></thead>
+          <tbody>
+            <tr><td class="row-label">Verdict</td><td>DIY Repair</td><td>Easy DIY Fix</td><td>Call a Professional</td></tr>
+            <tr><td class="row-label">Urgency</td><td>Fix Soon</td><td>Can Wait</td><td>Act Now</td></tr>
+            <tr><td class="row-label">Safety Risk</td><td>Moderate</td><td>Low</td><td>High</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -768,7 +828,9 @@ body {
      ============================================================ -->
 <section class="themes-section">
   <div class="container">
-    <h2>The Five Dimensions the AI Evaluates</h2>
+    <h2>The Five Configured Scenario Dimensions</h2>
+    <p class="method-note">These dimensions come from the scenario configuration;
+      the markers show only the labeled feature evidence present in this run.</p>
     <div id="themes-container" class="theme-cards"></div>
   </div>
 </section>
@@ -779,7 +841,8 @@ body {
 <footer class="footer">
   Powered by <a href="https://github.com/dataiku/kiji-inspector">Kiji Inspector</a> &mdash;
   Sparse Autoencoder analysis of AI decision-making.<br>
-  Model: NVIDIA Nemotron-3-Nano-30B &middot; SAE Layer 20 &middot; Apache 2.0
+  <span id="run-metadata">Model: NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16-no-mtp &middot; SAE Layer 27</span>
+  &middot; Apache 2.0
 </footer>
 
 <!-- ============================================================
@@ -793,6 +856,11 @@ body {
 let DATA = null;
 
 const MOCK_DATA = {
+  runMetadata: {
+    model: 'NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16-no-mtp',
+    saeLayer: 27,
+    thresholdOffset: 0
+  },
   problems: [
     {
       id: 'dishwasher_leak',
@@ -850,7 +918,48 @@ const MOCK_DATA = {
     }
   },
 
-  saeFeatures: {
+  decisionFeatures: {
+    dishwasher_leak: {
+      expectedTool: 'PartsSearch',
+      request: 'My 3-year-old dishwasher is leaking from the bottom; I think the door gasket or spray-arm seal needs replacing.',
+      features: [
+        { label: 'Appliance door seal or gasket failure', strength: 1 },
+        { label: 'Appliance repair vs replacement decision', strength: 1 },
+        { label: 'Appliance hardware repair requests', strength: 0.96 },
+        { label: 'Appliance mechanical failure and leakage', strength: 0.87 },
+        { label: 'Washing machine repair vs replacement decision', strength: 0.85 }
+      ],
+      sentence: 'While reviewing parts and pricing, the AI focused most on <strong>appliance door seal or gasket failure</strong> and <strong>repair vs. replacement</strong>.'
+    },
+    disposal_stuck: {
+      expectedTool: 'TutorialSearch',
+      request: 'My garbage disposal is humming but won\'t spin; how do I manually rotate the impeller to clear the jam?',
+      features: [
+        { label: 'Garbage disposal manual unjamming', strength: 1 },
+        { label: 'Old appliance repair and replacement decisions', strength: 0.86 },
+        { label: 'Home appliance reset and jam clearing', strength: 0.78 },
+        { label: 'Garbage disposal humming jam detection', strength: 0.77 },
+        { label: 'Appliance repair and part replacement', strength: 0.75 }
+      ],
+      sentence: 'While searching for tutorials, the AI focused most on <strong>garbage disposal manual unjamming</strong> and <strong>jam clearing</strong>.'
+    },
+    water_heater_noise: {
+      expectedTool: 'TutorialSearch',
+      request: 'My water heater pops while heating; can you find a guide to flush sediment from the tank safely?',
+      features: [
+        { label: 'Home appliance repair guide request', strength: 1 },
+        { label: 'Home appliance repair guide search', strength: 0.9 },
+        { label: 'Appliance repair guide search', strength: 0.75 },
+        { label: 'Urgent home appliance leaks and failures', strength: 0.74 },
+        { label: 'Gas appliance pilot and valve repair', strength: 0.72 }
+      ],
+      sentence: 'While searching for tutorials, the AI focused most on <strong>home appliance repair guides</strong> and <strong>urgent appliance failures</strong>.'
+    }
+  },
+
+  // Retained only as historical sample data; the corrected renderer does not
+  // present these scripted evidence calls as separate model decisions.
+  _legacySaeFeatures: {
     dishwasher_leak: {
       ManualCheck: {
         features: [
@@ -984,11 +1093,11 @@ const MOCK_DATA = {
   },
 
   comparison: {
-    'Safety Concern': { dishwasher_leak: 35, disposal_stuck: 10, water_heater_noise: 95 },
-    'Cost Sensitivity': { dishwasher_leak: 65, disposal_stuck: 85, water_heater_noise: 80 },
-    'DIY Feasibility': { dishwasher_leak: 60, disposal_stuck: 95, water_heater_noise: 20 },
-    'Urgency Level': { dishwasher_leak: 55, disposal_stuck: 15, water_heater_noise: 90 },
-    'Age / Warranty Factor': { dishwasher_leak: 40, disposal_stuck: 20, water_heater_noise: 80 }
+    'Safety Concern': { dishwasher_leak: 0, disposal_stuck: 0, water_heater_noise: 72 },
+    'Cost Sensitivity': { dishwasher_leak: 92, disposal_stuck: 80, water_heater_noise: 0 },
+    'DIY Feasibility': { dishwasher_leak: 96, disposal_stuck: 89, water_heater_noise: 0 },
+    'Urgency Level': { dishwasher_leak: 87, disposal_stuck: 0, water_heater_noise: 74 },
+    'Age / Warranty Factor': { dishwasher_leak: 0, disposal_stuck: 86, water_heater_noise: 0 }
   },
 
   themes: [
@@ -998,8 +1107,8 @@ const MOCK_DATA = {
       description: 'Some repairs are safely done with basic household tools and minimal experience, while others involve safety hazards or specialized equipment that require a licensed professional.',
       leftLabel: 'Easy DIY',
       rightLabel: 'Needs a Pro',
-      markers: { dishwasher_leak: 40, disposal_stuck: 8, water_heater_noise: 88 },
-      features: 'Driven by <strong>DIY skill requirement</strong> and <strong>safety hazard awareness</strong>'
+      markers: { dishwasher_leak: 4, disposal_stuck: 11, water_heater_noise: 100 },
+      features: ''
     },
     {
       id: 'urgent_vs_planned',
@@ -1007,8 +1116,8 @@ const MOCK_DATA = {
       description: 'Some problems need immediate attention due to active damage or safety risks, while others are nuisances that can be scheduled at your convenience.',
       leftLabel: 'Can Wait',
       rightLabel: 'Act Now',
-      markers: { dishwasher_leak: 55, disposal_stuck: 10, water_heater_noise: 90 },
-      features: 'Driven by <strong>immediate safety concern</strong> and <strong>active damage risk detection</strong>'
+      markers: { dishwasher_leak: 87, disposal_stuck: 0, water_heater_noise: 74 },
+      features: 'Driven by <strong>Appliance mechanical failure and leakage</strong> and <strong>Urgent home appliance leaks and failures</strong>'
     },
     {
       id: 'cheap_fix_vs_replacement',
@@ -1016,8 +1125,8 @@ const MOCK_DATA = {
       description: 'Some problems are a simple, inexpensive part swap, while others suggest the appliance is near end-of-life and full replacement is more cost-effective than repair.',
       leftLabel: 'Quick Part Swap',
       rightLabel: 'Consider Replacing',
-      markers: { dishwasher_leak: 35, disposal_stuck: 10, water_heater_noise: 78 },
-      features: 'Driven by <strong>replacement cost threshold</strong> and <strong>appliance age-to-lifespan ratio</strong>'
+      markers: { dishwasher_leak: 92, disposal_stuck: 80, water_heater_noise: 0 },
+      features: 'Driven by <strong>Appliance repair vs replacement decision</strong> and <strong>Washing machine repair vs replacement decision</strong>'
     },
     {
       id: 'safe_vs_hazardous',
@@ -1025,8 +1134,8 @@ const MOCK_DATA = {
       description: 'Some repairs pose no meaningful risk to a careful homeowner, while others involve gas lines, live electrical panels, or pressurized systems.',
       leftLabel: 'Low Risk',
       rightLabel: 'High Hazard',
-      markers: { dishwasher_leak: 30, disposal_stuck: 12, water_heater_noise: 95 },
-      features: 'Driven by <strong>gas appliance risk assessment</strong> and <strong>electrical safety awareness</strong>'
+      markers: { dishwasher_leak: 0, disposal_stuck: 0, water_heater_noise: 72 },
+      features: 'Driven by <strong>Gas appliance pilot and valve repair</strong>'
     },
     {
       id: 'warranty_vs_out_of_pocket',
@@ -1034,8 +1143,8 @@ const MOCK_DATA = {
       description: 'Newer appliances under warranty make professional service free or low-cost, while older appliances past coverage make DIY the economical choice.',
       leftLabel: 'May Be Covered',
       rightLabel: 'Out of Pocket',
-      markers: { dishwasher_leak: 35, disposal_stuck: 30, water_heater_noise: 85 },
-      features: 'Driven by <strong>warranty coverage assessment</strong> and <strong>appliance age-to-lifespan ratio</strong>'
+      markers: { dishwasher_leak: 0, disposal_stuck: 86, water_heater_noise: 0 },
+      features: 'Driven by <strong>Old appliance repair and replacement decisions</strong>'
     }
   ]
 };
@@ -1097,7 +1206,8 @@ function renderDetail() {
   const pid = state.selectedProblem;
   const problem = DATA.problems.find(p => p.id === pid);
   const tools = DATA.toolResults[pid];
-  const sae = DATA.saeFeatures[pid];
+  const decision = DATA.decisionFeatures?.[pid] || null;
+  const legacySae = DATA.saeFeatures?.[pid] || {};
   const rec = DATA.recommendations[pid];
   const toolNames = ['ManualCheck', 'PartsSearch', 'TutorialSearch', 'ProQuote'];
   const toolLabels = {
@@ -1110,6 +1220,29 @@ function renderDetail() {
   const verdictClass = rec.verdict === 'diy' ? 'verdict-badge--diy'
     : rec.verdict === 'pro' ? 'verdict-badge--pro'
     : 'verdict-badge--replace';
+  const decisionFeatures = decision?.features || [];
+  const decisionMax = Math.max(1, ...decisionFeatures.map(f => f.strength));
+  const initialDecision = decision ? `
+    <div class="reasoning">
+      <h4>Initial Tool-Choice SAE Snapshot</h4>
+      <p><strong>Expected first tool:</strong> ${toolLabels[decision.expectedTool]?.name || decision.expectedTool}</p>
+      <p><strong>User request:</strong> “${decision.request}”</p>
+      <div class="noticed-panel">
+        <div class="noticed-title">What was active before evidence gathering</div>
+        ${decisionFeatures.map(f => `
+          <div class="feature-bar">
+            <div class="feature-label">
+              <span>${f.label}</span>
+              <span class="feature-qualifier">${strengthLabel(f.strength)}</span>
+            </div>
+            <div class="feature-track">
+              <div class="feature-fill" style="width: ${strengthPct(f.strength / decisionMax)}; opacity: ${strengthOpacity(f.strength)}"></div>
+            </div>
+          </div>
+        `).join('')}
+        <div class="noticed-sentence">${decision.sentence}</div>
+      </div>
+    </div>` : '';
 
   document.getElementById('detail-view').innerHTML = `
     <div class="detail-view">
@@ -1120,37 +1253,40 @@ function renderDetail() {
         <div><div class="label">Symptoms</div><div class="value">${problem.details}</div></div>
       </div>
 
+      ${initialDecision}
+
       <!-- Timeline -->
       <div class="timeline">
         ${toolNames.map((tn, i) => {
           const tl = toolLabels[tn];
-          const feat = sae[tn];
-          const maxStr = Math.max(...feat.features.map(f => f.strength));
+          const feat = legacySae[tn];
+          const legacyNotice = feat ? `
+            <div class="noticed-panel">
+              <div class="noticed-title">What the AI Noticed</div>
+              ${feat.features.map(f => `
+                <div class="feature-bar">
+                  <div class="feature-label">
+                    <span>${f.label}</span>
+                    <span class="feature-qualifier">${strengthLabel(f.strength)}</span>
+                  </div>
+                  <div class="feature-track">
+                    <div class="feature-fill" style="width: ${strengthPct(f.strength / Math.max(1, ...feat.features.map(x => x.strength)))}; opacity: ${strengthOpacity(f.strength)}"></div>
+                  </div>
+                </div>
+              `).join('')}
+              <div class="noticed-sentence">${feat.sentence}</div>
+            </div>` : '';
           return `
           <div class="timeline-step active">
             <div class="timeline-rail"><div class="timeline-dot"></div></div>
             <div class="timeline-content">
               <div class="tool-header">
                 <span class="tool-icon">${tl.icon}</span>
-                <span class="tool-name">Step ${i + 1}: ${tl.name}</span>
+                <span class="tool-name">Evidence ${i + 1}: ${tl.name}</span>
               </div>
               <div class="tool-panels">
                 <div class="data-summary">${tools[tn]}</div>
-                <div class="noticed-panel">
-                  <div class="noticed-title">What the AI Noticed</div>
-                  ${feat.features.map(f => `
-                    <div class="feature-bar">
-                      <div class="feature-label">
-                        <span>${f.label}</span>
-                        <span class="feature-qualifier">${strengthLabel(f.strength)}</span>
-                      </div>
-                      <div class="feature-track">
-                        <div class="feature-fill" style="width: ${strengthPct(f.strength / maxStr)}; opacity: ${strengthOpacity(f.strength)}"></div>
-                      </div>
-                    </div>
-                  `).join('')}
-                  <div class="noticed-sentence">${feat.sentence}</div>
-                </div>
+                ${legacyNotice}
               </div>
             </div>
           </div>`;
@@ -1181,9 +1317,15 @@ function renderDetail() {
    Render: Comparison Chart
    ================================================================ */
 function renderComparison() {
-  const themes = Object.keys(DATA.comparison);
+  const comparison = DATA.comparison || {};
+  const themes = Object.keys(comparison);
+  if (!themes.length) return;
   const pids = ['dishwasher_leak', 'disposal_stuck', 'water_heater_noise'];
   const pidLabels = { dishwasher_leak: 'Dishwasher', disposal_stuck: 'Disposal', water_heater_noise: 'Water Heater' };
+  const score = (theme, pid) => {
+    const value = Number(comparison[theme]?.[pid]);
+    return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  };
 
   document.getElementById('comparison-chart').innerHTML = `
     <div class="chart">
@@ -1194,9 +1336,10 @@ function renderComparison() {
             ${pids.map(pid => `
               <div class="chart-bar-row">
                 <span class="chart-bar-tag">${pidLabels[pid]}</span>
-                <div class="chart-bar-track">
-                  <div class="chart-bar-fill chart-bar-fill--${pid}" style="width: ${DATA.comparison[theme][pid]}%"></div>
+                <div class="chart-bar-track" title="${pidLabels[pid]}: ${score(theme, pid)} / 100">
+                  <div class="chart-bar-fill chart-bar-fill--${pid}" style="width: ${score(theme, pid)}%"></div>
                 </div>
+                <span class="chart-bar-score">${score(theme, pid)}</span>
               </div>
             `).join('')}
           </div>
@@ -1282,10 +1425,24 @@ function selectProblem(id) {
    Init: try loading real data, fall back to mock
    ================================================================ */
 function render() {
-  renderProblemCards();
-  renderDetail();
-  renderComparison();
-  renderThemes();
+  // Keep sections independent: a malformed detail or theme should never
+  // prevent the comparison from rendering.
+  const safely = (name, callback) => {
+    try {
+      callback();
+    } catch (error) {
+      console.error(`Could not render ${name}:`, error);
+    }
+  };
+  safely('comparison', renderComparison);
+  safely('problem cards', renderProblemCards);
+  safely('problem detail', renderDetail);
+  safely('themes', renderThemes);
+  const metadata = DATA.runMetadata;
+  const metadataEl = document.getElementById('run-metadata');
+  if (metadata && metadataEl) {
+    metadataEl.textContent = `Model: ${metadata.model} · SAE Layer ${metadata.saeLayer}`;
+  }
 }
 
 /* ================================================================
@@ -1314,7 +1471,8 @@ function isUsable(ui) {
   return !!(ui
             && ui.problems?.length > 0
             && Object.keys(ui.toolResults || {}).length > 0
-            && Object.keys(ui.saeFeatures || {}).length > 0
+            && (Object.keys(ui.decisionFeatures || {}).length > 0
+                || Object.keys(ui.saeFeatures || {}).length > 0)
             && Object.keys(ui.recommendations || {}).length > 0
             && Object.keys(ui.comparison || {}).length > 0
             && (ui.themes || []).length > 0);
@@ -1349,14 +1507,7 @@ async function pollOnce() {
   // Full data
   const ui = await fetchJSON('output/ui_data.json');
   if (!ui) return;
-  const sig = JSON.stringify({
-    p: (ui.problems || []).length,
-    t: Object.keys(ui.toolResults || {}).length,
-    s: Object.keys(ui.saeFeatures || {}).length,
-    r: Object.keys(ui.recommendations || {}).length,
-    c: Object.keys(ui.comparison || {}).length,
-    th: (ui.themes || []).length,
-  });
+  const sig = JSON.stringify(ui);
   if (sig === dataSignature) return;  // no change since last poll
   dataSignature = sig;
 
@@ -1378,14 +1529,7 @@ async function init() {
     DATA = ui;
     liveDataLoaded = true;
     if (dataSourceEl) dataSourceEl.textContent = 'Showing live results from this demo run.';
-    dataSignature = JSON.stringify({
-      p: DATA.problems.length,
-      t: Object.keys(DATA.toolResults || {}).length,
-      s: Object.keys(DATA.saeFeatures || {}).length,
-      r: Object.keys(DATA.recommendations || {}).length,
-      c: Object.keys(DATA.comparison || {}).length,
-      th: (DATA.themes || []).length,
-    });
+    dataSignature = JSON.stringify(DATA);
   } else {
     DATA = MOCK_DATA;
     if (dataSourceEl) dataSourceEl.textContent = 'Showing example data. Live results will appear here as the demo runs.';

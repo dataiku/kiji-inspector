@@ -2,18 +2,22 @@
 """
 Home Repair Agent Demo with SAE Activation Analysis.
 
-Orchestrates a home repair advisor using NVIDIA Nemotron-3-Nano-30B:
-  1. For each repair problem (dishwasher, disposal, water heater), the model
-     is presented with tool results and asked to analyze them -- one LLM call
-     per (problem, tool) pair
-  2. After all data is gathered, the model produces a final recommendation
-  3. Activations are extracted at each decision point via HF forward hooks
+Orchestrates a home repair advisor using NVIDIA Nemotron-3.5-Nano-30B:
+  1. For each repair problem (dishwasher, disposal, water heater), capture one
+     training-compatible initial tool-choice representation, then gather and
+     analyze four scripted evidence sources
+  2. After all data is gathered, an evidence-grounded final recommendation is
+     assembled from the tool records
+  3. Tool-choice prompts are formatted exactly like the training prompts and
+     activations are captured entering each trained transformer layer
   4. Activations are mapped through a trained SAE to explain the reasoning
 
 Uses HuggingFace transformers for both generation and activation capture
 (no vLLM required). Single model instance serves both purposes.
 
-The SAE is loaded from HuggingFace Hub (davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-multiple-scenarios).
+By default, the demo uses the completed local six-layer experiment when it is
+available under ``output/``. Otherwise it falls back to the matching
+575-lab HuggingFace repository.
 
 Prerequisites:
     pip install 'kiji-inspector[huggingface]'
@@ -21,9 +25,10 @@ Prerequisites:
 
 Usage:
     uv run python demo/home_repair/home_repair_demo.py
-    uv run python demo/home_repair/home_repair_demo.py --device cuda
+    uv run python demo/home_repair/home_repair_demo.py \
+      --model-name /path/to/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16-no-mtp
     uv run python demo/home_repair/home_repair_demo.py --youtube-api-key YOUR_KEY
-    uv run python demo/home_repair/home_repair_demo.py --sae-layer 20
+    uv run python demo/home_repair/home_repair_demo.py --sae-layer 27
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import re
 import textwrap
 from pathlib import Path
 
@@ -39,21 +45,43 @@ import torch
 
 from kiji_inspector.core.sae import SAE
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-_MODEL_NAME = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
-_SAE_REPO_ID = "davidnet/kiji-inspector-NVIDIA-Nemotron-3-Nano-30B-A3B-BF16-Home-scenarios"
-_SAE_LAYER = 20
+_DEMO_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _DEMO_DIR.parents[1]
+_SCENARIO_PATH = _DEMO_DIR / "home_repair.json"
+_EXPERIMENT_OUTPUT_DIR = _REPO_ROOT / "output"
 
-_SYSTEM_PROMPT = (
-    "You are an experienced home repair advisor. You help homeowners diagnose "
-    "appliance problems and decide whether to attempt a DIY repair or hire a "
-    "professional. Always consider safety first, then cost, difficulty, and "
-    "warranty implications. Reference specific details from the data provided."
+_MODEL_NAME = "nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16"
+_SAE_REPO_ID = "575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+_SAE_LAYER = 27
+_TRAINED_LAYERS = [6, 13, 20, 27, 34, 43]
+_HF_THRESHOLD_OFFSET = 1.12890625
+
+with open(_SCENARIO_PATH) as _scenario_file:
+    _SCENARIO = json.load(_scenario_file)
+
+_SYSTEM_PROMPT = _SCENARIO["system_prompt"]
+_DECISION_TOOLS = _SCENARIO["tools"]
+
+_DEFAULT_SAE_LOCAL_DIR = (
+    str(_EXPERIMENT_OUTPUT_DIR)
+    if (
+        _EXPERIMENT_OUTPUT_DIR / f"layer_{_SAE_LAYER}" / "sae_checkpoints" / "sae_final.pt"
+    ).is_file()
+    else None
 )
+
+
+def _strip_thinking(text: str) -> str:
+    """Remove complete or prompt-opened reasoning blocks from decoded output."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    if "</think>" in text:
+        text = text.split("</think>", 1)[1].strip()
+    return text
+
 
 _PROBLEMS = [
     {
@@ -65,6 +93,13 @@ _PROBLEMS = [
             "Water pools under the front of the unit about 15 minutes into "
             "the wash cycle. No error codes on the display."
         ),
+        "initial_decision": {
+            "tool": "PartsSearch",
+            "request": (
+                "My 3-year-old dishwasher is leaking from the bottom; I think the "
+                "door gasket or spray-arm seal needs replacing."
+            ),
+        },
     },
     {
         "id": "disposal_stuck",
@@ -75,6 +110,13 @@ _PROBLEMS = [
             "Motor hums when the switch is flipped but blades don't turn. "
             "Was working fine yesterday. No unusual smell."
         ),
+        "initial_decision": {
+            "tool": "TutorialSearch",
+            "request": (
+                "My garbage disposal is humming but won't spin; how do I manually "
+                "rotate the impeller to clear the jam?"
+            ),
+        },
     },
     {
         "id": "water_heater_noise",
@@ -86,6 +128,13 @@ _PROBLEMS = [
             "Hot water takes longer to reach faucets. Slight rust tinge "
             "in the first few seconds of hot water."
         ),
+        "initial_decision": {
+            "tool": "TutorialSearch",
+            "request": (
+                "My water heater pops while heating; can you find a guide to flush "
+                "sediment from the tank safely?"
+            ),
+        },
     },
 ]
 
@@ -109,20 +158,32 @@ class HFEngine:
         device: str = "auto",
         dtype: str = "bfloat16",
         max_new_tokens: int = 400,
+        allow_thinking: bool = False,
     ):
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
+        from kiji_inspector.extraction.vllm_activation_extractor import (
+            recommended_chat_template_kwargs,
+        )
+
+        self.model_name = model_name
         self.max_new_tokens = max_new_tokens
         self.prompt_log: list[tuple[str, str]] = []
 
         torch_dtype = getattr(torch, dtype)
 
         print(f"  Loading model: {model_name}")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.generation_template_kwargs = (
+            {} if allow_thinking else recommended_chat_template_kwargs(model_name, self.tokenizer)
+        )
 
-        load_kwargs: dict = {"torch_dtype": torch_dtype}
+        load_kwargs: dict = {
+            "dtype": torch_dtype,
+            "trust_remote_code": True,
+        }
         if device == "auto":
             load_kwargs["device_map"] = "auto"
         else:
@@ -149,7 +210,11 @@ class HFEngine:
             "language_model.model.embed_tokens",
             "language_model.embed_tokens",
             "model.embed_tokens",
+            "model.language_model.embed_tokens",
+            "backbone.embed_tokens",
+            "backbone.embedding",
             "transformer.wte",
+            "model.embed_in",
         ):
             obj = self.model
             try:
@@ -171,17 +236,30 @@ class HFEngine:
                 return lm.layers
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers
+        if hasattr(self.model, "model") and hasattr(self.model.model, "language_model"):
+            inner_lm = self.model.model.language_model
+            if hasattr(inner_lm, "layers"):
+                return inner_lm.layers
+        if hasattr(self.model, "backbone"):
+            backbone = self.model.backbone
+            if hasattr(backbone, "layers"):
+                return backbone.layers
+            if hasattr(backbone, "decoder") and hasattr(backbone.decoder, "layers"):
+                return backbone.decoder.layers
+        if hasattr(self.model, "model") and hasattr(self.model.model, "decoder"):
+            if hasattr(self.model.model.decoder, "layers"):
+                return self.model.model.decoder.layers
+        if hasattr(self.model, "decoder") and hasattr(self.model.decoder, "layers"):
+            return self.model.decoder.layers
+        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
+            return self.model.transformer.h
         raise AttributeError(f"Cannot locate transformer layers for {type(self.model).__name__}")
 
     def _get_inner_model(self):
         """Get transformer body, skipping lm_head to avoid logit allocation."""
-        if hasattr(self.model, "language_model"):
-            lm = self.model.language_model
-            if hasattr(lm, "model"):
-                return lm.model
-            return lm
-        if hasattr(self.model, "model"):
-            return self.model.model
+        for attr in ("language_model", "model", "backbone", "transformer"):
+            if hasattr(self.model, attr):
+                return getattr(self.model, attr)
         return self.model
 
     # --- Chat template ---
@@ -194,20 +272,50 @@ class HFEngine:
                 {"role": "user", "content": user},
             ]
             return self.tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+                **self.generation_template_kwargs,
             )
         except Exception:
             # Some models may not support system role -- prepend to user message
             messages = [{"role": "user", "content": f"{system}\n\n{user}"}]
             return self.tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+                **self.generation_template_kwargs,
             )
+
+    def record_tool_decision(self, step_label: str, user_request: str) -> None:
+        """Record a training-compatible prompt for later SAE extraction.
+
+        The SAE was trained on the final token of prompts ending in
+        ``I'll use the``. Reusing the pipeline prompt builder keeps the demo's
+        system message, tool inventory, chat template, and decision position
+        aligned with that training distribution.
+        """
+        from kiji_inspector.extraction.extractor import build_agent_prompt
+        from kiji_inspector.extraction.vllm_activation_extractor import (
+            recommended_chat_template_kwargs,
+        )
+
+        template_kwargs = recommended_chat_template_kwargs(self.model_name, self.tokenizer)
+
+        prompt = build_agent_prompt(
+            system_prompt=_SYSTEM_PROMPT,
+            tools=_DECISION_TOOLS,
+            user_request=user_request,
+            tokenizer=self.tokenizer,
+            chat_template_kwargs=template_kwargs,
+            close_think_block=bool(template_kwargs),
+        )
+        self.prompt_log.append((step_label, prompt))
 
     # --- Generation ---
 
     def generate(self, prompt: str, step_label: str, max_tokens: int | None = None) -> str:
-        """Generate text and log the prompt for later activation extraction."""
-        self.prompt_log.append((step_label, prompt))
+        """Generate text. Tool-decision prompts are recorded separately."""
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self._input_device)
         prompt_len = inputs["input_ids"].shape[1]
@@ -224,6 +332,11 @@ class HFEngine:
 
         new_tokens = output_ids[0][prompt_len:]
         response = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        # Some reasoning templates represent the opening <think> marker as a
+        # prompt token that is omitted by skip_special_tokens, while the model
+        # still emits a literal closing marker. Remove either a complete block
+        # or an unmatched reasoning prefix so it cannot leak into demo output.
+        response = _strip_thinking(response)
         print(f"  [{step_label}] Generated {len(new_tokens)} tokens")
         return response
 
@@ -232,24 +345,38 @@ class HFEngine:
     def extract_all_prompts(self, layers: list[int]) -> list[tuple[str, dict[str, np.ndarray]]]:
         """Extract last-token activations for every logged prompt.
 
-        Registers forward hooks on the target layers, runs a single forward
+        Registers forward pre-hooks on the target layers, runs a single forward
         pass per prompt through the transformer body, then removes all hooks.
+
+        A pre-hook captures the residual stream entering layer N, matching the
+        vLLM auxiliary hidden-state convention used to train the SAEs. Capturing
+        layer N's output would be off by one layer.
         """
         model_layers = self._get_model_layers()
         activations: dict[str, torch.Tensor] = {}
         hooks: list[torch.utils.hooks.RemovableHook] = []
 
         def _make_hook(name: str):
-            def hook(module, input, output):
-                act = output[0] if isinstance(output, tuple) else output
+            def hook(module, args, kwargs):
+                act = args[0] if args else kwargs["hidden_states"]
                 activations[name] = act.detach().cpu().to(torch.float32)
 
             return hook
 
         for idx in layers:
-            if idx < len(model_layers):
-                h = model_layers[idx].register_forward_hook(_make_hook(f"residual_{idx}"))
-                hooks.append(h)
+            if not 0 <= idx < len(model_layers):
+                print(
+                    f"  WARNING: layer {idx} requested but model has "
+                    f"{len(model_layers)} layers; skipping"
+                )
+                continue
+            h = model_layers[idx].register_forward_pre_hook(
+                _make_hook(f"residual_{idx}"), with_kwargs=True
+            )
+            hooks.append(h)
+
+        if not hooks:
+            raise ValueError("None of the requested activation layers exist in the model")
 
         inner = self._get_inner_model()
         results: list[tuple[str, dict[str, np.ndarray]]] = []
@@ -257,7 +384,7 @@ class HFEngine:
         for step_label, prompt in self.prompt_log:
             activations.clear()
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self._input_device)
-            with torch.no_grad():
+            with torch.inference_mode():
                 inner(**inputs)
 
             result = {name: act[:, -1, :].squeeze(0).numpy() for name, act in activations.items()}
@@ -568,6 +695,86 @@ _TOOLS = {
 }
 
 
+def _initial_tool_decision(problem: dict) -> tuple[str, str]:
+    """Return the expected first tool and its training-style user request."""
+    decision = problem["initial_decision"]
+    return decision["tool"], decision["request"]
+
+
+def _recommended_path(problem_id: str) -> str:
+    """Derive the recommendation category from the authoritative manual."""
+    manual = _MANUAL_DATA[problem_id]
+    safety = manual["safety"]
+    difficulty = manual["diy_difficulty"]
+    if "GAS APPLIANCE" in safety or "Difficult" in difficulty:
+        return (
+            "Hire a professional for diagnosis and any gas-system or tank repair; "
+            "only an experienced homeowner should attempt a basic tank flush."
+        )
+    if difficulty == "Easy":
+        return "Try the documented DIY jam-clearing and reset procedure first."
+    return (
+        "Start with a powered-off DIY inspection and replace only an identified, "
+        "accessible part; hire a professional if the leak source is unclear."
+    )
+
+
+_GROUNDED_RATIONALES = {
+    "dishwasher_leak": (
+        "A leak that begins during the wash cycle can come from the door gasket, "
+        "pump seal, inlet-valve connection, or spray-arm seal. Inspect while power "
+        "and water are off, then replace only the confirmed failed part."
+    ),
+    "disposal_stuck": (
+        "Humming without rotation most strongly indicates a jammed flywheel; the "
+        "manual's first-line fix is the bottom hex socket followed by the reset "
+        "button. At two years old, replacement is premature unless that fails."
+    ),
+    "water_heater_noise": (
+        "At nine years, popping plus slower heating strongly suggests sediment, "
+        "while the initial rusty water raises anode depletion or tank-corrosion "
+        "concerns. The gas and scalding hazards justify professional inspection."
+    ),
+}
+
+
+def _render_grounded_final_section(problem: dict) -> str:
+    """Render a complete conclusion from the authoritative tool records."""
+    pid = problem["id"]
+    manual = _MANUAL_DATA[pid]
+    parts = _PARTS_DATA[pid]
+    quote = _PRO_QUOTE_DATA[pid]
+    professional_costs = "; ".join(
+        f"{estimate['repair']}: ${estimate['total']}" for estimate in quote["repair_estimates"]
+    )
+    return (
+        f"## {problem['summary']}\n\n"
+        f"**Recommendation:** {_recommended_path(pid)}\n\n"
+        f"**Why:** {_GROUNDED_RATIONALES[pid]}\n\n"
+        f"**Estimated costs:** DIY {parts['diy_cost_range']}. Professional diagnosis "
+        f"fee: ${quote['diagnosis_fee']}; {professional_costs}.\n\n"
+        f"**Safety:** {manual['safety']}\n\n"
+        f"**Urgency:** {quote['urgency']}."
+    )
+
+
+def _render_priority_order() -> str:
+    """Order the fixed demo problems using the quote's stated urgency."""
+    severity = {"Low": 1, "Moderate": 2, "Moderate-High": 3}
+    ordered = sorted(
+        _PROBLEMS,
+        key=lambda problem: severity.get(
+            _PRO_QUOTE_DATA[problem["id"]]["urgency"].split(" --", 1)[0], 0
+        ),
+        reverse=True,
+    )
+    lines = []
+    for index, problem in enumerate(ordered, start=1):
+        urgency = _PRO_QUOTE_DATA[problem["id"]]["urgency"]
+        lines.append(f"{index}. **{problem['summary']}** — {urgency}.")
+    return "\n".join(lines)
+
+
 def _fetch_youtube_tutorials(query: str, api_key: str) -> dict:
     """Search YouTube Data API v3 for repair tutorials (real API)."""
     import urllib.parse
@@ -630,22 +837,29 @@ def run_home_repair_analysis(
     """Run the full multi-step home repair analysis.
 
     For each problem, calls each tool and asks the model to analyze the results.
-    Then asks for a final recommendation across all three problems.
+    Then assembles a tool-grounded recommendation across all three problems.
 
     Returns:
         (final_recommendation, per_problem_analyses)
     """
     per_problem_analyses: dict[str, str] = {}
-    all_context = ""
-
     for problem in _PROBLEMS:
         pid = problem["id"]
         print(f"\n  --- Analyzing: {problem['summary']} ---")
         problem_context = ""
 
+        # Capture one genuine initial tool-choice representation for the
+        # problem. The four calls below are scripted evidence gathering, not
+        # four separate decisions, so attaching a different SAE explanation to
+        # each of them would misrepresent what the activation means.
+        expected_tool, decision_request = _initial_tool_decision(problem)
+        engine.record_tool_decision(f"{pid}_InitialDecision", decision_request)
+        print(f"    Initial tool-choice target: {expected_tool}")
+
         for tool_name, (_, tool_desc) in _TOOLS.items():
-            tool_result = _get_tool_result(tool_name, pid, youtube_api_key)
             step_label = f"{pid}_{tool_name}"
+
+            tool_result = _get_tool_result(tool_name, pid, youtube_api_key)
 
             user_msg = (
                 f"A homeowner needs help with: {problem['summary']}\n"
@@ -667,28 +881,14 @@ def run_home_repair_analysis(
             problem_context += f"\n[{tool_name}] {analysis.strip()}\n"
 
         per_problem_analyses[pid] = problem_context
-        all_context += f"\n=== {problem['summary']} ===\n{problem_context}\n"
 
-    # Final recommendation — truncate context to avoid OOM on the long prompt
+    # Render every factual decision field from authoritative tool data. The
+    # model's per-tool analyses remain available separately, but are not fed
+    # back into a free-form synthesis call where facts could be lost or changed.
     print("\n  --- Final Recommendation ---")
-    # Keep only the last ~4000 chars of context to stay within GPU memory
-    truncated_context = all_context
-    if len(truncated_context) > 4000:
-        truncated_context = "...(earlier analysis truncated)...\n" + truncated_context[-4000:]
-    final_user_msg = (
-        "You have analyzed three home repair problems. "
-        "Here is a summary of your analysis:\n\n"
-        f"{truncated_context}\n\n"
-        "Now provide your final recommendation for each problem:\n"
-        "1. DIY or hire a professional? Why?\n"
-        "2. Estimated cost (DIY vs professional)\n"
-        "3. Safety considerations\n"
-        "4. Urgency level (fix now / schedule soon / can wait)\n"
-        "5. Priority order: which problem should be addressed first?"
-    )
-
-    final_prompt = engine._build_prompt(_SYSTEM_PROMPT, final_user_msg)
-    final_rec = engine.generate(final_prompt, "final_recommendation", max_tokens=500)
+    final_sections = [_render_grounded_final_section(problem) for problem in _PROBLEMS]
+    rendered_sections = "\n\n".join(final_sections)
+    final_rec = f"{rendered_sections}\n\n## Priority order\n\n{_render_priority_order()}"
 
     return final_rec, per_problem_analyses
 
@@ -704,8 +904,14 @@ def _load_contrastive_feature_map(output_dir: str, layer: int) -> dict[int, list
     Returns a dict mapping feature index to a list of
     {"theme": str, "rank": int, "cohens_d": float, "direction": str} entries.
     """
-    report_path = Path(output_dir) / f"layer_{layer}" / "contrastive_features.json"
-    if not report_path.exists():
+    layer_dir = Path(output_dir) / f"layer_{layer}"
+    report_paths = (
+        layer_dir / "activations" / "contrastive_features.json",
+        layer_dir / "contrastive_features.json",  # legacy layout
+    )
+    report_path = next((path for path in report_paths if path.is_file()), None)
+    if report_path is None:
+        print(f"  No contrastive feature map found under {layer_dir}")
         return {}
 
     with open(report_path) as f:
@@ -728,7 +934,10 @@ def _load_contrastive_feature_map(output_dir: str, layer: int) -> dict[int, list
             }
             feature_map.setdefault(idx, []).append(entry)
 
-    print(f"  Loaded contrastive feature map: {len(feature_map)} features across {len(report) - 1} themes")
+    num_themes = sum(not theme.startswith("_") for theme in report)
+    print(
+        f"  Loaded contrastive feature map: {len(feature_map)} features across {num_themes} themes"
+    )
     return feature_map
 
 
@@ -782,8 +991,9 @@ def analyze_activations(
     activation_log: list[tuple[str, dict[str, np.ndarray]]],
     sae_repo_id: str,
     sae_layer: int,
-    layer_key: str = "residual_20",
+    layer_key: str | None = None,
     sae_local_dir: str | None = None,
+    threshold_offset: float = _HF_THRESHOLD_OFFSET,
 ) -> dict:
     """Encode captured activations through SAE and map to feature descriptions.
 
@@ -792,10 +1002,15 @@ def analyze_activations(
       2. SAE feature decomposition (if checkpoint found)
       3. Feature label mapping (if descriptions found)
     """
+    layer_key = layer_key or f"residual_{sae_layer}"
     results: dict = {
         "steps": [],
         "sae_available": False,
         "features_available": False,
+        "sae_layer": sae_layer,
+        "sae_layer_key": layer_key,
+        "sae_source": sae_local_dir or sae_repo_id,
+        "sae_threshold_offset": threshold_offset,
     }
 
     # Tier 1: Raw activation statistics
@@ -831,21 +1046,36 @@ def analyze_activations(
         contrastive_map = _load_contrastive_feature_map(sae_local_dir, sae_layer)
 
     results["sae_available"] = True
-    results["contrast_themes"] = list({
-        entry["theme"]
-        for entries in contrastive_map.values()
-        for entry in entries
-    }) if contrastive_map else []
+    results["contrast_themes"] = (
+        list({entry["theme"] for entries in contrastive_map.values() for entry in entries})
+        if contrastive_map
+        else []
+    )
     sae.eval()
     sae_dtype = next(sae.parameters()).dtype
+    if threshold_offset:
+        if not hasattr(sae, "threshold"):
+            raise AttributeError("Loaded SAE has no threshold parameter to recalibrate.")
+        with torch.no_grad():
+            sae.threshold.add_(threshold_offset)
+        print(
+            f"  Applied in-memory HF threshold offset: {threshold_offset:+.7f} "
+            "(checkpoint unchanged)"
+        )
 
     for step_info, (_step_label, acts) in zip(results["steps"], activation_log, strict=True):
         if layer_key not in acts:
             continue
         vec = acts[layer_key]
+        if vec.shape[-1] != sae.d_model:
+            raise ValueError(
+                f"Activation {layer_key} has width {vec.shape[-1]}, but the SAE "
+                f"expects d_model={sae.d_model}. Check --model-name, --sae-layer, "
+                "and the checkpoint source."
+            )
         vec_tensor = torch.from_numpy(vec).unsqueeze(0).to(device=device, dtype=sae_dtype)
         with torch.no_grad():
-            features = sae.encode(vec_tensor)
+            features = sae.encode(sae.normalize_input(vec_tensor))
         features_np = features.squeeze(0).cpu().float().numpy()
 
         nonzero_mask = features_np > 0
@@ -886,9 +1116,7 @@ def analyze_activations(
                     "num_features": len(scores),
                     "mean_score": round(sum(scores) / len(scores), 4),
                 }
-                for theme, scores in sorted(
-                    theme_scores.items(), key=lambda x: -sum(x[1])
-                )
+                for theme, scores in sorted(theme_scores.items(), key=lambda x: -sum(x[1]))
             },
         }
 
@@ -910,9 +1138,14 @@ def analyze_activations(
         for feat in step_info["sae_features"]["top_features"]:
             desc = feature_descs.get(str(feat["index"]))
             if desc:
-                feat["label"] = desc.get("label", "unknown")
-                feat["description"] = desc.get("description", "")
-                feat["confidence"] = desc.get("confidence", "low")
+                if isinstance(desc, str):
+                    feat["label"] = desc
+                    feat["description"] = ""
+                    feat["confidence"] = "unknown"
+                else:
+                    feat["label"] = desc.get("label", "unknown")
+                    feat["description"] = desc.get("description", "")
+                    feat["confidence"] = desc.get("confidence", "low")
 
     return results
 
@@ -954,11 +1187,29 @@ _PROBLEM_META = {
 # Each theme has keywords — if a feature label contains any, it counts.
 _THEME_KEYWORDS = {
     "Safety Concern": ["safety", "hazard", "gas", "risk", "danger"],
-    "Cost Sensitivity": ["cost", "budget", "price", "replacement cost", "expense"],
-    "DIY Feasibility": ["diy", "beginner", "skill", "tool requirement"],
-    "Urgency Level": ["urgent", "immediate", "damage", "active"],
-    "Age / Warranty Factor": ["age", "lifespan", "warranty", "coverage"],
+    "Cost Sensitivity": ["cost", "budget", "price", "replacement", "expense"],
+    "DIY Feasibility": [
+        "diy",
+        "beginner",
+        "skill",
+        "tool requirement",
+        "hardware repair",
+        "manual unjamming",
+        "reset",
+        "jam clearing",
+    ],
+    "Urgency Level": ["urgent", "immediate", "damage", "active", "leakage"],
+    "Age / Warranty Factor": ["age", "old", "lifespan", "warranty", "coverage"],
 }
+
+
+def _label_matches_keywords(label: str, keywords: list[str]) -> bool:
+    """Match complete words/phrases, not accidental substrings like gas/gasket."""
+    normalized = label.lower()
+    return any(
+        re.search(rf"\b{re.escape(keyword.lower())}\b", normalized) is not None
+        for keyword in keywords
+    )
 
 
 def _summarize_manual(data: dict) -> str:
@@ -996,7 +1247,7 @@ def _summarize_tutorials(data: dict) -> str:
             meta.append(r["difficulty"])
         meta_str = f" ({', '.join(meta)})" if meta else ""
         channel = r.get("channel", "")
-        lines.append(f"<strong>\"{r['title']}\"</strong> by {channel}{meta_str}")
+        lines.append(f'<strong>"{r["title"]}"</strong> by {channel}{meta_str}')
     return "<br>".join(lines)
 
 
@@ -1045,27 +1296,20 @@ def _generate_feature_sentence(tool_name: str, features: list[dict]) -> str:
 
 
 def _derive_comparison_scores(
-    sae_features: dict[str, dict[str, dict]],
+    decision_features: dict[str, dict],
 ) -> dict[str, dict[str, int]]:
-    """Derive comparison scores from SAE features by theme-keyword matching."""
-    comparison: dict[str, dict[str, float]] = {
-        theme: {} for theme in _THEME_KEYWORDS
-    }
-    for pid in sae_features:
-        # Collect all features for this problem across tools
-        all_features: list[dict] = []
-        for tool_data in sae_features[pid].values():
-            all_features.extend(tool_data.get("features", []))
-
+    """Derive comparison scores from each problem's initial decision features."""
+    comparison: dict[str, dict[str, float]] = {theme: {} for theme in _THEME_KEYWORDS}
+    for pid, decision in decision_features.items():
+        features = decision.get("features", [])
         for theme, keywords in _THEME_KEYWORDS.items():
             score = 0.0
             count = 0
-            for f in all_features:
-                label_lower = f.get("label", "").lower()
-                if any(kw in label_lower for kw in keywords):
+            for f in features:
+                if _label_matches_keywords(f.get("label", ""), keywords):
                     score += f.get("strength", 0)
                     count += 1
-            comparison[theme][pid] = round(score / max(count, 1) * 100) if count else 10
+            comparison[theme][pid] = round(score / count * 100) if count else 0
 
     return comparison
 
@@ -1075,6 +1319,9 @@ def build_ui_data(
     per_problem: dict[str, str],
     final_recommendation: str,
     youtube_api_key: str | None = None,
+    model_name: str = _MODEL_NAME,
+    sae_layer: int = _SAE_LAYER,
+    threshold_offset: float = _HF_THRESHOLD_OFFSET,
 ) -> dict:
     """Transform demo outputs into the DATA shape expected by index.html."""
 
@@ -1082,17 +1329,19 @@ def build_ui_data(
     problems = []
     for p in _PROBLEMS:
         meta = _PROBLEM_META.get(p["id"], {})
-        problems.append({
-            "id": p["id"],
-            "icon": meta.get("icon", ""),
-            "title": p["summary"],
-            "appliance": p["appliance"],
-            "age": p["age"],
-            "details": p["details"],
-            "urgency": meta.get("urgency", {"label": "Unknown", "level": "yellow"}),
-            "difficulty": meta.get("difficulty", {"label": "Unknown", "level": "yellow"}),
-            "costRange": meta.get("costRange", ""),
-        })
+        problems.append(
+            {
+                "id": p["id"],
+                "icon": meta.get("icon", ""),
+                "title": p["summary"],
+                "appliance": p["appliance"],
+                "age": p["age"],
+                "details": p["details"],
+                "urgency": meta.get("urgency", {"label": "Unknown", "level": "yellow"}),
+                "difficulty": meta.get("difficulty", {"label": "Unknown", "level": "yellow"}),
+                "costRange": meta.get("costRange", ""),
+            }
+        )
 
     # --- toolResults: HTML summaries from mock data ---
     tool_results: dict[str, dict[str, str]] = {}
@@ -1104,12 +1353,11 @@ def build_ui_data(
             summarizer = _TOOL_SUMMARIZERS.get(tool_name)
             tool_results[pid][tool_name] = summarizer(data) if summarizer else json.dumps(data)
 
-    # --- saeFeatures: from analysis_results steps ---
-    # Instead of showing features with the highest raw activation (which are
-    # the same generic "home repair" features for every step), show features
-    # that are *distinctive* for each (problem, tool) pair — i.e. features
-    # whose activation deviates most from the cross-step average.
-    sae_features: dict[str, dict[str, dict]] = {}
+    # --- decisionFeatures: one honest initial tool-choice snapshot per problem ---
+    # Tool-result calls below are scripted evidence gathering; they are not
+    # separate tool decisions and therefore do not receive fabricated SAE
+    # explanations.
+    decision_features: dict[str, dict] = {}
     step_lookup: dict[str, dict] = {}
     for step_info in analysis.get("steps", []):
         step_lookup[step_info["step"]] = step_info
@@ -1123,51 +1371,57 @@ def build_ui_data(
             idx = f.get("index", -1)
             feature_activations.setdefault(idx, []).append(f.get("activation", 0))
 
-    # Compute per-feature mean activation as baseline
+    # Compute each feature's mean across every decision, treating absence from a
+    # prompt's top-k list as zero.  Averaging only the prompts where a feature
+    # appears makes a prompt-unique feature equal its own baseline and erases
+    # exactly the specificity this view is meant to show.
+    decision_count = max(
+        1,
+        sum(
+            1
+            for step_info in analysis.get("steps", [])
+            if "sae_features" in step_info
+        ),
+    )
     feature_mean: dict[int, float] = {
-        idx: sum(vals) / len(vals) for idx, vals in feature_activations.items()
+        idx: sum(vals) / decision_count for idx, vals in feature_activations.items()
     }
 
     for p in _PROBLEMS:
         pid = p["id"]
-        sae_features[pid] = {}
-        for tool_name in _TOOLS:
-            step_key = f"{pid}_{tool_name}"
-            step_info = step_lookup.get(step_key)
+        tool_name, request = _initial_tool_decision(p)
+        step_info = step_lookup.get(f"{pid}_InitialDecision")
+        features_list: list[dict] = []
+        if step_info and "sae_features" in step_info:
+            top_feats = step_info["sae_features"].get("top_features", [])
+            scored = []
+            for feature in top_feats:
+                index = feature.get("index", -1)
+                activation = feature.get("activation", 0)
+                deviation = activation - feature_mean.get(index, activation)
+                scored.append((deviation, feature))
+            scored.sort(key=lambda item: item[0], reverse=True)
+            distinctive = scored[:5]
+            max_deviation = max((abs(value) for value, _ in distinctive), default=1.0) or 1.0
+            for deviation, feature in distinctive:
+                features_list.append(
+                    {
+                        "label": feature.get("label", f"Feature #{feature.get('index', '?')}"),
+                        "strength": round(abs(deviation) / max_deviation, 2),
+                        "description": feature.get("description", ""),
+                    }
+                )
+        decision_features[pid] = {
+            "expectedTool": tool_name,
+            "request": request,
+            "features": features_list,
+            "sentence": _generate_feature_sentence(tool_name, features_list),
+        }
 
-            features_list: list[dict] = []
-            if step_info and "sae_features" in step_info:
-                top_feats = step_info["sae_features"].get("top_features", [])
-                # Rank by deviation from cross-step mean
-                scored = []
-                for f in top_feats:
-                    idx = f.get("index", -1)
-                    act = f.get("activation", 0)
-                    mean = feature_mean.get(idx, act)
-                    deviation = act - mean
-                    scored.append((deviation, f))
-                scored.sort(key=lambda x: x[0], reverse=True)
-
-                # Take top 5 most distinctive, normalize strengths
-                distinctive = scored[:5]
-                max_dev = max(abs(d) for d, _ in distinctive) if distinctive else 1.0
-                max_dev = max_dev or 1.0
-                for dev, f in distinctive:
-                    features_list.append({
-                        "label": f.get("label", f"Feature #{f.get('index', '?')}"),
-                        "strength": round(abs(dev) / max_dev, 2),
-                        "description": f.get("description", ""),
-                    })
-
-            sentence = _generate_feature_sentence(tool_name, features_list)
-            sae_features[pid][tool_name] = {
-                "features": features_list,
-                "sentence": sentence,
-            }
-
-    # --- recommendations: from per-problem analyses + final recommendation ---
-    # Parse the LLM's final recommendation into per-problem sections.
-    # Fallback: use per-problem analysis text directly.
+    # --- recommendations: authoritative tool-grounded conclusions ---
+    # The per-tool generations are useful for SAE inspection, but they are not
+    # an authoritative source for facts displayed to the user.  Keep the UI in
+    # sync with the grounded final report assembled above.
     pro_quote_data = _TOOLS["ProQuote"][0]
     parts_data = _TOOLS["PartsSearch"][0]
 
@@ -1197,25 +1451,16 @@ def build_ui_data(
         else:
             pro_cost = ""
 
-        # Rationale from per-problem analysis
-        raw = per_problem.get(pid, "")
-        # Use the last tool analysis (ProQuote) as it's the most synthesized
-        sections = raw.split("[ProQuote]")
-        rationale = sections[-1].strip() if len(sections) > 1 else raw.strip()
-        # Truncate to reasonable length
-        if len(rationale) > 500:
-            rationale = rationale[:497] + "..."
-
         recommendations[pid] = {
             "verdict": verdict,
             "verdictLabel": verdict_label,
             "diyCost": diy_cost,
             "proCost": pro_cost,
-            "rationale": rationale,
+            "rationale": _GROUNDED_RATIONALES[pid],
         }
 
     # --- comparison: derive from SAE feature strengths ---
-    comparison = _derive_comparison_scores(sae_features)
+    comparison = _derive_comparison_scores(decision_features)
 
     # --- themes: static definitions from home_repair.json contrast types ---
     themes_raw = {
@@ -1239,7 +1484,7 @@ def build_ui_data(
             "leftLabel": "Low Risk",
             "rightLabel": "High Hazard",
         },
-        "warranty_vs_out_of_pocket": {
+        "warranty_covered_vs_out_of_pocket": {
             "title": "Warranty vs. Out of Pocket",
             "leftLabel": "May Be Covered",
             "rightLabel": "Out of Pocket",
@@ -1260,7 +1505,7 @@ def build_ui_data(
         "urgent_vs_planned": "Urgency Level",
         "cheap_fix_vs_replacement": "Cost Sensitivity",
         "safe_vs_hazardous": "Safety Concern",
-        "warranty_vs_out_of_pocket": "Age / Warranty Factor",
+        "warranty_covered_vs_out_of_pocket": "Age / Warranty Factor",
     }
 
     themes = []
@@ -1270,17 +1515,22 @@ def build_ui_data(
         comp_scores = comparison.get(comp_key, {})
         markers = {}
         for pid in ["dishwasher_leak", "disposal_stuck", "water_heater_noise"]:
-            markers[pid] = comp_scores.get(pid, 50)
+            score = comp_scores.get(pid, 0)
+            # The DIY spectrum runs from Easy DIY (left) to Needs a Pro
+            # (right), while a higher comparison score means more DIY signal.
+            markers[pid] = 100 - score if theme_id == "diy_vs_professional" else score
 
         # Identify top 2 features driving this theme
         comp_theme_kws = _THEME_KEYWORDS.get(comp_key, [])
         driving_features: list[str] = []
-        for pid_data in sae_features.values():
-            for tool_data in pid_data.values():
-                for f in tool_data.get("features", []):
-                    lbl = f.get("label", "").lower()
-                    if any(kw in lbl for kw in comp_theme_kws) and f["label"] not in driving_features:
-                        driving_features.append(f["label"])
+        for decision in decision_features.values():
+            for feature in decision.get("features", []):
+                label = feature.get("label", "")
+                if (
+                    _label_matches_keywords(label, comp_theme_kws)
+                    and label not in driving_features
+                ):
+                    driving_features.append(label)
         driving_features = driving_features[:2]
         if driving_features:
             features_html = "Driven by " + " and ".join(
@@ -1289,20 +1539,27 @@ def build_ui_data(
         else:
             features_html = ""
 
-        themes.append({
-            "id": theme_id,
-            "title": tmeta["title"],
-            "description": desc,
-            "leftLabel": tmeta["leftLabel"],
-            "rightLabel": tmeta["rightLabel"],
-            "markers": markers,
-            "features": features_html,
-        })
+        themes.append(
+            {
+                "id": theme_id,
+                "title": tmeta["title"],
+                "description": desc,
+                "leftLabel": tmeta["leftLabel"],
+                "rightLabel": tmeta["rightLabel"],
+                "markers": markers,
+                "features": features_html,
+            }
+        )
 
     return {
+        "runMetadata": {
+            "model": Path(model_name).name,
+            "saeLayer": sae_layer,
+            "thresholdOffset": threshold_offset,
+        },
         "problems": problems,
         "toolResults": tool_results,
-        "saeFeatures": sae_features,
+        "decisionFeatures": decision_features,
         "recommendations": recommendations,
         "comparison": comparison,
         "themes": themes,
@@ -1316,11 +1573,12 @@ def build_ui_data(
 
 def _build_feature_summary(analysis_results: dict) -> str:
     lines = []
+    sae_layer_key = analysis_results.get("sae_layer_key")
     for step_info in analysis_results["steps"]:
         lines.append(f"## {step_info['step']}")
 
         for layer, stats in step_info.get("raw_stats", {}).items():
-            if "residual_20" in layer:
+            if layer == sae_layer_key:
                 lines.append(
                     f"  L2={stats['l2_norm']:.2f}, mean={stats['mean']:.4f}, std={stats['std']:.4f}"
                 )
@@ -1511,11 +1769,13 @@ def print_analysis_summary(analysis: dict):
     print(f"  Decision steps captured: {len(analysis['steps'])}")
     print(f"  SAE available: {analysis['sae_available']}")
     print(f"  Feature labels available: {analysis['features_available']}")
+    print(f"  SAE layer: {analysis['sae_layer']}")
+    sae_layer_key = analysis["sae_layer_key"]
 
     for step_info in analysis["steps"]:
         print(f"\n  --- {step_info['step']} ---")
         for layer, stats in step_info.get("raw_stats", {}).items():
-            if "residual_20" in layer:
+            if layer == sae_layer_key:
                 print(f"    L2 norm: {stats['l2_norm']:.2f}, std: {stats['std']:.4f}")
         sae = step_info.get("sae_features")
         if sae:
@@ -1536,7 +1796,9 @@ def print_analysis_summary(analysis: dict):
             if theme_acts:
                 print("    Theme signals:")
                 for theme, info in list(theme_acts.items())[:5]:
-                    print(f"      {theme}: score={info['total_score']:.2f} ({info['num_features']} features)")
+                    print(
+                        f"      {theme}: score={info['total_score']:.2f} ({info['num_features']} features)"
+                    )
 
 
 # ---------------------------------------------------------------------------
@@ -1544,9 +1806,84 @@ def print_analysis_summary(analysis: dict):
 # ---------------------------------------------------------------------------
 
 
+def analysis_from_evaluation_report(report: dict, sae_layer: int) -> dict:
+    """Adapt a modified-vLLM layer evaluation into the demo analysis shape.
+
+    This lets the HTML use activations from the same backend that trained and
+    validated the SAEs, without loading the subject model a second time through
+    HuggingFace merely to construct ``ui_data.json``.
+    """
+    expected_prompts = []
+    for problem in _PROBLEMS:
+        tool_name, request = _initial_tool_decision(problem)
+        expected_prompts.append(
+            {
+                "step": f"{problem['id']}_InitialDecision",
+                "problem": problem["id"],
+                "tool": tool_name,
+                "request": request,
+            }
+        )
+
+    prompts = report.get("prompts", [])
+    if prompts != expected_prompts:
+        raise ValueError(
+            "The evaluation report prompts do not match the current home-repair "
+            "demo decisions. Rerun evaluate_sae_layers.py before building the UI."
+        )
+
+    layer_result = next(
+        (result for result in report.get("layers", []) if result.get("layer") == sae_layer),
+        None,
+    )
+    if layer_result is None:
+        raise ValueError(f"Evaluation report has no result for SAE layer {sae_layer}.")
+
+    top_features = layer_result.get("top_features", [])
+    per_prompt_l0 = layer_result.get("l0", {}).get("per_prompt", [])
+    if len(top_features) != len(prompts) or len(per_prompt_l0) != len(prompts):
+        raise ValueError(
+            "Evaluation report has inconsistent prompt, feature, or L0 row counts."
+        )
+
+    d_sae = int(layer_result["d_sae"])
+    steps = []
+    for prompt, features, active_count in zip(
+        prompts, top_features, per_prompt_l0, strict=True
+    ):
+        steps.append(
+            {
+                "step": prompt["step"],
+                "sae_features": {
+                    "num_active": int(active_count),
+                    "total_features": d_sae,
+                    "sparsity_pct": (1.0 - int(active_count) / d_sae) * 100.0,
+                    "top_features": features,
+                    "theme_activations": {},
+                },
+            }
+        )
+
+    return {
+        "steps": steps,
+        "sae_available": True,
+        "features_available": any(top_features),
+        "sae_layer": sae_layer,
+        "sae_layer_key": f"residual_{sae_layer}",
+        "sae_source": report.get("model", ""),
+        "sae_threshold_offset": report.get("threshold_offset", 0.0),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Home Repair Agent Demo with SAE Activation Analysis"
+    )
+    parser.add_argument(
+        "--model-name",
+        type=str,
+        default=_MODEL_NAME,
+        help=f"HuggingFace model ID or local model directory (default: {_MODEL_NAME})",
     )
     parser.add_argument(
         "--sae-repo-id",
@@ -1557,9 +1894,9 @@ def main():
     parser.add_argument(
         "--sae-local-dir",
         type=str,
-        default=None,
+        default=_DEFAULT_SAE_LOCAL_DIR,
         help="Load SAE from local pipeline output directory instead of HF Hub "
-        "(e.g. output/)",
+        f"(default: {_DEFAULT_SAE_LOCAL_DIR or 'Hub fallback'})",
     )
     parser.add_argument(
         "--sae-layer",
@@ -1568,11 +1905,18 @@ def main():
         help=f"SAE layer to load from the HF repo (default: {_SAE_LAYER})",
     )
     parser.add_argument(
+        "--sae-threshold-offset",
+        type=float,
+        default=_HF_THRESHOLD_OFFSET,
+        help="Additive threshold calibration applied only to the in-memory SAE "
+        f"(default: +{_HF_THRESHOLD_OFFSET:.7f}; use 0 to disable)",
+    )
+    parser.add_argument(
         "--layers",
         type=int,
         nargs="+",
-        default=[10, 20, 30, 40, 50],
-        help="Transformer layers to hook for activation extraction",
+        default=_TRAINED_LAYERS,
+        help=f"Transformer layers to hook (default: {_TRAINED_LAYERS})",
     )
     parser.add_argument(
         "--max-new-tokens",
@@ -1594,6 +1938,12 @@ def main():
         help="Model dtype (use float16 for MPS, float32 for CPU)",
     )
     parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(_DEMO_DIR / "output"),
+        help="Directory for JSON and text results",
+    )
+    parser.add_argument(
         "--youtube-api-key",
         type=str,
         default=None,
@@ -1605,20 +1955,60 @@ def main():
         default=False,
         help="Generate LLM-based explanations in Phase 4 (needs extra GPU memory)",
     )
+    parser.add_argument(
+        "--thinking",
+        action="store_true",
+        default=False,
+        help="Allow reasoning-mode generation. Disabled by default so internal "
+        "thinking is not emitted in demo output.",
+    )
+    parser.add_argument(
+        "--ui-from-evaluation",
+        type=str,
+        default=None,
+        metavar="REPORT_JSON",
+        help="Build ui_data.json from a modified-vLLM SAE evaluation report "
+        "without loading the subject model",
+    )
     args = parser.parse_args()
+
+    if args.ui_from_evaluation:
+        report_path = Path(args.ui_from_evaluation)
+        report = json.loads(report_path.read_text())
+        analysis = analysis_from_evaluation_report(report, args.sae_layer)
+        output_path = Path(args.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        ui_data = build_ui_data(
+            analysis=analysis,
+            per_problem={},
+            final_recommendation="",
+            youtube_api_key=args.youtube_api_key,
+            model_name=report.get("model", args.model_name),
+            sae_layer=args.sae_layer,
+            threshold_offset=report.get("threshold_offset", 0.0),
+        )
+        ui_path = output_path / "ui_data.json"
+        ui_path.write_text(json.dumps(ui_data, indent=2, ensure_ascii=False) + "\n")
+        print(f"Built {ui_path} from {report_path} (SAE layer {args.sae_layer}).")
+        return
 
     print("=" * 60)
     print("  Home Repair Agent Demo")
-    print("  Nemotron-3-Nano-30B (HuggingFace) + SAE Activation Analysis")
-    print(f"  SAE: {args.sae_repo_id} (layer {args.sae_layer})")
+    print("  Nemotron-3.5-Nano-30B (HuggingFace) + SAE Activation Analysis")
+    print(f"  Subject model: {args.model_name}")
+    sae_source = args.sae_local_dir or args.sae_repo_id
+    print(f"  SAE: {sae_source} (layer {args.sae_layer})")
+    print(f"  HF SAE threshold offset: {args.sae_threshold_offset:+.7f}")
     print("=" * 60)
 
     # Phase 1: Run scripted multi-step analysis
     print("\n[Phase 1] Running home repair analysis...")
     engine = HFEngine(
+        model_name=args.model_name,
         device=args.device,
         dtype=args.dtype,
         max_new_tokens=args.max_new_tokens,
+        allow_thinking=args.thinking,
     )
     final_recommendation, per_problem = run_home_repair_analysis(engine, args.youtube_api_key)
 
@@ -1629,7 +2019,10 @@ def main():
 
     # Phase 2: Extract activations (reuses same model, forward pass with hooks)
     print("\n[Phase 2] Extracting activations...")
-    activation_log = engine.extract_all_prompts(args.layers)
+    hook_layers = list(dict.fromkeys([*args.layers, args.sae_layer]))
+    if args.sae_layer not in args.layers:
+        print(f"  Adding SAE layer {args.sae_layer} to the extraction layers.")
+    activation_log = engine.extract_all_prompts(hook_layers)
 
     # Free generation KV cache before SAE analysis
     gc.collect()
@@ -1643,6 +2036,7 @@ def main():
         sae_repo_id=args.sae_repo_id,
         sae_layer=args.sae_layer,
         sae_local_dir=args.sae_local_dir,
+        threshold_offset=args.sae_threshold_offset,
     )
     print_analysis_summary(analysis)
 
@@ -1674,7 +2068,7 @@ def main():
     engine.cleanup()
 
     # Phase 5: Save results
-    output_path = Path("demo/home_repair/output")
+    output_path = Path(args.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     with open(output_path / "analysis_results.json", "w") as f:
@@ -1697,12 +2091,15 @@ def main():
         per_problem=per_problem,
         final_recommendation=final_recommendation,
         youtube_api_key=args.youtube_api_key,
+        model_name=args.model_name,
+        sae_layer=args.sae_layer,
+        threshold_offset=args.sae_threshold_offset,
     )
     with open(output_path / "ui_data.json", "w") as f:
         json.dump(ui_data, f, indent=2, ensure_ascii=False)
 
     print(f"\n  Results saved to {output_path}/")
-    print(f"  Open demo/home_repair/index.html to view the interactive explanation.")
+    print("  Open demo/home_repair/index.html to view the interactive explanation.")
     print("\n  Done.")
 
 

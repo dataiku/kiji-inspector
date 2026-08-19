@@ -1,6 +1,13 @@
 # Home Repair Agent Demo
 
-A scripted multi-step agent that diagnoses three appliance problems (dishwasher leak, stuck garbage disposal, noisy water heater), captures its own activations at every decision point, and decomposes them through a trained Sparse Autoencoder.
+A scripted multi-step agent that diagnoses three appliance problems (dishwasher leak, stuck garbage disposal, noisy water heater), captures its activations at training-compatible tool-decision points, and decomposes them through a trained Sparse Autoencoder.
+
+Each problem has one short, natural initial tool query rather than an SAE
+snapshot fabricated for every scripted evidence source. The query uses the
+same scenario system message, tool inventory, chat template, disabled-thinking
+setting, and `I'll use the` decision prefill as activation extraction during
+training. The four manual/parts/tutorial/quote panels are evidence gathering,
+not four separate model decisions.
 
 ## Files
 
@@ -21,11 +28,28 @@ uv run python demo/home_repair/home_repair_demo.py
 
 The script writes `analysis_results.json`, `agent_output.txt`, `per_problem_analyses.json`, and `ui_data.json` to `demo/home_repair/output/`. Open `index.html` from a local web server (e.g. `python -m http.server` in this directory) to see the interactive explanation.
 
+If the activations were extracted and evaluated with the modified vLLM path,
+build the UI payload directly from that report instead of re-extracting them
+through HuggingFace:
+
+```bash
+uv run python demo/home_repair/home_repair_demo.py \
+  --ui-from-evaluation demo/home_repair/output/prompt_alignment/vllm_native_evaluation.json \
+  --sae-layer 27 \
+  --output-dir demo/home_repair/output
+```
+
+The command verifies that the report contains the exact three decisions used
+by the current demo before writing `ui_data.json`.
+
 ## Run in Colab
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dataiku/kiji-inspector/blob/main/demo/home_repair/home_repair_colab.ipynb)
 
-The notebook needs an **A100 high-RAM** runtime (the base model is `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`, ~30B parameters). Add a Colab Secret named `HF_TOKEN` before running. Optionally add `YOUTUBE_API_KEY` to fetch real tutorial results instead of the mock data.
+The notebook needs an **A100 high-RAM** runtime (the base model is
+`nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16`, ~30B parameters). Add a Colab
+Secret named `HF_TOKEN` before running. Optionally add `YOUTUBE_API_KEY` to
+fetch real tutorial results instead of the mock data.
 
 ## Hosting `index.html` from Colab
 
