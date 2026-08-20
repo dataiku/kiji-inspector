@@ -1,0 +1,230 @@
+{
+  "source": {
+    "sweep": "/home/shadeform/kiji-inspector/demo/home_repair/output/sweep/tool_selection_sweep.json",
+    "meta": "/home/shadeform/kiji-inspector/demo/home_repair/output/sweep/tool_selection_meta.json",
+    "model": "/models/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16-no-mtp",
+    "pairsScored": 325,
+    "pairsFlipping": 116
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "n": 8,
+    "perTheme": 1,
+    "perToolCombination": 2,
+    "minFlip": 0.6,
+    "noToolNamed": true
+  },
+  "pairs": [
+    {
+      "id": "internal_vs_external",
+      "title": "Internal vs external",
+      "cue": "internal policy vs public trends",
+      "signal": "internal policy vs public trends",
+      "score": 0.5554,
+      "flip": 0.9997,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "Find the latest internal policy on remote work hours.",
+        "cueWords": [
+          "internal policy"
+        ],
+        "sweep": {
+          "tool": "internal_search",
+          "prob": 0.9999
+        }
+      },
+      "b": {
+        "request": "Find the latest public trends on remote work hours.",
+        "cueWords": [
+          "public trends"
+        ],
+        "sweep": {
+          "tool": "web_search",
+          "prob": 0.9997
+        }
+      }
+    },
+    {
+      "id": "specific_vs_broad",
+      "title": "Specific vs broad",
+      "cue": "the Q3 vs all quarterly reports from",
+      "signal": "The anchor request targets a single specific file path, whereas the contrast request requires aggregating data across multiple records in the database.",
+      "score": 0.4753,
+      "flip": 0.9505,
+      "jaccard": 0.5,
+      "a": {
+        "request": "Show me the sales figures for the Q3 2023 report located at /reports/q3_2023_sales.pdf",
+        "cueWords": [
+          "the Q3"
+        ],
+        "sweep": {
+          "tool": "file_read|file_write",
+          "prob": 0.9525
+        }
+      },
+      "b": {
+        "request": "Show me the sales figures for all quarterly reports from 2023",
+        "cueWords": [
+          "all quarterly reports from"
+        ],
+        "sweep": {
+          "tool": "internal_search",
+          "prob": 0.9505
+        }
+      }
+    },
+    {
+      "id": "local_vs_remote",
+      "title": "Local vs remote",
+      "cue": "local / read vs remote / hosted / fetch",
+      "signal": "The anchor request targets a file path on the local filesystem, whereas the contrast request targets a URL on a remote server, necessitating an API call instead of a local file read.",
+      "score": 0.4722,
+      "flip": 0.892,
+      "jaccard": 0.5294,
+      "a": {
+        "request": "Please read the contents of the local configuration file at /etc/app/config.json to check the current timeout settings.",
+        "cueWords": [
+          "local",
+          "read"
+        ],
+        "sweep": {
+          "tool": "file_read|file_write",
+          "prob": 1.0
+        }
+      },
+      "b": {
+        "request": "Please fetch the contents of the remote configuration file hosted at https://config.example.com/app/config.json to check the current timeout settings.",
+        "cueWords": [
+          "remote",
+          "hosted",
+          "fetch"
+        ],
+        "sweep": {
+          "tool": "web_search",
+          "prob": 0.892
+        }
+      }
+    },
+    {
+      "id": "verified_vs_unverified",
+      "title": "Verified vs unverified",
+      "cue": "verified / internal technical documentation vs public web",
+      "signal": "The anchor request explicitly requires 'verified' data from 'internal technical documentation', whereas the contrast request accepts unverified sources from the 'public web'.",
+      "score": 0.4615,
+      "flip": 0.9999,
+      "jaccard": 0.4615,
+      "a": {
+        "request": "Find the verified API rate limits for the payment gateway in our internal technical documentation.",
+        "cueWords": [
+          "verified",
+          "internal technical documentation"
+        ],
+        "sweep": {
+          "tool": "internal_search",
+          "prob": 0.9999
+        }
+      },
+      "b": {
+        "request": "Find the API rate limits for the payment gateway by searching the public web.",
+        "cueWords": [
+          "public web"
+        ],
+        "sweep": {
+          "tool": "web_search",
+          "prob": 1.0
+        }
+      }
+    },
+    {
+      "id": "query_vs_mutate",
+      "title": "Query vs mutate",
+      "cue": "Check the current value of vs file to 5 / Update",
+      "signal": "The first request queries the existing state (read-only), while the second request mutates the state by assigning a new value (write).",
+      "score": 0.3172,
+      "flip": 0.6979,
+      "jaccard": 0.4545,
+      "a": {
+        "request": "Check the current value of the MAX_RETRY_LIMIT in the config file.",
+        "cueWords": [
+          "Check the current value of"
+        ],
+        "sweep": {
+          "tool": "internal_search",
+          "prob": 0.6979
+        }
+      },
+      "b": {
+        "request": "Update the MAX_RETRY_LIMIT value in the config file to 5.",
+        "cueWords": [
+          "file to 5",
+          "Update"
+        ],
+        "sweep": {
+          "tool": "file_read|file_write",
+          "prob": 0.7891
+        }
+      }
+    },
+    {
+      "id": "direct_vs_delegated",
+      "title": "Direct vs delegated",
+      "cue": "Calculate vs week and suggest process improvements / root causes behind the spike in / Analyze",
+      "signal": "The first request is a direct aggregation query executable via SQL, while the second requires multi-step reasoning, causal analysis, and recommendation generation that exceeds simple query capabilities.",
+      "score": 0.2399,
+      "flip": 0.6798,
+      "jaccard": 0.3529,
+      "a": {
+        "request": "Calculate the average response time for tickets closed last week.",
+        "cueWords": [
+          "Calculate"
+        ],
+        "sweep": {
+          "tool": "database_query",
+          "prob": 0.6798
+        }
+      },
+      "b": {
+        "request": "Analyze the root causes behind the spike in average response time for tickets closed last week and suggest process improvements.",
+        "cueWords": [
+          "week and suggest process improvements",
+          "root causes behind the spike in",
+          "Analyze"
+        ],
+        "sweep": {
+          "tool": "internal_search",
+          "prob": 0.9318
+        }
+      }
+    },
+    {
+      "id": "single_vs_batch",
+      "title": "Single vs batch",
+      "cue": "user account with ID 492 vs accounts created in the last 24 hours",
+      "signal": "The anchor request targets a single specific record by ID suitable for a direct database lookup, while the contrast request targets a dynamic batch of records based on a time range condition, requiring an API call to handle the filtering logic.",
+      "score": 0.2343,
+      "flip": 0.703,
+      "jaccard": 0.3333,
+      "a": {
+        "request": "Retrieve the configuration settings for the user account with ID 492.",
+        "cueWords": [
+          "user account with ID 492"
+        ],
+        "sweep": {
+          "tool": "database_query",
+          "prob": 0.703
+        }
+      },
+      "b": {
+        "request": "Retrieve the configuration settings for all user accounts created in the last 24 hours.",
+        "cueWords": [
+          "accounts created in the last 24 hours"
+        ],
+        "sweep": {
+          "tool": "internal_search",
+          "prob": 0.749
+        }
+      }
+    }
+  ]
+}

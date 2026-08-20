@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import math
 import re
 import textwrap
 from pathlib import Path
@@ -93,13 +94,70 @@ _PROBLEMS = [
             "Water pools under the front of the unit about 15 minutes into "
             "the wash cycle. No error codes on the display."
         ),
+        # Requests state the situation and make an explicit ask.  The model's
+        # first tool choice follows the ask (verified with sweep_tool_choice.py:
+        # open questions go to manual_check regardless of hazard), so the base
+        # request asks for what a homeowner in that situation would ask for,
+        # and the contrast keeps the situation but changes the ask so the
+        # decision flips.
         "initial_decision": {
             "tool": "PartsSearch",
             "request": (
-                "My 3-year-old dishwasher is leaking from the bottom; I think the "
-                "door gasket or spray-arm seal needs replacing."
+                "My 3-year-old dishwasher leaks from the bottom because the door "
+                "gasket is cracked; find me a replacement gasket with price and "
+                "availability."
             ),
         },
+        "contrast": {
+            "changed": "ask: professional repair quote instead of a replacement part",
+            "request": (
+                "My 3-year-old dishwasher leaks from the bottom because the door "
+                "gasket is cracked; get me a professional repair quote for it."
+            ),
+        },
+        # The situation alone, no ask: the one prompt where the tool choice is
+        # an open decision rather than a restatement of the request.
+        "open": {
+            "request": (
+                "My 3-year-old dishwasher leaks from the bottom because the door gasket is cracked."
+            ),
+        },
+        # Same meaning, different words (no "gasket", "replacement", "find",
+        # "price", "availability"): do the same features fire?
+        "paraphrases": [
+            "The rubber seal on my three-year-old dishwasher door has split and water "
+            "pools on the floor; look up a new seal for it, what it costs, and whether "
+            "it's in stock.",
+            "Water escapes from under my dishwasher because the door's rubber lining is "
+            "torn; source a matching new seal with pricing and how soon it can ship.",
+            "My dishwasher drips from the bottom; the seal around the door is cracked, "
+            "so how much would a new door seal cost and can I order one now?",
+        ],
+        # The word without the meaning: do the features that word names fire?
+        "controls": [
+            {
+                "direction": "added",
+                "keyword": "warranty",
+                "targetWords": ("warranty", "warranties"),
+                "note": "mentions the warranty (expired) without asking for warranty service",
+                "request": (
+                    "My 3-year-old dishwasher leaks from the bottom because the door "
+                    "gasket is cracked and the warranty expired ages ago; find me a "
+                    "replacement gasket with price and availability."
+                ),
+            },
+            {
+                "direction": "added",
+                "keyword": "professional",
+                "targetWords": ("professional", "quote", "quotes"),
+                "note": "mentions a professional without asking for professional repair",
+                "request": (
+                    "My 3-year-old dishwasher leaks from the bottom because the door "
+                    "gasket is cracked, as a professional plumber confirmed; find me a "
+                    "replacement gasket with price and availability."
+                ),
+            },
+        ],
     },
     {
         "id": "disposal_stuck",
@@ -113,10 +171,55 @@ _PROBLEMS = [
         "initial_decision": {
             "tool": "TutorialSearch",
             "request": (
-                "My garbage disposal is humming but won't spin; how do I manually "
-                "rotate the impeller to clear the jam?"
+                "My garbage disposal hums but won't spin; show me a step-by-step "
+                "video on how to unjam it with the hex wrench."
             ),
         },
+        "contrast": {
+            "changed": "ask: professional repair quote instead of a DIY video",
+            "request": (
+                "My garbage disposal hums but won't spin; get me a professional "
+                "repair quote for clearing the jam."
+            ),
+        },
+        # The situation alone, no ask: the one prompt where the tool choice is
+        # an open decision rather than a restatement of the request.
+        "open": {
+            "request": ("My garbage disposal hums but won't spin."),
+        },
+        "paraphrases": [
+            "The food disposer under my sink buzzes when switched on but nothing turns; "
+            "walk me through a how-to clip for freeing it with the Allen key from "
+            "underneath.",
+            "My sink's waste grinder makes a droning noise and the blades are stuck; "
+            "I'd like a tutorial that shows how to release it by hand.",
+            "Garbage disposal is jammed, motor noise but no rotation; find a "
+            "beginner-friendly instructional video for clearing it.",
+        ],
+        "controls": [
+            {
+                "direction": "added",
+                "keyword": "gas",
+                "targetWords": ("gas",),
+                "note": "adds the word gas in an unrelated sense",
+                "request": (
+                    "My garbage disposal hums but won't spin; it started right after the "
+                    "gas company visited, so show me a step-by-step video on how to unjam "
+                    "it with the hex wrench."
+                ),
+            },
+            {
+                "direction": "added",
+                "keyword": "professional",
+                "targetWords": ("professional", "quote", "quotes"),
+                "note": "mentions a professional without asking for professional repair",
+                "request": (
+                    "My garbage disposal hums but won't spin; my neighbour is a "
+                    "professional plumber but he's away, so show me a step-by-step video "
+                    "on how to unjam it with the hex wrench."
+                ),
+            },
+        ],
     },
     {
         "id": "water_heater_noise",
@@ -129,19 +232,319 @@ _PROBLEMS = [
             "in the first few seconds of hot water."
         ),
         "initial_decision": {
-            "tool": "TutorialSearch",
+            "tool": "ProQuote",
             "request": (
-                "My water heater pops while heating; can you find a guide to flush "
-                "sediment from the tank safely?"
+                "My gas water heater is 9 years old, pops and rumbles loudly, and the "
+                "water runs rusty; I want a licensed plumber's quote."
             ),
         },
+        "contrast": {
+            "changed": "ask: DIY flushing video instead of a plumber's quote",
+            "request": (
+                "My gas water heater is 9 years old, pops and rumbles loudly, and the "
+                "water runs rusty; show me a video on flushing it myself."
+            ),
+        },
+        # The situation alone, no ask: the one prompt where the tool choice is
+        # an open decision rather than a restatement of the request.
+        "open": {
+            "request": (
+                "My gas water heater is 9 years old, pops and rumbles loudly, and the "
+                "water runs rusty."
+            ),
+        },
+        "paraphrases": [
+            "Our nine-year-old gas-fired hot water tank bangs and growls when it fires "
+            "up and the hot water comes out brown; I'd like a certified plumber to price "
+            "the repair.",
+            "Our basement's gas hot water tank is nearly a decade old, makes loud knocking "
+            "noises, and the water is discoloured; how much would a professional charge to "
+            "fix it?",
+            "My gas hot water heater (9 yrs) thumps and grumbles while heating and the "
+            "water has an orange tinge; get me an estimate from a licensed tradesperson.",
+        ],
+        "controls": [
+            {
+                "direction": "removed",
+                "keyword": "gas",
+                "targetWords": ("gas",),
+                "note": "drops the word gas; the situation is otherwise identical",
+                "request": (
+                    "My water heater is 9 years old, pops and rumbles loudly, and the "
+                    "water runs rusty; I want a licensed plumber's quote."
+                ),
+            },
+            {
+                "direction": "added",
+                "keyword": "video",
+                "targetWords": ("video", "videos", "guide", "guides", "tutorial", "tutorials"),
+                "note": "mentions a video without asking for one",
+                "request": (
+                    "My gas water heater is 9 years old, pops and rumbles loudly, and the "
+                    "water runs rusty; I watched a video about it last night, so I want a "
+                    "licensed plumber's quote."
+                ),
+            },
+        ],
     },
 ]
+
+# Tool names are snake_case in the scenario/prompt (``parts_search``) but the
+# demo's mock-data registry and UI use CamelCase (``PartsSearch``).
+_TOOL_ID_TO_DISPLAY = {
+    "manual_check": "ManualCheck",
+    "parts_search": "PartsSearch",
+    "tutorial_search": "TutorialSearch",
+    "pro_quote": "ProQuote",
+}
+_DISPLAY_TO_TOOL_ID = {display: tool_id for tool_id, display in _TOOL_ID_TO_DISPLAY.items()}
+
+
+def tool_display(tool_id: str) -> str:
+    """Map a scenario tool id (``parts_search``) to the UI name (``PartsSearch``)."""
+    return _TOOL_ID_TO_DISPLAY.get(tool_id, tool_id)
+
+
+def decision_prompts(include_contrasts: bool = False, include_probes: bool = False) -> list[dict]:
+    """Return the decision prompts the demo captures, in a fixed order.
+
+    Base prompts come first (one ``{pid}_InitialDecision`` per problem), then
+    optionally one ``{pid}_Contrast`` variant per problem, then optionally the
+    probes: paraphrases (``{pid}_Paraphrase{n}``, same meaning in other words)
+    and keyword controls (``{pid}_Control{n}``, a word added or removed without
+    changing the meaning), and finally the situation-only request
+    (``{pid}_Open``: no ask at all).  ``tool``/``toolId`` name the tool the
+    request's ask describes (``None`` for the open request) — they are an input
+    to the design, not a prediction; the model's choice is read out at run
+    time.  Every producer (HF demo, vLLM evaluation) and the UI builder use
+    this single definition so the captured activations, tool-choice readouts
+    and the page stay aligned.
+    """
+    prompts = []
+    for problem in _PROBLEMS:
+        tool_name, request = _initial_tool_decision(problem)
+        prompts.append(
+            {
+                "step": f"{problem['id']}_InitialDecision",
+                "problem": problem["id"],
+                "kind": "base",
+                "tool": tool_name,
+                "toolId": _DISPLAY_TO_TOOL_ID.get(tool_name, tool_name),
+                "request": request,
+            }
+        )
+    if include_contrasts:
+        for problem in _PROBLEMS:
+            contrast = problem.get("contrast")
+            if not contrast:
+                continue
+            tool_name, _ = _initial_tool_decision(problem)
+            prompts.append(
+                {
+                    "step": f"{problem['id']}_Contrast",
+                    "problem": problem["id"],
+                    "kind": "contrast",
+                    "tool": tool_name,
+                    "toolId": _DISPLAY_TO_TOOL_ID.get(tool_name, tool_name),
+                    "request": contrast["request"],
+                    "changed": contrast["changed"],
+                }
+            )
+    if include_probes:
+        for problem in _PROBLEMS:
+            tool_name, _ = _initial_tool_decision(problem)
+            for number, request in enumerate(problem.get("paraphrases", []), start=1):
+                prompts.append(
+                    {
+                        "step": f"{problem['id']}_Paraphrase{number}",
+                        "problem": problem["id"],
+                        "kind": "paraphrase",
+                        "tool": tool_name,
+                        "toolId": _DISPLAY_TO_TOOL_ID.get(tool_name, tool_name),
+                        "request": request,
+                    }
+                )
+        for problem in _PROBLEMS:
+            tool_name, _ = _initial_tool_decision(problem)
+            for number, control in enumerate(problem.get("controls", []), start=1):
+                prompts.append(
+                    {
+                        "step": f"{problem['id']}_Control{number}",
+                        "problem": problem["id"],
+                        "kind": "control",
+                        "tool": tool_name,
+                        "toolId": _DISPLAY_TO_TOOL_ID.get(tool_name, tool_name),
+                        "request": control["request"],
+                        "direction": control["direction"],
+                        "keyword": control["keyword"],
+                        "targetWords": list(control["targetWords"]),
+                        "note": control["note"],
+                    }
+                )
+        for problem in _PROBLEMS:
+            open_request = problem.get("open")
+            if not open_request:
+                continue
+            prompts.append(
+                {
+                    "step": f"{problem['id']}_Open",
+                    "problem": problem["id"],
+                    "kind": "open",
+                    "tool": None,
+                    "toolId": None,
+                    "request": open_request["request"],
+                }
+            )
+    return prompts
 
 
 # ---------------------------------------------------------------------------
 # Section A: HuggingFace generation + extraction engine
 # ---------------------------------------------------------------------------
+
+
+def hf_fast_path_status(model) -> bool | None:
+    """Whether the loaded HF model runs its Mamba layers on the fused kernels.
+
+    transformers' Mamba/NemotronH modeling modules expose a module-level
+    ``is_fast_path_available`` flag that is True only when the ``causal-conv1d``
+    and ``mamba-ssm`` kernels resolved (via the ``kernels`` hub package or the
+    pip packages). Without them the naive PyTorch scan runs, and for this model
+    the residual stream drifts from vLLM (cosine ≈ 0.92–0.95 vs ≈ 0.99+ with the
+    kernels). Returns ``None`` for architectures without such a flag.
+    """
+    import importlib
+    import sys
+
+    seen: set[str] = set()
+    for module in model.modules():
+        name = type(module).__module__
+        if name in seen:
+            continue
+        seen.add(name)
+        mod = sys.modules.get(name)
+        if mod is None:
+            try:
+                mod = importlib.import_module(name)
+            except Exception:
+                continue
+        flag = getattr(mod, "is_fast_path_available", None)
+        if isinstance(flag, bool):
+            return flag
+    return None
+
+
+def hf_parity_summary(steering: dict | None) -> dict | None:
+    """Headline HF-vs-vLLM parity numbers from a steering results file.
+
+    Returns ``{"fastPath", "prompts", "cosineMean", "cosineMin",
+    "baselineAgreement"}`` (agreement = prompts whose HF and vLLM argmax tools
+    coincide) or ``None`` when there is no parity block.
+    """
+    if not steering or not steering.get("parity"):
+        return None
+    cosines: list[float] = []
+    agree = 0
+    compared = 0
+    for entry in steering["parity"].values():
+        if entry.get("cosine") is not None:
+            cosines.append(float(entry["cosine"]))
+        hf = entry.get("baselineDistributionHf") or {}
+        vllm = entry.get("baselineDistributionVllm") or {}
+        if hf and vllm:
+            compared += 1
+            agree += int(max(hf, key=hf.get) == max(vllm, key=vllm.get))
+    return {
+        "fastPath": steering.get("hfFastPath"),
+        "prompts": len(steering["parity"]),
+        "cosineMean": round(sum(cosines) / len(cosines), 4) if cosines else None,
+        "cosineMin": round(min(cosines), 4) if cosines else None,
+        "baselineAgreement": agree if compared else None,
+        "baselineCompared": compared,
+    }
+
+
+_SPEC_SHEET_UI = Path(__file__).resolve().parent.parent / "spec_sheet" / "output" / "ui_data.json"
+
+
+def spec_sheet_note(spec: dict | None, scenario: str, probe_layer: int) -> dict | None:
+    """Condense ``demo/spec_sheet`` ui_data into the strip a demo page shows.
+
+    Returns None when nothing relevant is present, so pages built before the
+    spec sheet ran render unchanged.
+    """
+    if not spec:
+        return None
+    note: dict = {}
+    depth = spec.get("depth") or {}
+    if depth:
+        note["depth"] = [
+            {
+                "layer": int(layer),
+                "beyond": entry.get("sidesAllBeyondControl"),
+                "sides": entry.get("nSides"),
+                "crossFlips": entry.get("crossFlips"),
+            }
+            for layer, entry in sorted(depth.items(), key=lambda kv: int(kv[0]))
+        ]
+    matching = (
+        ((spec.get("transfer") or {}).get("layers") or {}).get("43", {}).get("matching") or {}
+    ).get("joint->joint_seed123") or {}
+    cut = matching.get("rateAtLeast0.01")
+    if cut:
+        note["stability"] = {
+            "decoderFrac07": cut["decoder"]["fracAtLeast07"],
+            "functionalFrac07": cut["functional"]["fracAtLeast07"],
+        }
+    workbench = spec.get("workbench") or {}
+    probes = (
+        ((workbench.get("layers") or {}).get(str(probe_layer)) or {})
+        .get("probes", {})
+        .get(scenario)
+    )
+    bow = (workbench.get("bow") or {}).get(scenario)
+    if probes and bow:
+        note["probes"] = {
+            "layer": probe_layer,
+            "sae": probes["saeFeatures"]["accuracy"],
+            "residual": probes["residual"]["accuracy"],
+            "bow": bow["accuracy"],
+        }
+    if scenario == "tool_selection":
+        population = (spec.get("population") or {}).get("overall")
+        if population:
+            note["population"] = {
+                "pairs": population["pairs"],
+                "flipping": population["flipping"],
+                "flipAtLeast06": population["flipAtLeast06"],
+            }
+        robustness = spec.get("robustness") or {}
+        if robustness:
+            note["robustness"] = [
+                {
+                    "dictionary": name,
+                    "beyond": entry.get("sidesAllBeyondControl"),
+                    "sides": entry.get("nSides"),
+                    "crossFlips": entry.get("crossFlips"),
+                }
+                for name, entry in sorted(robustness.items())
+            ]
+    if not note:
+        return None
+    note["link"] = "../spec_sheet/index.html"
+    return note
+
+
+def attach_spec_sheet(
+    ui_data: dict, scenario: str, probe_layer: int, path: Path | None = None
+) -> dict:
+    """Attach ``specSheet`` to ``ui_data`` when the spec-sheet results exist."""
+    spec_path = Path(path) if path else _SPEC_SHEET_UI
+    if spec_path.exists():
+        note = spec_sheet_note(json.loads(spec_path.read_text()), scenario, probe_layer)
+        if note:
+            ui_data["specSheet"] = note
+    return ui_data
 
 
 class HFEngine:
@@ -200,8 +603,18 @@ class HFEngine:
             or getattr(self.model.config, "text_config", self.model.config).hidden_size
         )
 
+        self.fast_path = hf_fast_path_status(self.model)
+        if self.fast_path is False:
+            print(
+                "  WARNING: the HuggingFace Mamba fast path is unavailable (naive fallback). "
+                "Residuals and decisions will drift from vLLM; install the fused kernels "
+                '(`pip install "kernels>=0.15.2,<0.16"`) before trusting interventions.'
+            )
+
         print(f"  Model ready on {self._input_device} ({torch_dtype})")
         print(f"  hidden_size: {self.hidden_size}")
+        if self.fast_path is not None:
+            print(f"  mamba fast path: {self.fast_path}")
 
     # --- Device helpers ---
 
@@ -1011,6 +1424,7 @@ def analyze_activations(
         "sae_layer_key": layer_key,
         "sae_source": sae_local_dir or sae_repo_id,
         "sae_threshold_offset": threshold_offset,
+        "backend": "hf",
     }
 
     # Tier 1: Raw activation statistics
@@ -1040,14 +1454,17 @@ def analyze_activations(
         print("  SAE not available -- showing raw activation stats only.")
         return results
 
-    # Load contrastive feature map (feature_index -> themes from training)
+    # Load contrastive feature map (feature_index -> themes from training),
+    # restricted to the five home-repair contrast types.
     contrastive_map: dict[int, list[dict]] = {}
     if sae_local_dir:
-        contrastive_map = _load_contrastive_feature_map(sae_local_dir, sae_layer)
+        contrastive_map = filter_contrastive_map(
+            _load_contrastive_feature_map(sae_local_dir, sae_layer)
+        )
 
     results["sae_available"] = True
     results["contrast_themes"] = (
-        list({entry["theme"] for entries in contrastive_map.values() for entry in entries})
+        sorted({entry["theme"] for entries in contrastive_map.values() for entry in entries})
         if contrastive_map
         else []
     )
@@ -1095,29 +1512,29 @@ def analyze_activations(
                 feat_entry["themes"] = contrastive_map[int(idx)]
             top_features.append(feat_entry)
 
-        # Aggregate theme scores across all active features for this step
-        theme_scores: dict[str, list[float]] = {}
-        for idx in nonzero_indices:
-            act_val = float(features_np[idx])
-            for entry in contrastive_map.get(int(idx), []):
-                theme = entry["theme"]
-                # Weight by activation strength and Cohen's d
-                score = act_val * abs(entry["cohens_d"])
-                theme_scores.setdefault(theme, []).append(score)
+        # Every active feature (not just the top-k), with labels when known,
+        # plus contrastive-map theme evidence over the full active set.
+        active_pairs = [(int(idx), float(features_np[idx])) for idx in nonzero_indices[sort_order]]
+        active_features = [
+            {
+                "index": idx,
+                "activation": act,
+                "label": _label_for(feature_descs, idx) if feature_descs else "unlabeled",
+            }
+            for idx, act in active_pairs
+        ]
 
         step_info["sae_features"] = {
             "num_active": int(nonzero_mask.sum()),
             "total_features": int(features_np.shape[0]),
             "sparsity_pct": float((1.0 - nonzero_mask.mean()) * 100),
             "top_features": top_features,
-            "theme_activations": {
-                theme: {
-                    "total_score": round(sum(scores), 4),
-                    "num_features": len(scores),
-                    "mean_score": round(sum(scores) / len(scores), 4),
-                }
-                for theme, scores in sorted(theme_scores.items(), key=lambda x: -sum(x[1]))
-            },
+            "active_features": active_features,
+            "theme_evidence": (
+                contrastive_theme_evidence(active_pairs, contrastive_map, feature_descs)
+                if contrastive_map
+                else None
+            ),
         }
 
     del sae
@@ -1167,49 +1584,790 @@ _PROBLEM_META = {
         "icon": "\U0001f4a7",
         "urgency": {"label": "Fix Soon", "level": "yellow"},
         "difficulty": {"label": "Moderate", "level": "yellow"},
+        "safety": {"label": "Moderate", "level": "yellow"},
         "costRange": "$13\u2013$90 DIY",
     },
     "disposal_stuck": {
         "icon": "\u2699\ufe0f",
         "urgency": {"label": "Can Wait", "level": "green"},
         "difficulty": {"label": "Easy", "level": "green"},
+        "safety": {"label": "Low", "level": "green"},
         "costRange": "$0\u2013$8 DIY",
     },
     "water_heater_noise": {
         "icon": "\U0001f525",
         "urgency": {"label": "Act Now", "level": "red"},
         "difficulty": {"label": "Difficult", "level": "red"},
+        "safety": {"label": "High", "level": "red"},
         "costRange": "$15\u2013$649 DIY",
     },
 }
 
-# Feature-to-theme mapping for comparison chart derivation.
-# Each theme has keywords — if a feature label contains any, it counts.
-_THEME_KEYWORDS = {
-    "Safety Concern": ["safety", "hazard", "gas", "risk", "danger"],
-    "Cost Sensitivity": ["cost", "budget", "price", "replacement", "expense"],
-    "DIY Feasibility": [
-        "diy",
-        "beginner",
-        "skill",
-        "tool requirement",
-        "hardware repair",
-        "manual unjamming",
-        "reset",
-        "jam clearing",
-    ],
-    "Urgency Level": ["urgent", "immediate", "damage", "active", "leakage"],
-    "Age / Warranty Factor": ["age", "old", "lifespan", "warranty", "coverage"],
+# ---------------------------------------------------------------------------
+# Section E1: Feature-level helpers (pure functions, unit tested)
+# ---------------------------------------------------------------------------
+
+# Appliance keywords used to decide whether a feature label belongs to one of
+# the three demo scenarios.  Shared with evaluate_sae_layers.py.
+_SCENARIO_PATTERNS = {
+    "dishwasher_leak": (
+        "dishwasher",
+        "door gasket",
+        "spray arm",
+        "dishwashing",
+    ),
+    "disposal_stuck": (
+        "garbage disposal",
+        "disposal",
+        "flywheel",
+        "impeller",
+        "allen wrench",
+        "hex socket",
+    ),
+    "water_heater_noise": (
+        "water heater",
+        "anode",
+        "sediment",
+        "thermocouple",
+        "pilot light",
+        "gas appliance",
+        "gas leak",
+        "tank corrosion",
+    ),
 }
 
 
-def _label_matches_keywords(label: str, keywords: list[str]) -> bool:
-    """Match complete words/phrases, not accidental substrings like gas/gasket."""
-    normalized = label.lower()
-    return any(
-        re.search(rf"\b{re.escape(keyword.lower())}\b", normalized) is not None
-        for keyword in keywords
+def classify_scenario_label(label: str) -> set[str]:
+    """Return the demo scenarios whose appliance keywords appear in ``label``."""
+    normalized = label.casefold()
+    return {
+        problem
+        for problem, patterns in _SCENARIO_PATTERNS.items()
+        if any(pattern in normalized for pattern in patterns)
+    }
+
+
+# The five contrast types configured for the home-repair scenario.  The pair
+# generator names the *first* side of each type the "anchor" request; the
+# contrastive feature map records, per feature, whether it fires more on the
+# anchor or the contrast side.  Empirically (output/pairs) the anchor side is
+# strongly associated with one tool (e.g. warranty_covered -> pro_quote), so
+# theme evidence is partly a proxy for the tool the model is about to pick.
+_THEME_SIDES = {
+    "diy_vs_professional": ("diy", "professional"),
+    "urgent_vs_planned": ("urgent", "planned"),
+    "cheap_fix_vs_replacement": ("cheap_fix", "replacement"),
+    "safe_vs_hazardous": ("safe", "hazardous"),
+    "warranty_covered_vs_out_of_pocket": ("warranty_covered", "out_of_pocket"),
+}
+
+_THEME_META = {
+    "diy_vs_professional": {
+        "title": "DIY vs. Professional",
+        "anchorLabel": "Easy DIY",
+        "contrastLabel": "Needs a Pro",
+    },
+    "urgent_vs_planned": {
+        "title": "Urgent vs. Planned",
+        "anchorLabel": "Act Now",
+        "contrastLabel": "Can Wait",
+    },
+    "cheap_fix_vs_replacement": {
+        "title": "Cheap Fix vs. Replacement",
+        "anchorLabel": "Quick Part Swap",
+        "contrastLabel": "Consider Replacing",
+    },
+    "safe_vs_hazardous": {
+        "title": "Safe vs. Hazardous",
+        "anchorLabel": "Low Risk",
+        "contrastLabel": "High Hazard",
+    },
+    "warranty_covered_vs_out_of_pocket": {
+        "title": "Warranty vs. Out of Pocket",
+        "anchorLabel": "May Be Covered",
+        "contrastLabel": "Out of Pocket",
+    },
+}
+
+
+def _label_for(labels: dict | None, index: int) -> str:
+    entry = (labels or {}).get(str(index), (labels or {}).get(index))
+    if isinstance(entry, str):
+        return entry
+    if isinstance(entry, dict):
+        return entry.get("label") or f"Feature #{index}"
+    return f"Feature #{index}"
+
+
+def contrastive_theme_evidence(
+    active: list[tuple[int, float]],
+    contrastive_map: dict[int, list[dict]],
+    labels: dict | None = None,
+    themes: dict[str, tuple[str, str]] | None = None,
+    shrink: float = 2.0,
+    min_features: int = 3,
+    min_coverage: float = 0.02,
+    drivers_per_side: int = 2,
+) -> dict[str, dict]:
+    """Score each contrast theme from *all* active features of one prompt.
+
+    For a theme, every active feature that the training contrastive map lists
+    for that theme contributes ``activation * |cohens_d|`` to the mass of the
+    side it fires more on (anchor or contrast).  ``position`` is the contrast
+    side's share of that mass, shrunk toward 0.5 by ``shrink`` pseudo-mass so
+    a theme supported by one or two weak features cannot pin the marker to an
+    extreme.  ``coverage`` is the share of the prompt's total activation that
+    lands on mapped features; themes with too few features or too little
+    coverage are flagged ``insufficient`` and the UI hides their marker.
+    """
+    themes = themes or _THEME_SIDES
+    total_activation = float(sum(activation for _, activation in active))
+    evidence: dict[str, dict] = {}
+    for theme, (anchor_side, contrast_side) in themes.items():
+        sides: dict[str, list[dict]] = {"anchor": [], "contrast": []}
+        for index, activation in active:
+            for entry in contrastive_map.get(int(index), []):
+                if entry.get("theme") != theme:
+                    continue
+                cohens_d = abs(float(entry.get("cohens_d", 0.0)))
+                sides[entry.get("direction", "anchor")].append(
+                    {
+                        "index": int(index),
+                        "label": _label_for(labels, int(index)),
+                        "activation": round(float(activation), 4),
+                        "cohensD": round(cohens_d, 4),
+                        "weight": round(float(activation) * cohens_d, 4),
+                    }
+                )
+        anchor_mass = sum(row["weight"] for row in sides["anchor"])
+        contrast_mass = sum(row["weight"] for row in sides["contrast"])
+        anchor_activation = sum(row["activation"] for row in sides["anchor"])
+        contrast_activation = sum(row["activation"] for row in sides["contrast"])
+        n_features = len(sides["anchor"]) + len(sides["contrast"])
+        anchor_share = anchor_activation / total_activation if total_activation else 0.0
+        contrast_share = contrast_activation / total_activation if total_activation else 0.0
+        coverage = anchor_share + contrast_share
+        denominator = anchor_mass + contrast_mass + shrink
+        position = (contrast_mass + shrink / 2.0) / denominator if denominator > 0 else 0.5
+        evidence[theme] = {
+            "anchorSide": anchor_side,
+            "contrastSide": contrast_side,
+            "anchorMass": round(anchor_mass, 4),
+            "contrastMass": round(contrast_mass, 4),
+            "anchorShare": round(anchor_share, 4),
+            "contrastShare": round(contrast_share, 4),
+            "nFeatures": n_features,
+            "coverage": round(coverage, 4),
+            "position": round(position, 4),
+            "insufficient": n_features < min_features or coverage < min_coverage,
+            "drivers": {
+                side: sorted(rows, key=lambda row: -row["weight"])[:drivers_per_side]
+                for side, rows in sides.items()
+            },
+        }
+    return evidence
+
+
+def filter_contrastive_map(
+    contrastive_map: dict[int, list[dict]], themes: dict | None = None
+) -> dict[int, list[dict]]:
+    """Keep only entries for the home-repair contrast themes."""
+    themes = themes or _THEME_SIDES
+    filtered: dict[int, list[dict]] = {}
+    for index, entries in contrastive_map.items():
+        kept = [entry for entry in entries if entry.get("theme") in themes]
+        if kept:
+            filtered[int(index)] = kept
+    return filtered
+
+
+def tool_first_token_ids(tokenizer, tools: list[dict]) -> dict[str, int]:
+    """Map each tool id to the first token of ``" {name}"``.
+
+    The decision prompt ends in ``I'll use the`` (no trailing space), so the
+    model's next token is the space-prefixed tool name.  The four home-repair
+    tools must start with distinct tokens for a single-position readout to be
+    meaningful; otherwise a ``ValueError`` is raised.
+    """
+    ids: dict[str, int] = {}
+    for tool in tools:
+        name = tool["name"]
+        encoded = tokenizer.encode(f" {name}", add_special_tokens=False)
+        if not encoded:
+            raise ValueError(f"Tokenizer produced no tokens for tool {name!r}")
+        ids[name] = int(encoded[0])
+    if len(set(ids.values())) != len(ids):
+        raise ValueError(f"Tool names do not start with distinct tokens: {ids}")
+    for name, token_id in ids.items():
+        piece = tokenizer.decode([token_id]).strip()
+        if piece and not name.startswith(piece):
+            print(f"  WARNING: first token {piece!r} is not a prefix of tool {name!r}")
+    return ids
+
+
+def decision_from_logprobs(
+    logprobs: dict[int, float],
+    tool_to_token: dict[str, int],
+    sampled_id: int | None = None,
+    completion: str = "",
+    truncated: bool = False,
+    coverage_warn: float = 0.5,
+) -> dict:
+    """Turn next-token log-probabilities into a tool-choice readout.
+
+    ``logprobs`` maps token id -> natural-log probability at the decision
+    position.  Probabilities are renormalised over the tool tokens; ``coverage``
+    is the raw probability mass they account for.  When ``truncated`` (top-k
+    logprobs only), tools missing from ``logprobs`` are reported as 0.
+    """
+    import math
+
+    raw = {
+        tool: (math.exp(logprobs[token_id]) if token_id in logprobs else 0.0)
+        for tool, token_id in tool_to_token.items()
+    }
+    coverage = float(sum(raw.values()))
+    distribution = {
+        tool: (value / coverage if coverage > 0 else 0.0) for tool, value in raw.items()
+    }
+    token_to_tool = {token_id: tool for tool, token_id in tool_to_token.items()}
+    sampled_tool = token_to_tool.get(sampled_id) if sampled_id is not None else None
+    best_tool = max(distribution, key=distribution.get) if coverage > 0 else None
+    tool = sampled_tool or best_tool
+    return {
+        "toolId": tool,
+        "display": tool_display(tool) if tool else None,
+        "prob": round(distribution.get(tool, 0.0), 4) if tool else 0.0,
+        "distribution": {tool_display(t): round(p, 4) for t, p in distribution.items()},
+        "raw": {tool_display(t): round(p, 6) for t, p in raw.items()},
+        "coverage": round(coverage, 4),
+        "lowCoverage": coverage < coverage_warn,
+        "truncated": truncated,
+        "sampledToken": sampled_id,
+        "sampledTool": sampled_tool,
+        "completion": completion,
+    }
+
+
+_LABEL_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "for",
+    "in",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "vs",
+    "with",
+}
+
+
+def _label_key(label: str) -> frozenset[str]:
+    tokens = re.findall(r"[a-z]+", label.lower())
+    normalized = set()
+    for token in tokens:
+        if token in _LABEL_STOPWORDS:
+            continue
+        if len(token) > 4 and token.endswith("s"):
+            token = token[:-1]
+        normalized.add(token)
+    return frozenset(normalized)
+
+
+def dedupe_feature_rows(rows: list[dict], jaccard: float = 0.6) -> list[dict]:
+    """Merge rows whose labels are near-duplicates (feature splitting).
+
+    Rows are processed in the given order; a row joins the first group whose
+    representative label shares at least ``jaccard`` of its normalised tokens.
+    The representative keeps the highest activation and lists ``merged``
+    feature indices so nothing is hidden.
+    """
+    groups: list[tuple[frozenset[str], dict]] = []
+    for row in rows:
+        key = _label_key(row.get("label", ""))
+        for group_key, representative in groups:
+            union = key | group_key
+            if union and len(key & group_key) / len(union) >= jaccard:
+                if row.get("activation", 0.0) > representative.get("activation", 0.0):
+                    merged = representative.setdefault("merged", [])
+                    merged.append(representative["index"])
+                    for field in ("index", "label", "activation", "delta", "share"):
+                        if field in row:
+                            representative[field] = row[field]
+                    representative["merged"] = merged
+                else:
+                    representative.setdefault("merged", []).append(row["index"])
+                break
+        else:
+            groups.append((key, dict(row)))
+    return [representative for _, representative in groups]
+
+
+# Specific vocabulary a label may carry that a viewer would recognise as an
+# inference if the request never states it.  Generic labels (e.g. "Home
+# appliance repair guide request") never trigger the flag.
+_SPECIFIC_TERMS = {
+    "gas": ("gas",),
+    "electric": ("electric", "electrical", "electricity"),
+    "pilot": ("pilot",),
+    "valve": ("valve", "valves"),
+    "burner": ("burner", "burners"),
+    "ignition": ("ignition", "ignite", "igniter"),
+    "warranty": ("warranty", "warranties", "warrantied", "covered"),
+    "urgent": ("urgent", "urgency", "urgently", "immediate", "immediately"),
+    "emergency": ("emergency", "emergencies"),
+    "replacement": ("replacement", "replace", "replacing", "replaced"),
+    "old": ("old", "aging", "ageing", "aged"),
+    "corrosion": ("corrosion", "corroded", "corroding"),
+    "rust": ("rust", "rusty", "rusted"),
+    "hazard": ("hazard", "hazardous", "hazards"),
+    "safety": ("safety", "safe", "safely", "unsafe", "danger", "dangerous"),
+    "reset": ("reset", "resetting"),
+    "breaker": ("breaker", "breakers", "tripped"),
+    "drain": ("drain", "drainage", "draining", "drains"),
+    "leak": ("leak", "leaking", "leakage", "leaks"),
+    "flood": ("flood", "flooding", "flooded"),
+    "sediment": ("sediment", "scale", "buildup"),
+    "water heater": ("water heater", "heater"),
+    "dishwasher": ("dishwasher", "dishwashing"),
+    "disposal": ("disposal", "disposer"),
+    "washing machine": ("washing machine", "washer"),
+    "dryer": ("dryer",),
+    "refrigerator": ("refrigerator", "fridge", "freezer"),
+    "professional": ("professional", "technician", "plumber", "electrician", "licensed"),
+    "jam": ("jam", "jammed", "jamming", "unjamming", "unjam"),
+    "humming": ("humming", "hums", "hum"),
+    "motor": ("motor",),
+    "impeller": ("impeller", "flywheel"),
+    "gasket": ("gasket", "seal"),
+    "spray arm": ("spray arm", "spray-arm"),
+    "anode": ("anode",),
+    "thermocouple": ("thermocouple",),
+    "burning": ("burning", "burnt", "smoke", "smell"),
+}
+# Ask-type words (part, guide, video, quote) are deliberately absent: a label
+# such as "part replacement" is stated by a request that names the part
+# ("replacement gasket"), so flagging them produces false positives.  The badge
+# is for situational content the request never mentions.
+
+
+def _terms_in(text: str) -> set[str]:
+    normalized = re.sub(r"[^a-z\- ]", " ", text.lower())
+    words = set(normalized.replace("-", " ").split())
+    found = set()
+    for term, variants in _SPECIFIC_TERMS.items():
+        for variant in variants:
+            if " " in variant:
+                if variant in normalized:
+                    found.add(term)
+                    break
+            elif variant in words:
+                found.add(term)
+                break
+    return found
+
+
+def not_stated_in_request(label: str, request: str) -> list[str]:
+    """Specific terms the label carries that the request never mentions."""
+    return sorted(_terms_in(label) - _terms_in(request))
+
+
+def feature_rows(
+    active: list[tuple[int, float]],
+    baseline_mean: dict[int, float],
+    labels: dict | None,
+    request: str,
+    top_n: int = 6,
+) -> list[dict]:
+    """Rank a prompt's active features by how much they exceed the baseline.
+
+    ``baseline_mean`` is the mean activation over the base prompts (absent =
+    0), so prompt-specific features rise to the top.  Rows keep the raw
+    activation, the deviation and the share of the prompt's maximum activation
+    so the UI can show all three without inventing a "strength".
+    """
+    max_activation = max((activation for _, activation in active), default=0.0) or 1.0
+    rows = []
+    for index, activation in active:
+        rows.append(
+            {
+                "index": int(index),
+                "label": _label_for(labels, int(index)),
+                "activation": round(float(activation), 4),
+                "delta": round(float(activation) - float(baseline_mean.get(int(index), 0.0)), 4),
+                "share": round(float(activation) / max_activation, 4),
+            }
+        )
+    rows.sort(key=lambda row: (-row["delta"], -row["activation"]))
+    rows = dedupe_feature_rows(rows)
+    rows.sort(key=lambda row: (-row["delta"], -row["activation"]))
+    selected = rows[:top_n]
+    for row in selected:
+        row["notStated"] = not_stated_in_request(row["label"], request)
+        row.setdefault("merged", [])
+    return selected
+
+
+def shared_feature_rows(
+    active_by_prompt: list[list[tuple[int, float]]], labels: dict | None, top_n: int = 5
+) -> list[dict]:
+    """Features active on every prompt, ranked by their minimum activation."""
+    if not active_by_prompt:
+        return []
+    per_prompt = [{int(i): float(a) for i, a in active} for active in active_by_prompt]
+    common = set(per_prompt[0])
+    for mapping in per_prompt[1:]:
+        common &= set(mapping)
+    rows = [
+        {
+            "index": index,
+            "label": _label_for(labels, index),
+            "minActivation": round(min(mapping[index] for mapping in per_prompt), 4),
+            "meanActivation": round(
+                sum(mapping[index] for mapping in per_prompt) / len(per_prompt), 4
+            ),
+        }
+        for index in common
+    ]
+    rows.sort(key=lambda row: -row["minActivation"])
+    return dedupe_feature_rows(rows)[:top_n]
+
+
+def also_fired(rows: list[dict], problem_id: str) -> list[dict]:
+    """Rows whose label names a *different* demo scenario (contamination)."""
+    flagged = []
+    for row in rows:
+        matches = classify_scenario_label(row.get("label", ""))
+        others = sorted(matches - {problem_id})
+        if others:
+            flagged.append({**row, "otherScenarios": others})
+    return flagged
+
+
+def contrast_diff(
+    base_active: list[tuple[int, float]],
+    variant_active: list[tuple[int, float]],
+    labels: dict | None,
+    request: str,
+    top_n: int = 5,
+) -> dict[str, list[dict]]:
+    """Features gained, lost, or shifted between a base prompt and its variant."""
+    base = {int(i): float(a) for i, a in base_active}
+    variant = {int(i): float(a) for i, a in variant_active}
+    gained, lost, shifted = [], [], []
+    for index in set(base) | set(variant):
+        before = base.get(index, 0.0)
+        after = variant.get(index, 0.0)
+        row = {
+            "index": index,
+            "label": _label_for(labels, index),
+            "base": round(before, 4),
+            "variant": round(after, 4),
+            "delta": round(after - before, 4),
+        }
+        if before <= 0 < after:
+            gained.append(row)
+        elif after <= 0 < before:
+            lost.append(row)
+        elif before > 0 and after > 0:
+            shifted.append(row)
+    gained.sort(key=lambda row: -row["variant"])
+    lost.sort(key=lambda row: -row["base"])
+    shifted.sort(key=lambda row: -abs(row["delta"]))
+    result = {}
+    for name, rows in (("gained", gained), ("lost", lost), ("shifted", shifted)):
+        rows = dedupe_feature_rows(rows)[:top_n]
+        for row in rows:
+            row["notStated"] = not_stated_in_request(row["label"], request)
+            row.setdefault("merged", [])
+        result[name] = rows
+    return result
+
+
+def _active_pairs(sae_features: dict) -> list[tuple[int, float]]:
+    """(index, activation) pairs for a step, preferring the full active list."""
+    rows = sae_features.get("active_features") or sae_features.get("top_features") or []
+    return [(int(row["index"]), float(row["activation"])) for row in rows]
+
+
+def _labels_from_rows(*row_lists: list[dict]) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for rows in row_lists:
+        for row in rows or []:
+            label = row.get("label")
+            if label:
+                labels[str(row["index"])] = label
+    return labels
+
+
+# ---------------------------------------------------------------------------
+# Section E2: "is this just keyword matching?" probes
+# ---------------------------------------------------------------------------
+
+
+def row_family(row: dict) -> list[int]:
+    """The feature indices a snapshot row stands for (itself + merged twins)."""
+    return [int(row["index"])] + [int(index) for index in row.get("merged", []) or []]
+
+
+def family_activation(active: dict[int, float] | list[tuple[int, float]], family: list[int]):
+    """Maximum activation of a feature family on a prompt (0 when silent)."""
+    mapping = active if isinstance(active, dict) else {int(i): float(a) for i, a in active}
+    return max((float(mapping.get(int(index), 0.0)) for index in family), default=0.0)
+
+
+def active_overlap(
+    left: list[tuple[int, float]], right: list[tuple[int, float]]
+) -> dict[str, float]:
+    """Jaccard of the active sets and cosine of the sparse activation vectors."""
+    left_map = {int(i): float(a) for i, a in left if a > 0}
+    right_map = {int(i): float(a) for i, a in right if a > 0}
+    union = set(left_map) | set(right_map)
+    inter = set(left_map) & set(right_map)
+    jaccard = len(inter) / len(union) if union else 0.0
+    dot = sum(left_map[i] * right_map[i] for i in inter)
+    left_norm = math.sqrt(sum(v * v for v in left_map.values()))
+    right_norm = math.sqrt(sum(v * v for v in right_map.values()))
+    cosine = dot / (left_norm * right_norm) if left_norm and right_norm else 0.0
+    return {"jaccard": round(jaccard, 4), "cosine": round(cosine, 4)}
+
+
+def label_mentions(label: str, words: list[str] | tuple[str, ...]) -> bool:
+    """True when the label contains one of ``words`` as a whole word."""
+    tokens = set(re.findall(r"[a-z]+", label.lower()))
+    return any(word.lower() in tokens for word in words)
+
+
+def snapshot_feature_rows(
+    active_by_step: dict[str, list[tuple[int, float]]], labels: dict | None, top_n: int = 6
+) -> tuple[dict[str, list[dict]], dict[int, float], list[dict]]:
+    """Per-problem snapshot rows exactly as the page shows them.
+
+    Returns ``(rows_by_problem, baseline_mean, shared_rows)``.  The baseline is
+    the mean activation over the base prompts with absence counted as zero, so
+    prompt-specific features rise to the top (see :func:`feature_rows`).  The
+    steering script calls this too, so the causal check ablates the very rows
+    the page displays.
+    """
+    base_steps = [f"{p['id']}_InitialDecision" for p in _PROBLEMS]
+    base_active = [active_by_step[s] for s in base_steps if s in active_by_step]
+    baseline_mean: dict[int, float] = {}
+    if base_active:
+        for active in base_active:
+            for index, activation in active:
+                baseline_mean[int(index)] = baseline_mean.get(int(index), 0.0) + float(activation)
+        baseline_mean = {i: v / len(base_active) for i, v in baseline_mean.items()}
+    shared_rows = shared_feature_rows(base_active, labels) if len(base_active) > 1 else []
+    rows_by_problem: dict[str, list[dict]] = {}
+    for p in _PROBLEMS:
+        _, request = _initial_tool_decision(p)
+        active = active_by_step.get(f"{p['id']}_InitialDecision", [])
+        rows_by_problem[p["id"]] = (
+            feature_rows(active, baseline_mean, labels, request, top_n=top_n) if active else []
+        )
+    return rows_by_problem, baseline_mean, shared_rows
+
+
+_FIRES_FRACTION = 0.5
+
+
+def _row_cells(rows: list[dict], base_map: dict[int, float], active_map: dict[int, float]):
+    """Per snapshot row: family activation on a prompt relative to its base value.
+
+    ``fires`` is a graded notion — the family must reach at least half of its
+    base-prompt activation.  Snapshot rows stand for families of split
+    features (up to two dozen), so "any member above zero" is nearly always
+    true somewhere and would not separate a paraphrase from an unrelated
+    request; the ratio does.
+    """
+    cells = []
+    for row in rows:
+        family = row_family(row)
+        base_value = family_activation(base_map, family)
+        value = family_activation(active_map, family)
+        ratio = value / base_value if base_value > 0 else (1.0 if value > 0 else 0.0)
+        cells.append(
+            {
+                "index": row["index"],
+                "activation": round(value, 4),
+                "base": round(base_value, 4),
+                "ratio": round(ratio, 4),
+                "active": value > 0,
+                "fires": ratio >= _FIRES_FRACTION and value > 0,
+            }
+        )
+    return cells
+
+
+def paraphrase_evidence(
+    rows: list[dict],
+    base_active: list[tuple[int, float]],
+    paraphrases: list[dict],
+    other_prompts: list[dict],
+    base_tool_id: str | None = None,
+) -> dict:
+    """Do the snapshot features survive a rewording?
+
+    ``paraphrases`` and ``other_prompts`` are ``{step, request, active,
+    modelChoice, label}`` dicts; ``other_prompts`` are the comparison points
+    (the same problem's contrast and the other problems' base prompts) whose
+    overlap with the base prompt calibrates what "similar" means here.  Both
+    get the same per-row cells (see :func:`_row_cells`).  ``sameTool`` counts
+    the paraphrases whose readout picks ``base_tool_id`` (the tool the base
+    request's readout picked) — a consistency check, not evidence: the
+    paraphrases restate the ask.
+    """
+    base_map = {int(i): float(a) for i, a in base_active}
+    items = []
+    for item in paraphrases:
+        active_map = {int(i): float(a) for i, a in item["active"]}
+        cells = _row_cells(rows, base_map, active_map)
+        items.append(
+            {
+                "step": item["step"],
+                "request": item["request"],
+                "modelChoice": item.get("modelChoice"),
+                "overlap": active_overlap(base_active, item["active"]),
+                "rows": cells,
+                "rowsFiring": sum(1 for cell in cells if cell["fires"]),
+            }
+        )
+    comparisons = []
+    for item in other_prompts:
+        active_map = {int(i): float(a) for i, a in item["active"]}
+        cells = _row_cells(rows, base_map, active_map)
+        comparisons.append(
+            {
+                "step": item["step"],
+                "label": item.get("label") or item["step"],
+                "request": item["request"],
+                "modelChoice": item.get("modelChoice"),
+                "overlap": active_overlap(base_active, item["active"]),
+                "rows": cells,
+                "rowsFiring": sum(1 for cell in cells if cell["fires"]),
+            }
+        )
+    row_summary = []
+    for position, row in enumerate(rows):
+        fires_in = sum(1 for item in items if item["rows"][position]["fires"])
+        row_summary.append(
+            {
+                "index": row["index"],
+                "label": row["label"],
+                "baseActivation": round(family_activation(base_map, row_family(row)), 4),
+                "firesIn": fires_in,
+                "of": len(items),
+                "firesInComparisons": sum(1 for c in comparisons if c["rows"][position]["fires"]),
+                "ofComparisons": len(comparisons),
+            }
+        )
+    same_tool = sum(
+        1
+        for item in items
+        if base_tool_id is not None
+        and (item.get("modelChoice") or {}).get("toolId") == base_tool_id
     )
+    return {
+        "paraphrases": items,
+        "comparisons": comparisons,
+        "rowSummary": row_summary,
+        "meanJaccard": round(
+            sum(i["overlap"]["jaccard"] for i in items) / len(items) if items else 0.0, 4
+        ),
+        "meanCosine": round(
+            sum(i["overlap"]["cosine"] for i in items) / len(items) if items else 0.0, 4
+        ),
+        "rowsFiringInAll": sum(1 for r in row_summary if r["firesIn"] == len(items)),
+        "firesFraction": _FIRES_FRACTION,
+        "sameTool": same_tool,
+    }
+
+
+def keyword_control_evidence(
+    control: dict,
+    base_active: list[tuple[int, float]],
+    control_active: list[tuple[int, float]],
+    active_by_step: dict[str, list[tuple[int, float]]],
+    labels: dict | None,
+    rows: list[dict],
+    max_targets: int = 4,
+) -> dict:
+    """Did adding (or removing) a word switch on (or off) the features named by it?
+
+    Targets are the captured features whose label mentions one of the
+    control's ``targetWords``; for an *added* word they are ranked by their
+    strongest activation on any captured prompt (so the viewer sees features
+    that demonstrably can fire), for a *removed* word by their activation on
+    the base prompt.  Each target reports its base and control activation.
+    """
+    base_map = {int(i): float(a) for i, a in base_active}
+    control_map = {int(i): float(a) for i, a in control_active}
+    words = control.get("targetWords") or [control.get("keyword", "")]
+    # Where does each candidate feature fire most among the captured prompts?
+    strongest: dict[int, tuple[float, str]] = {}
+    for step, active in active_by_step.items():
+        for index, activation in active:
+            index = int(index)
+            if label_mentions(_label_for(labels, index), words):
+                if float(activation) > strongest.get(index, (0.0, ""))[0]:
+                    strongest[index] = (float(activation), step)
+    if control.get("direction") == "removed":
+        candidates = sorted(
+            (index for index in strongest if base_map.get(index, 0.0) > 0),
+            key=lambda index: -base_map.get(index, 0.0),
+        )
+    else:
+        candidates = sorted(strongest, key=lambda index: -strongest[index][0])
+    targets = []
+    for index in candidates[:max_targets]:
+        base_value = base_map.get(index, 0.0)
+        control_value = control_map.get(index, 0.0)
+        peak, peak_step = strongest[index]
+        targets.append(
+            {
+                "index": index,
+                "label": _label_for(labels, index),
+                "base": round(base_value, 4),
+                "control": round(control_value, 4),
+                "peak": round(peak, 4),
+                "peakStep": peak_step,
+                "delta": round(control_value - base_value, 4),
+                # A target "responds" to the word when the change is at least a
+                # quarter of the feature's strongest captured activation.
+                "responds": abs(control_value - base_value) >= 0.25 * peak and peak > 0,
+            }
+        )
+    responding = [t for t in targets if t["responds"]]
+    if control.get("direction") == "removed":
+        verdict = "turned off" if responding else "still fire"
+        if targets and all(t["base"] > 0 and t["control"] <= 0 for t in targets):
+            verdict = "turned off"
+    else:
+        verdict = "fired" if responding else "stayed quiet"
+    snapshot = [
+        {
+            "index": row["index"],
+            "base": round(family_activation(base_map, row_family(row)), 4),
+            "control": round(family_activation(control_map, row_family(row)), 4),
+        }
+        for row in rows
+    ]
+    return {
+        "step": control["step"],
+        "request": control["request"],
+        "direction": control.get("direction", "added"),
+        "keyword": control.get("keyword"),
+        "note": control.get("note"),
+        "modelChoice": control.get("modelChoice"),
+        "overlap": active_overlap(base_active, control_active),
+        "targets": targets,
+        "responding": len(responding),
+        "verdict": verdict,
+        "snapshotRows": snapshot,
+    }
 
 
 def _summarize_manual(data: dict) -> str:
@@ -1292,26 +2450,232 @@ def _generate_feature_sentence(tool_name: str, features: list[dict]) -> str:
         "TutorialSearch": "searching for tutorials",
         "ProQuote": "reviewing professional quotes",
     }.get(tool_name, f"running {display}")
-    return f"While {verb}, the AI focused most on {focus}."
+    return f"While deciding to start by {verb}, the model's most distinctive features were {focus}."
 
 
-def _derive_comparison_scores(
-    decision_features: dict[str, dict],
-) -> dict[str, dict[str, int]]:
-    """Derive comparison scores from each problem's initial decision features."""
-    comparison: dict[str, dict[str, float]] = {theme: {} for theme in _THEME_KEYWORDS}
-    for pid, decision in decision_features.items():
-        features = decision.get("features", [])
-        for theme, keywords in _THEME_KEYWORDS.items():
-            score = 0.0
-            count = 0
-            for f in features:
-                if _label_matches_keywords(f.get("label", ""), keywords):
-                    score += f.get("strength", 0)
-                    count += 1
-            comparison[theme][pid] = round(score / count * 100) if count else 0
+def _decision_lookup(analysis: dict) -> dict[str, dict]:
+    return {step_info["step"]: step_info for step_info in analysis.get("steps", [])}
 
-    return comparison
+
+def _model_choice_from_step(step_info: dict | None) -> dict | None:
+    if not step_info:
+        return None
+    decision = step_info.get("decision")
+    return dict(decision) if decision else None
+
+
+def attribution_backends_agree(attribution: dict | None, model_choice: dict | None) -> bool:
+    """True when the HF baseline picks the same tool as the vLLM readout.
+
+    The per-row ablations run on the HF backend; when its baseline decision
+    differs from the vLLM decision shown in the snapshot, the ablation measures
+    a different decision than the one on the page, so the causal column is
+    withheld rather than shown with a caveat.  Without a vLLM readout there is
+    nothing to disagree with.
+    """
+    if not attribution:
+        return False
+    hf_choice = attribution.get("hfChoice")
+    vllm_choice = (model_choice or {}).get("display")
+    return not (hf_choice and vllm_choice and hf_choice != vllm_choice)
+
+
+_MIN_CAUSAL_EFFECT = 0.02  # below 2 pp a family is "descriptive" whatever the random band
+
+
+def attach_attribution(rows: list[dict], attribution: dict | None) -> None:
+    """Attach the HF ablation result of each row family to the row (in place).
+
+    ``attribution`` is one problem's entry of ``steering_results.json``'s
+    ``attribution`` block: ``rows`` (per snapshot row: ``deltaTarget``,
+    ``intervened``, ``hfActivation`` ...), ``controlThreshold`` (the largest
+    |delta| produced by ablating random same-sized sets of active features).
+    Rows whose effect does not exceed both the control threshold and
+    ``_MIN_CAUSAL_EFFECT`` (2 pp — a tiny random band must not promote a
+    0.3 pp effect) are marked ``descriptive``; the UI sorts by causal effect
+    when this block exists. Callers should first check
+    :func:`attribution_backends_agree`.
+    """
+    if not attribution:
+        return
+    by_index = {int(entry["index"]): entry for entry in attribution.get("rows", [])}
+    threshold = max(float(attribution.get("controlThreshold") or 0.0), _MIN_CAUSAL_EFFECT)
+    for row in rows:
+        entry = by_index.get(int(row["index"]))
+        if not entry:
+            continue
+        delta = entry.get("deltaTarget")
+        row["causal"] = {
+            "deltaTarget": delta,
+            "targetTool": attribution.get("targetTool"),
+            "hfActivation": entry.get("hfActivation"),
+            "inactiveUnderHf": bool(entry.get("inactiveUnderHf")),
+            "intervened": entry.get("intervened"),
+            "argmaxChanged": entry.get("argmaxChanged"),
+            "descriptive": delta is None or abs(float(delta)) <= threshold,
+        }
+
+
+def probe_evidence(
+    problem: dict,
+    rows: list[dict],
+    active_by_step: dict[str, list[tuple[int, float]]],
+    step_lookup: dict[str, dict],
+    labels: dict | None,
+) -> dict | None:
+    """Assemble the paraphrase + keyword-control block for one problem."""
+    pid = problem["id"]
+    base_step = f"{pid}_InitialDecision"
+    base_active = active_by_step.get(base_step)
+    if not base_active:
+        return None
+    probe_prompts = [
+        item
+        for item in decision_prompts(include_contrasts=True, include_probes=True)
+        if item["problem"] == pid and item["kind"] in ("paraphrase", "control")
+    ]
+    base_choice = _model_choice_from_step(step_lookup.get(base_step)) or {}
+
+    def _entry(item: dict, label: str | None = None) -> dict | None:
+        active = active_by_step.get(item["step"])
+        if active is None:
+            return None
+        return {
+            **item,
+            "label": label,
+            "active": active,
+            "modelChoice": _model_choice_from_step(step_lookup.get(item["step"])),
+        }
+
+    paraphrases = [
+        entry
+        for entry in (_entry(item) for item in probe_prompts if item["kind"] == "paraphrase")
+        if entry
+    ]
+    controls = [
+        entry
+        for entry in (_entry(item) for item in probe_prompts if item["kind"] == "control")
+        if entry
+    ]
+    if not paraphrases and not controls:
+        return None
+
+    others = []
+    contrast = problem.get("contrast")
+    if contrast and active_by_step.get(f"{pid}_Contrast") is not None:
+        others.append(
+            {
+                "step": f"{pid}_Contrast",
+                "label": "same situation, different ask",
+                "request": contrast["request"],
+                "active": active_by_step[f"{pid}_Contrast"],
+                "modelChoice": _model_choice_from_step(step_lookup.get(f"{pid}_Contrast")),
+            }
+        )
+    for other in _PROBLEMS:
+        if other["id"] == pid:
+            continue
+        step = f"{other['id']}_InitialDecision"
+        if active_by_step.get(step) is None:
+            continue
+        others.append(
+            {
+                "step": step,
+                "label": f"different problem ({other['summary'].lower()})",
+                "request": _initial_tool_decision(other)[1],
+                "active": active_by_step[step],
+                "modelChoice": _model_choice_from_step(step_lookup.get(step)),
+            }
+        )
+    block: dict = {"baseTool": base_choice.get("display")}
+    if paraphrases:
+        block["paraphrase"] = paraphrase_evidence(
+            rows, base_active, paraphrases, others, base_tool_id=base_choice.get("toolId")
+        )
+    if controls:
+        block["controls"] = [
+            keyword_control_evidence(
+                control, base_active, control["active"], active_by_step, labels, rows
+            )
+            for control in controls
+        ]
+    return block
+
+
+def open_request_evidence(
+    problem: dict,
+    rows: list[dict],
+    active_by_step: dict[str, list[tuple[int, float]]],
+    step_lookup: dict[str, dict],
+    labels: dict | None,
+) -> dict | None:
+    """What the model does on the situation alone (no ask), vs the base request.
+
+    The base request's ask names the tool, so its readout is a restatement;
+    the open request is where the tool choice is a genuine decision.  Returns
+    the open readout, the active-set overlap with the base request, the
+    snapshot rows followed into the open prompt (same cells as the paraphrase
+    table) and the features gained / lost / shifted without the ask.
+    """
+    pid = problem["id"]
+    open_meta = problem.get("open")
+    base_active = active_by_step.get(f"{pid}_InitialDecision")
+    open_active = active_by_step.get(f"{pid}_Open")
+    if not open_meta or base_active is None or open_active is None:
+        return None
+    base_map = {int(i): float(a) for i, a in base_active}
+    open_map = {int(i): float(a) for i, a in open_active}
+    cells = _row_cells(rows, base_map, open_map)
+    for cell, row in zip(cells, rows, strict=True):
+        cell["label"] = row["label"]
+    return {
+        "request": open_meta["request"],
+        "modelChoice": _model_choice_from_step(step_lookup.get(f"{pid}_Open")),
+        "baseChoice": _model_choice_from_step(step_lookup.get(f"{pid}_InitialDecision")),
+        "overlap": active_overlap(base_active, open_active),
+        "numActive": len(open_map),
+        "rows": cells,
+        "rowsFiring": sum(1 for cell in cells if cell["fires"]),
+        "firesFraction": _FIRES_FRACTION,
+        **contrast_diff(base_active, open_active, labels, open_meta["request"]),
+    }
+
+
+def injection_summary(injection: dict | None, open_choice: dict | None) -> dict | None:
+    """Condense one problem's ``steering_results.json`` ``injection`` block.
+
+    The injection clamps the explicit-ask request's snapshot families into the
+    open (no-ask) prompt on the HF backend; only the headline numbers reach the
+    page.  Withheld when the HF open baseline picks a different tool than the
+    vLLM readout shown next to it.
+    """
+    if not injection:
+        return None
+    hf_choice = injection.get("hfChoice")
+    vllm_choice = (open_choice or {}).get("display")
+    if hf_choice and vllm_choice and hf_choice != vllm_choice:
+        return {"withheld": True, "hfChoice": hf_choice, "vllmChoice": vllm_choice}
+    rows = injection.get("rows") or []
+    best = max(rows, key=lambda r: r.get("deltaTarget") or 0.0, default=None)
+    return {
+        "withheld": False,
+        "targetTool": injection.get("targetTool"),
+        "hfChoice": hf_choice,
+        "bestRow": (
+            {"index": best["index"], "label": best.get("label"), "deltaTarget": best["deltaTarget"]}
+            if best
+            else None
+        ),
+        "allRows": {
+            key: (injection.get("allRows") or {}).get(key)
+            for key in ("size", "deltaTarget", "argmaxChanged", "choice")
+        },
+        "allBase": {
+            key: (injection.get("allBase") or {}).get(key)
+            for key in ("size", "deltaTarget", "argmaxChanged", "choice")
+        },
+        "controlThreshold": injection.get("controlThreshold"),
+    }
 
 
 def build_ui_data(
@@ -1322,8 +2686,17 @@ def build_ui_data(
     model_name: str = _MODEL_NAME,
     sae_layer: int = _SAE_LAYER,
     threshold_offset: float = _HF_THRESHOLD_OFFSET,
+    steering: dict | None = None,
 ) -> dict:
-    """Transform demo outputs into the DATA shape expected by index.html."""
+    """Transform demo outputs into the DATA shape expected by index.html.
+
+    Sections that depend on data the run did not produce (tool-choice readout,
+    contrast prompts, probes, open requests) are emitted as ``null``/absent so the page can
+    hide them instead of inventing values.  ``steering`` is the
+    ``steering_results.json`` payload; only its per-row ``attribution`` block
+    reaches the page (as ``features[*].causal``) — the ablate/clamp experiments
+    it also records are kept on disk but not displayed.
+    """
 
     # --- problems ---
     problems = []
@@ -1339,6 +2712,7 @@ def build_ui_data(
                 "details": p["details"],
                 "urgency": meta.get("urgency", {"label": "Unknown", "level": "yellow"}),
                 "difficulty": meta.get("difficulty", {"label": "Unknown", "level": "yellow"}),
+                "safety": meta.get("safety", {"label": "Unknown", "level": "yellow"}),
                 "costRange": meta.get("costRange", ""),
             }
         )
@@ -1353,70 +2727,118 @@ def build_ui_data(
             summarizer = _TOOL_SUMMARIZERS.get(tool_name)
             tool_results[pid][tool_name] = summarizer(data) if summarizer else json.dumps(data)
 
-    # --- decisionFeatures: one honest initial tool-choice snapshot per problem ---
-    # Tool-result calls below are scripted evidence gathering; they are not
-    # separate tool decisions and therefore do not receive fabricated SAE
-    # explanations.
-    decision_features: dict[str, dict] = {}
-    step_lookup: dict[str, dict] = {}
-    for step_info in analysis.get("steps", []):
-        step_lookup[step_info["step"]] = step_info
-
-    # Build per-feature activation across all steps
-    feature_activations: dict[int, list[float]] = {}
-    for step_info in analysis.get("steps", []):
-        if "sae_features" not in step_info:
+    # --- per-step feature data ---
+    step_lookup = _decision_lookup(analysis)
+    labels: dict[str, str] = {}
+    active_by_step: dict[str, list[tuple[int, float]]] = {}
+    for step_name, step_info in step_lookup.items():
+        sae_features = step_info.get("sae_features")
+        if not sae_features:
             continue
-        for f in step_info["sae_features"].get("top_features", []):
-            idx = f.get("index", -1)
-            feature_activations.setdefault(idx, []).append(f.get("activation", 0))
+        active_by_step[step_name] = _active_pairs(sae_features)
+        labels.update(
+            _labels_from_rows(
+                sae_features.get("active_features", []), sae_features.get("top_features", [])
+            )
+        )
 
-    # Compute each feature's mean across every decision, treating absence from a
-    # prompt's top-k list as zero.  Averaging only the prompts where a feature
-    # appears makes a prompt-unique feature equal its own baseline and erases
-    # exactly the specificity this view is meant to show.
-    decision_count = max(
-        1,
-        sum(
-            1
-            for step_info in analysis.get("steps", [])
-            if "sae_features" in step_info
-        ),
-    )
-    feature_mean: dict[int, float] = {
-        idx: sum(vals) / decision_count for idx, vals in feature_activations.items()
-    }
+    # Baseline: mean activation over the *base* prompts, treating absence as
+    # zero (see snapshot_feature_rows).  The steering script derives the rows
+    # it ablates from the same function, so the causal numbers refer to the
+    # rows on the page.
+    rows_by_problem, _, shared_rows = snapshot_feature_rows(active_by_step, labels)
+    attribution = (steering or {}).get("attribution") or {}
 
+    # --- decisionFeatures: one honest initial tool-choice snapshot per problem ---
+    decision_features: dict[str, dict] = {}
+    contrasts: dict[str, dict] = {}
+    probes: dict[str, dict] = {}
+    open_requests: dict[str, dict] = {}
     for p in _PROBLEMS:
         pid = p["id"]
         tool_name, request = _initial_tool_decision(p)
-        step_info = step_lookup.get(f"{pid}_InitialDecision")
-        features_list: list[dict] = []
-        if step_info and "sae_features" in step_info:
-            top_feats = step_info["sae_features"].get("top_features", [])
-            scored = []
-            for feature in top_feats:
-                index = feature.get("index", -1)
-                activation = feature.get("activation", 0)
-                deviation = activation - feature_mean.get(index, activation)
-                scored.append((deviation, feature))
-            scored.sort(key=lambda item: item[0], reverse=True)
-            distinctive = scored[:5]
-            max_deviation = max((abs(value) for value, _ in distinctive), default=1.0) or 1.0
-            for deviation, feature in distinctive:
-                features_list.append(
-                    {
-                        "label": feature.get("label", f"Feature #{feature.get('index', '?')}"),
-                        "strength": round(abs(deviation) / max_deviation, 2),
-                        "description": feature.get("description", ""),
-                    }
-                )
+        step_name = f"{pid}_InitialDecision"
+        step_info = step_lookup.get(step_name)
+        active = active_by_step.get(step_name, [])
+        rows = rows_by_problem.get(pid, [])
+        sae_features = (step_info or {}).get("sae_features") or {}
+        theme_evidence = sae_features.get("theme_evidence") or None
+        model_choice = _model_choice_from_step(step_info)
+        # Causal column only where the HF pass and the vLLM readout agree on
+        # the baseline tool; otherwise record why it is withheld.
+        problem_attribution = attribution.get(pid)
+        causal_withheld = None
+        if problem_attribution and attribution_backends_agree(problem_attribution, model_choice):
+            attach_attribution(rows, problem_attribution)
+        elif problem_attribution:
+            causal_withheld = {
+                "reason": "hf_baseline_disagrees",
+                "hfChoice": problem_attribution.get("hfChoice"),
+                "vllmChoice": (model_choice or {}).get("display"),
+            }
+        # Phrase the summary around the tool the model actually chose when the
+        # readout exists; the tool the ask names is only a fallback.
+        sentence_tool = (model_choice or {}).get("display") or tool_name
         decision_features[pid] = {
-            "expectedTool": tool_name,
+            # The tool the ask describes — a design input, not a prediction.
+            "askTool": tool_name,
             "request": request,
-            "features": features_list,
-            "sentence": _generate_feature_sentence(tool_name, features_list),
+            "features": rows,
+            "sentence": _generate_feature_sentence(sentence_tool, rows),
+            "modelChoice": model_choice,
+            "sharedAcrossProblems": shared_rows,
+            "alsoFired": also_fired(rows, pid),
+            "themeEvidence": theme_evidence,
+            "numActive": sae_features.get("num_active"),
+            "totalFeatures": sae_features.get("total_features"),
         }
+        if problem_attribution and causal_withheld is None:
+            decision_features[pid]["attribution"] = {
+                key: value for key, value in problem_attribution.items() if key != "rows"
+            }
+        elif causal_withheld:
+            decision_features[pid]["causalWithheld"] = causal_withheld
+
+        probe_block = probe_evidence(p, rows, active_by_step, step_lookup, labels)
+        if probe_block:
+            probes[pid] = probe_block
+        open_block = open_request_evidence(p, rows, active_by_step, step_lookup, labels)
+        if open_block:
+            summary = injection_summary(
+                ((steering or {}).get("injection") or {}).get(pid), open_block.get("modelChoice")
+            )
+            if summary:
+                open_block["injection"] = summary
+            open_requests[pid] = open_block
+
+        contrast_step = step_lookup.get(f"{pid}_Contrast")
+        contrast_meta = p.get("contrast")
+        if contrast_step and contrast_meta and active:
+            variant_active = active_by_step.get(f"{pid}_Contrast", [])
+            contrast_features = contrast_step.get("sae_features") or {}
+            variant_by_index = {int(i): float(a) for i, a in variant_active}
+            # Follow the base decision's "not stated in request" features into
+            # the variant: does the model update them when the wording changes?
+            tracked = [
+                {
+                    "index": row["index"],
+                    "label": row["label"],
+                    "notStated": row["notStated"],
+                    "base": row["activation"],
+                    "variant": round(variant_by_index.get(row["index"], 0.0), 4),
+                    "delta": round(variant_by_index.get(row["index"], 0.0) - row["activation"], 4),
+                }
+                for row in rows
+                if row.get("notStated")
+            ]
+            contrasts[pid] = {
+                "request": contrast_meta["request"],
+                "changed": contrast_meta["changed"],
+                "modelChoice": _model_choice_from_step(contrast_step),
+                "themeEvidence": contrast_features.get("theme_evidence") or None,
+                "tracked": tracked,
+                **contrast_diff(active, variant_active, labels, contrast_meta["request"]),
+            }
 
     # --- recommendations: authoritative tool-grounded conclusions ---
     # The per-tool generations are useful for SAE inspection, but they are not
@@ -1447,7 +2869,7 @@ def build_ui_data(
         if estimates:
             lo = min(e["total"] for e in estimates)
             hi = max(e["total"] for e in estimates)
-            pro_cost = f"${lo}\u2013${hi}" if lo != hi else f"${lo}"
+            pro_cost = f"${lo}–${hi}" if lo != hi else f"${lo}"
         else:
             pro_cost = ""
 
@@ -1459,111 +2881,53 @@ def build_ui_data(
             "rationale": _GROUNDED_RATIONALES[pid],
         }
 
-    # --- comparison: derive from SAE feature strengths ---
-    comparison = _derive_comparison_scores(decision_features)
-
-    # --- themes: static definitions from home_repair.json contrast types ---
-    themes_raw = {
-        "diy_vs_professional": {
-            "title": "DIY vs. Professional",
-            "leftLabel": "Easy DIY",
-            "rightLabel": "Needs a Pro",
-        },
-        "urgent_vs_planned": {
-            "title": "Urgent vs. Planned",
-            "leftLabel": "Can Wait",
-            "rightLabel": "Act Now",
-        },
-        "cheap_fix_vs_replacement": {
-            "title": "Cheap Fix vs. Replacement",
-            "leftLabel": "Quick Part Swap",
-            "rightLabel": "Consider Replacing",
-        },
-        "safe_vs_hazardous": {
-            "title": "Safe vs. Hazardous",
-            "leftLabel": "Low Risk",
-            "rightLabel": "High Hazard",
-        },
-        "warranty_covered_vs_out_of_pocket": {
-            "title": "Warranty vs. Out of Pocket",
-            "leftLabel": "May Be Covered",
-            "rightLabel": "Out of Pocket",
-        },
-    }
-
-    # Load descriptions from home_repair.json if available
-    json_path = Path(__file__).parent / "home_repair.json"
-    contrast_descriptions = {}
-    if json_path.exists():
-        with open(json_path) as f:
-            hr_config = json.load(f)
-        contrast_descriptions = hr_config.get("contrast_types", {})
-
-    # Map comparison themes to theme IDs for marker derivation
-    theme_to_comparison = {
-        "diy_vs_professional": "DIY Feasibility",
-        "urgent_vs_planned": "Urgency Level",
-        "cheap_fix_vs_replacement": "Cost Sensitivity",
-        "safe_vs_hazardous": "Safety Concern",
-        "warranty_covered_vs_out_of_pocket": "Age / Warranty Factor",
-    }
-
+    # --- themes: contrast-type definitions + contrastive-map evidence ---
     themes = []
-    for theme_id, tmeta in themes_raw.items():
-        desc = contrast_descriptions.get(theme_id, "")
-        comp_key = theme_to_comparison.get(theme_id, "")
-        comp_scores = comparison.get(comp_key, {})
-        markers = {}
-        for pid in ["dishwasher_leak", "disposal_stuck", "water_heater_noise"]:
-            score = comp_scores.get(pid, 0)
-            # The DIY spectrum runs from Easy DIY (left) to Needs a Pro
-            # (right), while a higher comparison score means more DIY signal.
-            markers[pid] = 100 - score if theme_id == "diy_vs_professional" else score
-
-        # Identify top 2 features driving this theme
-        comp_theme_kws = _THEME_KEYWORDS.get(comp_key, [])
-        driving_features: list[str] = []
-        for decision in decision_features.values():
-            for feature in decision.get("features", []):
-                label = feature.get("label", "")
-                if (
-                    _label_matches_keywords(label, comp_theme_kws)
-                    and label not in driving_features
-                ):
-                    driving_features.append(label)
-        driving_features = driving_features[:2]
-        if driving_features:
-            features_html = "Driven by " + " and ".join(
-                f"<strong>{lbl}</strong>" for lbl in driving_features
-            )
-        else:
-            features_html = ""
-
+    for theme_id, tmeta in _THEME_META.items():
+        evidence = {}
+        for p in _PROBLEMS:
+            theme_evidence = decision_features[p["id"]].get("themeEvidence") or {}
+            if theme_id in theme_evidence:
+                evidence[p["id"]] = theme_evidence[theme_id]
         themes.append(
             {
                 "id": theme_id,
                 "title": tmeta["title"],
-                "description": desc,
-                "leftLabel": tmeta["leftLabel"],
-                "rightLabel": tmeta["rightLabel"],
-                "markers": markers,
-                "features": features_html,
+                "description": _SCENARIO.get("contrast_types", {}).get(theme_id, ""),
+                "leftLabel": tmeta["anchorLabel"],
+                "rightLabel": tmeta["contrastLabel"],
+                "evidence": evidence,
             }
         )
 
-    return {
-        "runMetadata": {
-            "model": Path(model_name).name,
-            "saeLayer": sae_layer,
-            "thresholdOffset": threshold_offset,
-        },
+    run_metadata = {
+        "model": Path(model_name).name,
+        "saeLayer": sae_layer,
+        "thresholdOffset": threshold_offset,
+    }
+    if analysis.get("backend"):
+        run_metadata["backend"] = analysis["backend"]
+    if analysis.get("logprobs_mode"):
+        run_metadata["logprobsMode"] = analysis["logprobs_mode"]
+    hf_summary = hf_parity_summary(steering)
+    if hf_summary:
+        run_metadata["hf"] = hf_summary
+
+    ui_data = {
+        "runMetadata": run_metadata,
         "problems": problems,
         "toolResults": tool_results,
         "decisionFeatures": decision_features,
         "recommendations": recommendations,
-        "comparison": comparison,
         "themes": themes,
     }
+    if contrasts:
+        ui_data["contrasts"] = contrasts
+    if probes:
+        ui_data["probes"] = probes
+    if open_requests:
+        ui_data["openRequests"] = open_requests
+    return ui_data
 
 
 # ---------------------------------------------------------------------------
@@ -1791,14 +3155,22 @@ def print_analysis_summary(analysis: dict):
                     theme_names = [t["theme"] for t in themes[:2]]
                     theme_str = f"  [{', '.join(theme_names)}]"
                 print(f"      {label}: {feat['activation']:.4f}{theme_str}")
-            # Show theme activation summary
-            theme_acts = sae.get("theme_activations", {})
-            if theme_acts:
-                print("    Theme signals:")
-                for theme, info in list(theme_acts.items())[:5]:
+            # Show contrastive theme evidence
+            theme_evidence = sae.get("theme_evidence") or {}
+            if theme_evidence:
+                print("    Theme evidence (position toward contrast side, 0-1):")
+                for theme, info in theme_evidence.items():
+                    flag = " (insufficient)" if info.get("insufficient") else ""
                     print(
-                        f"      {theme}: score={info['total_score']:.2f} ({info['num_features']} features)"
+                        f"      {theme}: position={info['position']:.2f} "
+                        f"({info['nFeatures']} features, coverage {info['coverage']:.1%}){flag}"
                     )
+        decision = step_info.get("decision")
+        if decision:
+            print(
+                f"    Model tool choice: {decision.get('display')} "
+                f"(p={decision.get('prob', 0):.2f}, coverage {decision.get('coverage', 0):.2f})"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1812,24 +3184,26 @@ def analysis_from_evaluation_report(report: dict, sae_layer: int) -> dict:
     This lets the HTML use activations from the same backend that trained and
     validated the SAEs, without loading the subject model a second time through
     HuggingFace merely to construct ``ui_data.json``.
+
+    Accepts both the legacy report (three base prompts, ``top_features`` only)
+    and the current one (base + contrast prompts, ``active_features``,
+    ``theme_evidence`` and a tool-choice ``decisions`` list).
     """
-    expected_prompts = []
-    for problem in _PROBLEMS:
-        tool_name, request = _initial_tool_decision(problem)
-        expected_prompts.append(
-            {
-                "step": f"{problem['id']}_InitialDecision",
-                "problem": problem["id"],
-                "tool": tool_name,
-                "request": request,
-            }
-        )
+
+    def _key(prompt: dict) -> tuple[str, str, str]:
+        return (prompt["step"], prompt.get("kind", "base"), prompt["request"])
 
     prompts = report.get("prompts", [])
-    if prompts != expected_prompts:
+    report_keys = [_key(prompt) for prompt in prompts]
+    base_keys = [_key(prompt) for prompt in decision_prompts(include_contrasts=False)]
+    full_keys = [_key(prompt) for prompt in decision_prompts(include_contrasts=True)]
+    probe_keys = [
+        _key(prompt) for prompt in decision_prompts(include_contrasts=True, include_probes=True)
+    ]
+    if report_keys not in (base_keys, full_keys, probe_keys):
         raise ValueError(
             "The evaluation report prompts do not match the current home-repair "
-            "demo decisions. Rerun evaluate_sae_layers.py before building the UI."
+            "demo decisions. Rerun compare_sae_backends.py before building the UI."
         )
 
     layer_result = next(
@@ -1842,25 +3216,37 @@ def analysis_from_evaluation_report(report: dict, sae_layer: int) -> dict:
     top_features = layer_result.get("top_features", [])
     per_prompt_l0 = layer_result.get("l0", {}).get("per_prompt", [])
     if len(top_features) != len(prompts) or len(per_prompt_l0) != len(prompts):
-        raise ValueError(
-            "Evaluation report has inconsistent prompt, feature, or L0 row counts."
-        )
+        raise ValueError("Evaluation report has inconsistent prompt, feature, or L0 row counts.")
+    active_features = layer_result.get("active_features") or [None] * len(prompts)
+    theme_evidence = layer_result.get("theme_evidence") or [None] * len(prompts)
+    if len(active_features) != len(prompts) or len(theme_evidence) != len(prompts):
+        raise ValueError("Evaluation report active_features/theme_evidence rows do not align.")
+
+    decisions_by_step: dict[str, dict] = {}
+    for decision in report.get("decisions") or []:
+        if decision and decision.get("step"):
+            decisions_by_step[decision["step"]] = decision
 
     d_sae = int(layer_result["d_sae"])
     steps = []
-    for prompt, features, active_count in zip(
-        prompts, top_features, per_prompt_l0, strict=True
+    for prompt, features, active, evidence, active_count in zip(
+        prompts, top_features, active_features, theme_evidence, per_prompt_l0, strict=True
     ):
         steps.append(
             {
                 "step": prompt["step"],
+                "kind": prompt.get("kind", "base"),
+                "problem": prompt.get("problem"),
+                "request": prompt["request"],
                 "sae_features": {
                     "num_active": int(active_count),
                     "total_features": d_sae,
                     "sparsity_pct": (1.0 - int(active_count) / d_sae) * 100.0,
                     "top_features": features,
-                    "theme_activations": {},
+                    "active_features": active or features,
+                    "theme_evidence": evidence,
                 },
+                "decision": decisions_by_step.get(prompt["step"]),
             }
         )
 
@@ -1872,6 +3258,8 @@ def analysis_from_evaluation_report(report: dict, sae_layer: int) -> dict:
         "sae_layer_key": f"residual_{sae_layer}",
         "sae_source": report.get("model", ""),
         "sae_threshold_offset": report.get("threshold_offset", 0.0),
+        "backend": report.get("backend", "vllm"),
+        "logprobs_mode": report.get("logprobs_mode"),
     }
 
 
@@ -1970,7 +3358,19 @@ def main():
         help="Build ui_data.json from a modified-vLLM SAE evaluation report "
         "without loading the subject model",
     )
+    parser.add_argument(
+        "--steering",
+        type=str,
+        default=None,
+        metavar="STEERING_JSON",
+        help="Optional steering_results.json (from steer_tool_choice.py) to merge "
+        "into ui_data.json",
+    )
     args = parser.parse_args()
+
+    steering = None
+    if args.steering:
+        steering = json.loads(Path(args.steering).read_text())
 
     if args.ui_from_evaluation:
         report_path = Path(args.ui_from_evaluation)
@@ -1986,7 +3386,9 @@ def main():
             model_name=report.get("model", args.model_name),
             sae_layer=args.sae_layer,
             threshold_offset=report.get("threshold_offset", 0.0),
+            steering=steering,
         )
+        ui_data = attach_spec_sheet(ui_data, "home_repair", args.sae_layer)
         ui_path = output_path / "ui_data.json"
         ui_path.write_text(json.dumps(ui_data, indent=2, ensure_ascii=False) + "\n")
         print(f"Built {ui_path} from {report_path} (SAE layer {args.sae_layer}).")
@@ -2011,6 +3413,12 @@ def main():
         allow_thinking=args.thinking,
     )
     final_recommendation, per_problem = run_home_repair_analysis(engine, args.youtube_api_key)
+
+    # Contrast variants: one edited-wording prompt per problem, recorded after
+    # the scripted analysis so the decision log keeps its base-first order.
+    for prompt in decision_prompts(include_contrasts=True):
+        if prompt["kind"] == "contrast":
+            engine.record_tool_decision(prompt["step"], prompt["request"])
 
     print(f"\n{'=' * 60}")
     print(f"  Analysis complete. {len(engine.prompt_log)} decision points recorded.")
@@ -2094,7 +3502,9 @@ def main():
         model_name=args.model_name,
         sae_layer=args.sae_layer,
         threshold_offset=args.sae_threshold_offset,
+        steering=steering,
     )
+    ui_data = attach_spec_sheet(ui_data, "home_repair", args.sae_layer)
     with open(output_path / "ui_data.json", "w") as f:
         json.dump(ui_data, f, indent=2, ensure_ascii=False)
 
