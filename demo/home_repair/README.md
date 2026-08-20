@@ -6,9 +6,9 @@ with p ≈ 1, and a sweep of 743 anchor/contrast pairs from the scenario's own t
 the audit grid below (27 of 27 non-part-ask cells saturated at p ≥ 0.95). There is nothing here
 for a feature-level intervention to flip; the demo where the decision actually moves is
 [`../tool_selection/`](../tool_selection/), and the instrument's limits are measured in
-[`../spec_sheet/`](../spec_sheet/). So instead of pretending to explain a decision, the page
-audits what the SAE features *read into* a request — with every claim of an "inference"
-validated by textual ablation, and a failed idea reported the way it died.
+[`../spec_sheet/`](../spec_sheet/). The page therefore audits what the SAE features *read into*
+a request: every claim of an "inference" is validated by textual ablation, and an instrument
+built on those same features is reported together with the pre-registered gate it failed.
 
 What the page (`index.html`) shows:
 
@@ -19,24 +19,25 @@ What the page (`index.html`) shows:
    a feature counts as *inferred* only when its label carries content the request never states
    *and* exactly one dial carries its activation (largest marginal range ≥ 0.5 and ≥ 2× the
    runner-up — the balanced grid makes the marginal means clean main effects).
-2. **The one soft decision the grid found** — the part ask is the only non-saturated one:
+2. **Where one word changes the model's mind** — the part ask is the only non-saturated one:
    buying the anode rod competes with checking the manual first (ManualCheck 0.53–0.70 in the
    non-tied cells), a stated 12-year-old always leans harder to the manual than a stated
    2-year-old, and three cells are dead ties at ≈ 0.498.
-3. **Features the grid validates as inferences** — the deduped inferred features with their
+3. **Which readings survive the test** — the deduped inferred features with their
    validating dial and marginal means, including the honest catch that the dial is not always
    what the label says (a "Gas appliance repair video search" feature follows the *ask* dial).
-4. **The safety tripwire — tested, and dead** — the pre-registered post-mortem below.
-5. – 7. **The case study** (kept from the demotion): the request and its immovable choice, the
-   feature snapshot with the *not stated in request* badge, and the null intervention with its
-   controls (HF backend, parity shown).
+4. **The safety alarm we tried to build — tested, and dead** — the pre-registered post-mortem
+   below, with both gates, the refuted side-prediction, and the behavioural table.
+5. – 7. **The case study — one request, read end to end**: the request and its immovable choice,
+   the feature snapshot with the *not stated in request* badge, and the ablation that moves
+   nothing, shown with its controls (HF backend, parity reported).
 8. **Context** — the 0-flippable-pairs sweep, the depth curve, and links out.
 
 The pipeline below still measures far more than the page shows — contrasts for all three
 problems, paraphrase/keyword probes, situation-only ("open") requests, contrast-dimension
 evidence, per-row causal attribution — and all of it stays in `ui_data.json` and in the results
-section of this README. The page just no longer pretends the scenario supports a full
-interactive demo on top of a null.
+section of this README. The page renders the slice a reader can act on; the rest is kept for the
+record and for the tests.
 
 ## Files
 

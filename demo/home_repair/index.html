@@ -166,15 +166,16 @@ body {
      ============================================================ -->
 <header class="hero">
   <div class="container">
-    <div class="casestudy-tag">Audit — 36-cell grid &middot; tripwire post-mortem &middot; case study</div>
+    <div class="casestudy-tag">Interactive &middot; change the request, watch what the model reads</div>
     <h1>The Inference Auditor</h1>
     <p class="subtitle">
-      In this scenario the model's first tool is locked by the ask — 0 of 743 training pairs flip
-      it. So instead of pretending to explain a decision, this page audits what the SAE features
-      <em>read into</em> a request: every claim of an "inference" is checked by toggling one dial
-      of the request at a time, and a safety tripwire built on the same features is reported the
-      way it died — against a pre-registered gate. The demo where the decision <em>does</em> move
-      is <a href="../tool_selection/index.html" style="color:var(--gray-300)">tool selection</a>.
+      A repair agent reads a customer's complaint and picks a tool. This page opens the model at
+      that exact moment — which of its sparse-autoencoder features fire, and what they claim it is
+      reading into the request. Then it tests every one of those claims by changing a single word
+      of the request and watching what moves. Readings that survive are marked; so are the ones
+      that don't, and so is an alarm we tried to build out of these features and couldn't. The
+      demo where these features move a real decision is
+      <a href="../tool_selection/index.html" style="color:var(--gray-300)">tool selection</a>.
     </p>
     <p id="data-source">Loading...</p>
   </div>
@@ -189,27 +190,27 @@ body {
   </section>
 
   <section class="panel" id="soft-region-section" style="display:none">
-    <h2><span class="step-no">2</span>The one soft decision the grid found</h2>
+    <h2><span class="step-no">2</span>Where one word changes the model’s mind</h2>
     <div id="soft-region-host"></div>
   </section>
 
   <section class="panel" id="axis-findings-section" style="display:none">
-    <h2><span class="step-no">3</span>Features the grid validates as inferences</h2>
+    <h2><span class="step-no">3</span>Which readings survive the test</h2>
     <div id="axis-findings-host"></div>
   </section>
 
   <section class="panel" id="tripwire-section" style="display:none">
-    <h2><span class="step-no">4</span>The safety tripwire — tested, and dead</h2>
+    <h2><span class="step-no">4</span>The safety alarm we tried to build — tested, and dead</h2>
     <div id="tripwire-host"></div>
   </section>
 
   <!-- Case-study panels 5–7, rendered from DATA -->
-  <div class="section-divider">Case study — reading the decision that won't move</div>
+  <div class="section-divider">Case study — one request, read end to end</div>
   <div id="case-study"></div>
 
   <!-- Panel 4: why the null (static context; numbers from output/sweep/) -->
   <section class="panel" id="context-section">
-    <h2><span class="step-no">8</span>Why the intervention is a null — and where the positive result lives</h2>
+    <h2><span class="step-no">8</span>Why nothing moved here — and where it does</h2>
     <p style="font-size:0.88rem">
       A sweep of this scenario's own training pairs (743 anchor/contrast duos, all five configured
       contrast dimensions, <code>output/sweep/training_pairs_flips.json</code>) found <strong>zero
@@ -332,8 +333,9 @@ function renderRequestPanel(decision) {
   <section class="panel">
     <h2><span class="step-no">5</span>The request, and the choice it forces</h2>
     <div class="request-quote">“${esc(decision.request)}”</div>
-    <p class="choice-meta">The ask all but names ${esc(toolName(decision.askTool))} — by construction; every request
-      in this scenario states what it wants. The readout only has to confirm the obvious:</p>
+    <p class="choice-meta">This customer says what they want, so the tool is no surprise —
+      ${esc(toolName(decision.askTool))}. Measured anyway, because everything below is read at the exact token
+      where the model commits to it:</p>
     ${renderModelChoice(decision.modelChoice)}
   </section>`;
 }
@@ -357,7 +359,7 @@ function notStatedEvidence(decision, contrast) {
   const flagged = (decision.features || []).filter(f => f.notStated && f.notStated.length);
   if (!flagged.length) return '';
   const words = [...new Set(flagged.flatMap(f => f.notStated))];
-  let html = `<div class="evidence-note"><strong>The row worth keeping:</strong>
+  let html = `<div class="evidence-note"><strong>What is worth noticing:</strong>
     ${flagged.length} of the ${decision.features.length} strongest features carry content the request
     never states (${words.map(w => `“${esc(w)}”`).join(', ')}). The model is not echoing keywords there —
     it is reading something into the situation.`;
@@ -409,7 +411,7 @@ function renderNullPanel(decision, open) {
   if (!attr || !attr.allRows) {
     return `
   <section class="panel">
-    <h2><span class="step-no">7</span>Switching the features off — the null, with its controls</h2>
+    <h2><span class="step-no">7</span>Switching the features off — and watching nothing happen</h2>
     <div class="empty-note">No intervention results in this run (the HF steering pass has not been executed).</div>
   </section>`;
   }
@@ -437,7 +439,7 @@ function renderNullPanel(decision, open) {
   }
   return `
   <section class="panel">
-    <h2><span class="step-no">7</span>Switching the features off — the null, with its controls</h2>
+    <h2><span class="step-no">7</span>Switching the features off — and watching nothing happen</h2>
     <p style="font-size:0.88rem">Every feature family above was ablated at the decision token and the
       tool distribution re-read. The result is a null, and it comes with the controls that make a
       null meaningful:</p>
@@ -541,15 +543,18 @@ function renderAuditor() {
   const summary = audit.askSummary || {};
   const saturated = Object.entries(summary).filter(([, v]) => v.cells && v.saturated === v.cells).map(([k]) => k);
   host.innerHTML = `
-    <p style="font-size:0.88rem">One water-heater complaint, three dials — what is asked for, the stated fuel, the
-      stated age. Every combination (${audit.cells.length} cells) was captured in one session at layer
-      ${esc(String(audit.layer))} on the ${esc(audit.backend || 'vllm')} backend. Toggle the dials; the cell below
-      re-renders from the captured grid.</p>
+    <p style="font-size:0.88rem">One customer complaint about a water heater, and three dials you can turn:
+      what the customer asks for, whether they mention the fuel, whether they mention the age. Every
+      combination was captured from the running model — ${audit.cells.length} of them — so turning a dial
+      swaps in a real measurement, not a guess.
+      <span class="feature-meta">(Activations at the token where the model commits to a tool; layer
+      ${esc(String(audit.layer))}, ${esc(audit.backend || 'vllm')} backend.)</span></p>
     <div id="auditor-controls"></div>
     <div id="auditor-cell"></div>
-    ${saturated.length ? `<p class="choice-meta">Decision saturation: the ${saturated.map(esc).join(' / ')} asks pick
-      their tool with p ≥ 0.95 in every one of their cells — on those asks the other dials change only what is
-      read, never what is done. The part ask is the exception; next panel.</p>` : ''}`;
+    ${saturated.length ? `<p class="choice-meta">Notice what does <em>not</em> happen: with a
+      ${saturated.map(esc).join(' / ')} ask, the model picks the same tool with p ≥ 0.95 in every single cell.
+      Fuel and age change what the features read — never what the model does. One ask breaks that pattern,
+      and it is next.</p>` : ''}`;
   section.style.display = '';
   renderAuditorControls();
   renderAuditorCell();
@@ -570,9 +575,9 @@ function renderSoftRegion() {
       <span class="feature-meta">vs ${esc(TOOL_SHORT[entry.runnerUp] || entry.runnerUp || '–')} ${num(entry.runnerUpProb, 2)}</span>`;
   };
   host.innerHTML = `
-    <p style="font-size:0.88rem">The “${esc(soft.ask)}” ask is the only one the model hesitates on — buying the
-      part competes with checking the manual first. The dials that never move a saturated ask visibly move
-      this one:</p>
+    <p style="font-size:0.88rem">Ask for a replacement part and the model hesitates for the first time:
+      order the part, or look up the manual and diagnose first? The dials that did nothing a moment ago
+      now decide it:</p>
     <div class="null-wrap"><table class="null-table matrix-table">
       <tr><th>fuel ↓ &nbsp; age →</th>${ages.map(a => `<th>${esc(a)}</th>`).join('')}</tr>
       ${fuels.map(fuel => `<tr><td><strong>${esc(fuel)}</strong></td>${ages.map(age => `<td>${cellHtml(soft.matrix[fuel]?.[age])}</td>`).join('')}</tr>`).join('')}
@@ -607,9 +612,11 @@ function renderAxisFindings() {
   const rest = findings.slice(8);
   const askDriven = findings.find(f => f.axis === 'ask' && /\bgas\b|\belectric/i.test(f.label || ''));
   host.innerHTML = `
-    <p style="font-size:0.88rem">A feature counts as an <em>inference</em> only when its label carries content the
-      request never states <em>and</em> exactly one dial carries its activation (largest marginal range ≥ 0.5 and
-      ≥ 2× the runner-up dial). Mean activation per value of each feature's validating dial:</p>
+    <p style="font-size:0.88rem">A feature only earns the word <em>inference</em> here if it passes two tests:
+      its label mentions something the request never says, <em>and</em> turning exactly one dial is what makes it
+      fire. Below, each feature's average strength at every setting of the dial that moves it — the shape of the
+      bars <em>is</em> the evidence.
+      <span class="feature-meta">(The dominant dial must span ≥ 0.5 and beat the runner-up dial 2:1.)</span></p>
     ${top.map(row).join('')}
     ${rest.length ? `<details class="sub-details"><summary>${rest.length} more grid-validated inferences</summary>${rest.map(row).join('')}</details>` : ''}
     ${askDriven ? `<p class="evidence-note"><strong>Read the labels with care:</strong> the dial tells you what
@@ -637,9 +644,10 @@ function renderTripwire() {
   const silent = behavioral.filter(p => !p.flipped && !p.safetyMentions?.length);
   const allElectrical = flips.length > 0 && flips.every(p => p.family === 'electrical' || /electric|breaker|outlet|cord|tingle/i.test(p.cue || ''));
   host.innerHTML = `
-    <p style="font-size:0.88rem">The idea: score each request's activation mass on the hazardous side of the
-      training contrastive map, and alarm when a hazard-plus-compliant-DIY-ask request clearly exceeds its
-      matched hazard-free control. It was given a hard gate before the data was read — and failed it twice:</p>
+    <p style="font-size:0.88rem">The idea was an alarm. Someone reports a gas smell or a tripping breaker
+      but still asks for a do-it-yourself video: add up how strongly the model's hazard-related features fire,
+      and raise a flag when that total clearly beats the same request with the hazard removed. We fixed the
+      pass mark before looking at any data. It failed twice:</p>
     <div class="null-wrap"><table class="null-table">
       <tr><th>Round</th><th>Result</th><th>Verdict</th></tr>
       ${gateRow('Selection pairs (the metric was designed on these)', tripwire.selection?.layer, tripwire.selection?.gate)}
