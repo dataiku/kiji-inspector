@@ -898,7 +898,12 @@ def test_evaluation_report_rejects_mismatched_prompts(home_repair_demo):
         home_repair_demo.analysis_from_evaluation_report(report, 27)
 
 
-def test_html_reads_new_schema_and_guards_optional_sections():
+def test_html_is_an_auditor_page_with_a_case_study():
+    """The rebuilt page leads with the audit sections (grid dials, soft
+    region, axis findings, tripwire post-mortem) rendered from the optional
+    ``audit``/``tripwire`` blocks and hidden without them, keeps the demoted
+    case-study slice below, and the problem-card / comparison / theme /
+    timeline / polling apparatus stays gone."""
     html_path = Path(__file__).parents[1] / "demo" / "home_repair" / "index.html"
     html = html_path.read_text()
 
@@ -908,22 +913,71 @@ def test_html_reads_new_schema_and_guards_optional_sections():
         script[: script.index("/* MOCK_DATA_START */")]
         + script[script.index("/* MOCK_DATA_END */") :]
     )
-    assert "DATA.comparison" not in script
-    assert "ui.comparison" not in script
-    assert "themes[*].evidence" in html or ".evidence" in script
-    assert "DATA.contrasts?.[" in script or "DATA.contrasts && DATA.contrasts[" in script
-    assert "DATA.steering" not in script and "renderSteering" not in script
-    assert "DATA.probes?.[" in script
-    assert "DATA.openRequests?.[" in script and "renderOpenRequest" in script
+
+    # The slice the page reads, with every optional access guarded.
+    assert "DATA.contrasts?.[" in code
+    assert "DATA.openRequests?.[" in code
+    assert "readout unavailable" in code  # modelChoice may be null
+    assert "No intervention results" in code  # attribution may be absent
+    assert "not stated in request" in code
+    assert "causal" in code and "controlThreshold" in code
     assert "matchesExpected" not in code and "expectedTool" not in code
-    assert "causal" in script
-    assert "modelChoice" in script
-    assert "strengthLabel" not in script
-    assert "safely('comparison', renderComparison);" in html
-    assert html.index("safely('comparison', renderComparison);") < html.index(
-        "safely('problem detail', renderDetail);"
-    )
-    assert "clearInterval" in script
+
+    # The demoted apparatus stays gone.
+    for gone in (
+        "renderProblemCards",
+        "renderComparison",
+        "renderThemes",
+        "renderProbes",
+        "renderOpenRequest",
+        "renderDetail",
+        "selectProblem",
+        "DATA.comparison",
+        "ui.comparison",
+        "DATA.steering",
+        "strengthLabel",
+        "timeline",
+        "setInterval",
+        "progress.json",
+    ):
+        assert gone not in code, gone
+    assert "Scripted evidence" not in html
+
+    # Single fetch with the embedded fallback; the context section links out.
+    assert "output/ui_data.json" in code
+    assert "MOCK_DATA" in code
+    assert "../tool_selection/index.html" in html
+    assert "training_pairs_flips.json" in html
+
+    # The audit sections render from the optional blocks and hide without them.
+    for section in (
+        "auditor-section",
+        "soft-region-section",
+        "axis-findings-section",
+        "tripwire-section",
+    ):
+        assert f'id="{section}" style="display:none"' in html, section
+    for renderer in (
+        "renderAuditor",
+        "renderSoftRegion",
+        "renderAxisFindings",
+        "renderTripwire",
+    ):
+        assert renderer in code, renderer
+    assert "DATA.audit" in code and "DATA.tripwire" in code
+
+    # The bins are the captured verdicts, rendered as badges with reasons.
+    assert "tag--stated" in code and "tag--ambient" in code
+    assert "binTag" in code and "row.reason" in code
+
+    # The tripwire section reports the pre-registered negative result from data.
+    assert "holdout_prereg.md" in code
+    assert "nearMisses" in code and "sidePrediction" in code
+    assert "safetyMentions" in code
+    assert "NO-GO" in code
+
+    # The embedded snapshot carries the new blocks alongside the old schema.
+    assert '"audit":' in html and '"tripwire":' in html
 
 
 def test_final_recommendation_is_complete_and_tool_grounded(home_repair_demo, monkeypatch):
