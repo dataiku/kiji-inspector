@@ -40,6 +40,12 @@ dependencies = [
 [project.optional-dependencies]
 full = [
     "accelerate>=1.13.0",
+    # Fused Mamba kernels for the HuggingFace path (transformers resolves
+    # causal-conv1d / mamba-ssm from the kernels hub). Without them hybrid
+    # Mamba models (NemotronH) fall back to the naive scan and their residual
+    # stream drifts from vLLM (cosine ~0.93 vs ~0.99+). Upper bound mirrors
+    # transformers' KERNELS_MAX_VERSION.
+    "kernels>=0.15.2,<0.16",
     # vllm is intentionally absent: extraction needs the hidden-states
     # connector, which upstream wheels don't ship yet — it only exists in the
     # Davidnet/vllm fork built into the Docker image (see Dockerfile). Once the

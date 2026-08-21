@@ -42,6 +42,9 @@ class SAETrainingConfig:
     d_sae: int = 16384
     bandwidth: float = 0.001
     threshold_init: float = 0.01
+    auto_calibrate_threshold: bool = False
+    threshold_calibration_multiplier: float = 4.0
+    threshold_calibration_batches: int = 8
 
     # Optimiser
     batch_size: int = 8192
@@ -243,6 +246,62 @@ def _sparsity_warmup(step: int, target: float, warmup_steps: int) -> float:
     return target * (step / warmup_steps)
 
 
+@torch.no_grad()
+def _auto_calibrate_thresholds(
+    sae: JumpReLUSAE,
+    activation_buffer: CachedActivationBuffer,
+    target_l0: float,
+    num_batches: int = 8,
+) -> dict[str, float]:
+    """Set per-feature thresholds from empirical pre-activation quantiles.
+
+    Each feature receives the quantile that gives it the requested activation
+    rate on a representative sample. Averaged across features, that rate
+    corresponds to ``target_l0 / d_sae`` and therefore warm-starts the SAE at
+    approximately ``target_l0`` active features per vector.
+    """
+    if not 0 < target_l0 < sae.d_sae:
+        raise ValueError(f"Calibration L0 must be between 0 and d_sae ({sae.d_sae})")
+    if num_batches < 1:
+        raise ValueError("threshold_calibration_batches must be at least 1")
+
+    device = next(sae.parameters()).device
+    was_training = sae.training
+    sae.eval()
+    pre_activations = []
+
+    for batch_idx, batch in enumerate(activation_buffer):
+        if batch_idx >= num_batches:
+            break
+        batch = batch.to(device=device, dtype=sae.W_enc.dtype)
+        pre_activation = (batch - sae.b_dec) @ sae.W_enc + sae.b_enc
+        pre_activations.append(pre_activation.float())
+
+    if not pre_activations:
+        raise ValueError("Activation buffer produced no batches for threshold calibration")
+
+    sample = torch.cat(pre_activations, dim=0)
+    quantile = 1.0 - target_l0 / sae.d_sae
+    calibrated = torch.quantile(sample, quantile, dim=0)
+    sae.threshold.copy_(calibrated.to(dtype=sae.threshold.dtype))
+
+    # Measure after casting thresholds to the model dtype; bf16 rounding can
+    # move values that land directly on a quantile boundary.
+    achieved_l0 = (sample > sae.threshold.float()).float().sum(dim=-1).mean().item()
+    stats = {
+        "requested_l0": float(target_l0),
+        "achieved_l0": achieved_l0,
+        "sample_vectors": float(sample.shape[0]),
+        "threshold_mean": sae.threshold.float().mean().item(),
+        "threshold_std": sae.threshold.float().std().item(),
+        "threshold_min": sae.threshold.float().min().item(),
+        "threshold_max": sae.threshold.float().max().item(),
+    }
+
+    sae.train(was_training)
+    return stats
+
+
 class _AdaptiveL1Controller:
     """PI controller that adjusts l1_coefficient to hit a target L0.
 
@@ -414,6 +473,8 @@ def _resample_dead_features(
     sae: JumpReLUSAE,
     dead_indices: torch.Tensor,
     activation_buffer: CachedActivationBuffer,
+    optimizer: AdamW | None = None,
+    target_l0: float | None = None,
     num_batches: int = 5,
     noise_scale: float = 0.2,
 ) -> int:
@@ -423,14 +484,17 @@ def _resample_dead_features(
     device = next(sae.parameters()).device
     dtype = next(sae.parameters()).dtype
 
-    # Collect high-loss inputs
+    # Collect high-loss inputs for new decoder directions, plus the complete
+    # sample used to calibrate each new feature's activation rate.
     high_loss_inputs = []
+    sampled_inputs = []
     sae.eval()
     with torch.inference_mode():
         for i, batch in enumerate(activation_buffer):
             if i >= num_batches:
                 break
             batch = batch.to(device)
+            sampled_inputs.append(batch)
             reconstruction, _, _ = sae.forward(batch)
             losses = (batch - reconstruction).pow(2).mean(dim=-1)
             k = max(1, len(losses) // 10)
@@ -441,21 +505,67 @@ def _resample_dead_features(
         return 0
 
     high_loss_inputs = torch.cat(high_loss_inputs, dim=0)
+    sampled_inputs = torch.cat(sampled_inputs, dim=0)
     n = min(len(dead_indices), len(high_loss_inputs))
+    resampled = dead_indices[:n]
 
     with torch.no_grad():
         for i in range(n):
-            idx = dead_indices[i].item()
-            direction = high_loss_inputs[i % len(high_loss_inputs)]
+            idx = resampled[i].item()
+            direction = high_loss_inputs[i]
             direction = direction / (direction.norm() + 1e-8)
-            noise = torch.randn_like(direction) * noise_scale
-            direction = direction + noise
+            noise = torch.randn_like(direction)
+            noise = noise / (noise.norm() + 1e-8)
+            direction = direction + noise_scale * noise
             direction = direction / (direction.norm() + 1e-8)
 
             sae.W_enc[:, idx] = direction.to(dtype)
             sae.W_dec[idx, :] = direction.to(dtype)
             sae.b_enc[idx] = 0.0
-            sae.threshold[idx] = 0.01
+
+        # A fixed 0.01 threshold makes every resampled feature fire on roughly
+        # half the data and destroys a calibrated L0. Instead, assign the
+        # empirical quantile corresponding to the target per-feature firing
+        # rate. With N resampled features, their expected L0 contribution is
+        # N * target_l0 / d_sae rather than approximately N / 2.
+        pre_activation = (
+            (sampled_inputs - sae.b_dec) @ sae.W_enc[:, resampled] + sae.b_enc[resampled]
+        ).float()
+        if target_l0 is not None:
+            if not 0 < target_l0 < sae.d_sae:
+                raise ValueError(f"Resampling target L0 must be between 0 and d_sae ({sae.d_sae})")
+            quantile = 1.0 - target_l0 / sae.d_sae
+            thresholds = torch.quantile(pre_activation, quantile, dim=0)
+        else:
+            # Fixed-L1 runs have no requested firing rate. Preserve the
+            # trained threshold scale instead of returning to the dense init.
+            thresholds = sae.threshold.float().median().expand(n)
+        sae.threshold[resampled] = thresholds.to(dtype)
+
+        achieved_rate = (pre_activation > sae.threshold[resampled].float()).float().mean().item()
+
+        # Adam moments attached to the old, dead feature would otherwise push
+        # the newly initialized direction and threshold on the next update.
+        if optimizer is not None:
+            feature_axes = (
+                (sae.W_enc, 1),
+                (sae.W_dec, 0),
+                (sae.b_enc, 0),
+                (sae.threshold, 0),
+            )
+            for parameter, feature_axis in feature_axes:
+                for value in optimizer.state.get(parameter, {}).values():
+                    if not torch.is_tensor(value) or value.shape != parameter.shape:
+                        continue
+                    if feature_axis == 0:
+                        value[resampled] = 0
+                    else:
+                        value[:, resampled] = 0
+
+    print(
+        f"  Resampled feature firing rate: {100 * achieved_rate:.3f}% "
+        f"(expected L0 contribution: {n * achieved_rate:.2f})"
+    )
 
     return n
 
@@ -774,6 +884,13 @@ def train_sae(
     print(f"  L1 coefficient    : {config.l1_coefficient}")
     if config.target_l0 is not None:
         print(f"  Target L0         : {config.target_l0} (adaptive l1)")
+    if config.auto_calibrate_threshold:
+        print(
+            f"  Threshold init    : auto ({config.threshold_calibration_multiplier:g}x target, "
+            f"{config.threshold_calibration_batches} batches)"
+        )
+    else:
+        print(f"  Threshold init    : {config.threshold_init}")
     print(
         f"  Warmup steps      : {config.warmup_steps} ({100 * config.warmup_steps / total_steps:.1f}%)"
     )
@@ -786,6 +903,7 @@ def train_sae(
     print(
         f"  Checkpoint every  : {config.checkpoint_every} ({100 * config.checkpoint_every / total_steps:.1f}%)"
     )
+    print(f"  Dead resampling   : {config.resample_dead_features}")
     print(f"  Auto-scaled       : {config.auto_scale_steps}")
     print(f"  Device            : {device}")
     print("=" * 70)
@@ -799,6 +917,34 @@ def train_sae(
         threshold_init=config.threshold_init,
     ).to(device)
     print(f"SAE parameters: {sae.get_num_parameters():,}")
+
+    if config.auto_calibrate_threshold:
+        if config.target_l0 is None:
+            raise ValueError("--auto-calibrate-threshold requires --target-l0")
+        if config.threshold_calibration_multiplier <= 0:
+            raise ValueError("threshold_calibration_multiplier must be positive")
+        if config.resume_from:
+            print("Skipping threshold calibration because training is resuming from a checkpoint")
+        else:
+            calibration_l0 = min(
+                config.d_sae - 1.0,
+                config.target_l0 * config.threshold_calibration_multiplier,
+            )
+            stats = _auto_calibrate_thresholds(
+                sae,
+                buffer,
+                target_l0=calibration_l0,
+                num_batches=config.threshold_calibration_batches,
+            )
+            print(
+                "Threshold calibration: "
+                f"requested L0={stats['requested_l0']:.1f}, "
+                f"achieved L0={stats['achieved_l0']:.1f} on "
+                f"{int(stats['sample_vectors']):,} vectors; "
+                f"threshold mean={stats['threshold_mean']:.4f}, "
+                f"std={stats['threshold_std']:.4f}, "
+                f"range=[{stats['threshold_min']:.4f}, {stats['threshold_max']:.4f}]"
+            )
 
     if config.use_torch_compile and torch.cuda.is_available():
         print("Compiling SAE with torch.compile...")
@@ -926,7 +1072,13 @@ def train_sae(
             dead = torch.where(~activated)[0]
             if len(dead) > 0:
                 print(f"  {len(dead)} dead features ({100 * len(dead) / raw_sae.d_sae:.1f}%)")
-                n = _resample_dead_features(raw_sae, dead, buffer)
+                n = _resample_dead_features(
+                    raw_sae,
+                    dead,
+                    buffer,
+                    optimizer=optimizer,
+                    target_l0=config.target_l0,
+                )
                 print(f"  Resampled {n} features")
             else:
                 print("  No dead features found")
