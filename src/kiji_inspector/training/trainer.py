@@ -542,9 +542,7 @@ def _resample_dead_features(
             thresholds = sae.threshold.float().median().expand(n)
         sae.threshold[resampled] = thresholds.to(dtype)
 
-        achieved_rate = (
-            pre_activation > sae.threshold[resampled].float()
-        ).float().mean().item()
+        achieved_rate = (pre_activation > sae.threshold[resampled].float()).float().mean().item()
 
         # Adam moments attached to the old, dead feature would otherwise push
         # the newly initialized direction and threshold on the next update.
