@@ -119,15 +119,25 @@ def main() -> None:
         default=list(demo.hr._TRAINED_LAYERS),
         help="SAE layers to capture and encode (all trained layers by default).",
     )
-    parser.add_argument("--results-dir", default=str(demo._DEMO_DIR / "output" / "capture"))
+    parser.add_argument(
+        "--scenario",
+        default=None,
+        help="Scenario to run (default: tool_selection). Its pairs.json/probes.json and "
+        "output/ are read from demo/<scenario>/.",
+    )
+    parser.add_argument("--results-dir", default=None)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.9)
     parser.add_argument("--batch-size", type=int, default=14)
     parser.add_argument(
         "--no-probes", action="store_true", help="capture only the pair sides, not probes.json"
     )
     args = parser.parse_args()
+    # Rebind before any default path is resolved: the scenario decides where
+    # pairs/probes are read and where results are written.
+    if args.scenario:
+        demo.configure(args.scenario)
 
-    results_dir = Path(args.results_dir)
+    results_dir = Path(args.results_dir or demo.DEMO_DIR / "output" / "capture")
     results_dir.mkdir(parents=True, exist_ok=True)
     metadata = demo.decision_prompts(include_probes=not args.no_probes)
     requests = [item["request"] for item in metadata]

@@ -49,8 +49,11 @@ def main() -> None:
     parser.add_argument("--layer", type=int, default=demo.SAE_LAYER)
     parser.add_argument("--threshold-offset", type=float, default=demo.hr._HF_THRESHOLD_OFFSET)
     parser.add_argument(
-        "--report", default=str(demo._DEMO_DIR / "output" / "capture" / "evaluation.json")
+        "--scenario",
+        default=None,
+        help="Scenario to run (default: tool_selection); reads demo/<scenario>/.",
     )
+    parser.add_argument("--report", default=None)
     parser.add_argument("--activations", default=None)
     parser.add_argument(
         "--results-dir",
@@ -73,11 +76,14 @@ def main() -> None:
     args = parser.parse_args()
     if args.active_from_sae and not args.activations:
         raise SystemExit("--active-from-sae requires --activations")
+    if args.scenario:
+        demo.configure(args.scenario)
 
     layer = args.layer
-    results_dir = Path(args.results_dir or demo._DEMO_DIR / "output" / f"steering_layer{layer}")
+    results_dir = Path(args.results_dir or demo.DEMO_DIR / "output" / f"steering_layer{layer}")
     results_dir.mkdir(parents=True, exist_ok=True)
-    report = json.loads(Path(args.report).read_text())
+    report_path = args.report or demo.DEMO_DIR / "output" / "capture" / "evaluation.json"
+    report = json.loads(Path(report_path).read_text())
     demo.check_report_prompts(report)
     labels = demo._labels_from_report(report, layer)
     active_by_step = demo._active_by_step(report, layer)

@@ -37,6 +37,7 @@ sys.path.insert(0, str(_DEMO_DIR.parent / "home_repair"))
 
 import home_repair_demo as hr  # noqa: E402  (generic helpers + HF engine)
 
+SCENARIO_NAME = "tool_selection"
 _SCENARIO_PATH = _REPO_ROOT / "scenarios" / "tool_selection.json"
 _SCENARIO = json.loads(_SCENARIO_PATH.read_text())
 SYSTEM_PROMPT: str = _SCENARIO["system_prompt"]
@@ -48,7 +49,8 @@ DECISION_PREFILL = "I'll use the"
 # Pairs are selected from the sweep by ``select_pairs.py`` (flip × lexical
 # overlap, one per theme, ≤2 per tool combination, no tool named) and stored in
 # ``pairs.json`` next to this file; ``sweep`` records what the sweep read so a
-# re-capture can be checked against it.
+# re-capture can be checked against it.  Other scenarios select the same way
+# with ``rank_flips.py --select-demo``.
 _PAIRS_PATH = _DEMO_DIR / "pairs.json"
 _PAIRS_FILE = json.loads(_PAIRS_PATH.read_text())
 PAIRS: list[dict] = _PAIRS_FILE["pairs"]
@@ -62,6 +64,72 @@ _PROBES_PATH = _DEMO_DIR / "probes.json"
 PROBES: dict = {
     k: v for k, v in json.loads(_PROBES_PATH.read_text()).items() if not k.startswith("about")
 }
+
+# Where this scenario's pairs/probes live and its outputs go.  Rebound by
+# ``configure`` so several scenarios can share this module without their
+# capture/steering/trace directories colliding.
+DEMO_DIR = _DEMO_DIR
+
+
+_STEERING_ROOT = _DEMO_DIR.parent / "steering"
+
+
+def _resolve_scenario_dir(scenario: str) -> Path:
+    """Where a scenario's ``pairs.json``, ``probes.json`` and ``output/`` live.
+
+    Everything built against the shipped SAEs sits under ``demo/steering/``;
+    the older stand-alone demos sit directly under ``demo/``.  ``steering``
+    wins so that ``--scenario tool_selection`` reads the current-SAE study
+    rather than the published page, whose embedded features come from a
+    different dictionary and must not be mixed with it.
+    """
+    candidate = _STEERING_ROOT / scenario
+    return candidate if candidate.exists() else _DEMO_DIR.parent / scenario
+
+
+def configure(scenario: str, demo_dir: Path | str | None = None) -> None:
+    """Point this module at another scenario's config, pairs and probes.
+
+    The four driver scripts (``capture_decisions``, ``attribute_pairs``,
+    ``trace_pairs`` and this module's ``build_ui_data``) read everything
+    through the module globals set here, so a single ``configure`` call at
+    startup is enough to run the whole demo for a different scenario.
+
+    ``demo_dir`` defaults to :func:`_resolve_scenario_dir` and is where
+    ``pairs.json``, ``probes.json`` and ``output/`` are read and written.
+    """
+    global SCENARIO_NAME, _SCENARIO_PATH, _SCENARIO, SYSTEM_PROMPT, TOOLS, TOOL_IDS
+    global _PAIRS_PATH, _PAIRS_FILE, PAIRS, PAIR_SELECTION, _PROBES_PATH, PROBES, DEMO_DIR
+
+    SCENARIO_NAME = scenario
+    DEMO_DIR = Path(demo_dir) if demo_dir else _resolve_scenario_dir(scenario)
+    _SCENARIO_PATH = _REPO_ROOT / "scenarios" / f"{scenario}.json"
+    _SCENARIO = json.loads(_SCENARIO_PATH.read_text())
+    SYSTEM_PROMPT = _SCENARIO["system_prompt"]
+    TOOLS = _SCENARIO["tools"]
+    TOOL_IDS = [tool["name"] for tool in TOOLS]
+
+    _PAIRS_PATH = DEMO_DIR / "pairs.json"
+    _PAIRS_FILE = json.loads(_PAIRS_PATH.read_text())
+    PAIRS = _PAIRS_FILE["pairs"]
+    PAIR_SELECTION = {k: v for k, v in _PAIRS_FILE.items() if k != "pairs"}
+
+    _PROBES_PATH = DEMO_DIR / "probes.json"
+    PROBES = (
+        {
+            k: v
+            for k, v in json.loads(_PROBES_PATH.read_text()).items()
+            if not k.startswith("about")
+        }
+        if _PROBES_PATH.exists()
+        else {}
+    )
+    # ``tool_token_tree`` / ``distribution_from_tree`` take TOOLS / TOOL_IDS as
+    # *default arguments*, which bind at def time; every caller omits them, so
+    # rebinding the globals alone would silently keep the old scenario's tools.
+    tool_token_tree.__defaults__ = (TOOLS,)
+    distribution_from_tree.__defaults__ = (TOOL_IDS,)
+    use_scenario_in_home_repair_module()
 
 
 def decision_prompts(include_probes: bool = False) -> list[dict]:
@@ -181,6 +249,7 @@ def tool_token_tree(tokenizer, tools: list[dict] = TOOLS) -> dict:
     for tool in tools:
         name = tool["name"]
         first_word = name.split("_")[0].lower()
+        covered = False
         for form in tool_surface_forms(name):
             ids = tokenizer.encode(f" {form}", add_special_tokens=False)
             if not ids:
@@ -194,6 +263,34 @@ def tool_token_tree(tokenizer, tools: list[dict] = TOOLS) -> dict:
             bucket.setdefault(name, set())
             if len(ids) > 1:
                 bucket[name].add(int(ids[1]))
+            covered = True
+        if not covered:
+            # The tokenizer splits this tool's first word, so no surface form
+            # starts with a whole-word token (``escalation_system`` ->
+            # " escal" + "ation").  Fall back to that prefix token and record
+            # the second token, which is exactly what the shared-prefix
+            # machinery below already disambiguates on.  Without this the tool
+            # never enters the tree and silently reads p = 0 forever, while
+            # generations that plainly name it are attributed to whichever
+            # other tool holds residual mass.
+            for form in tool_surface_forms(name):
+                ids = tokenizer.encode(f" {form}", add_special_tokens=False)
+                if len(ids) < 2:
+                    continue
+                piece = tokenizer.decode([int(ids[0])]).strip().lower()
+                # A real prefix, long enough not to be a stray fragment.
+                if len(piece) < 3 or not first_word.startswith(piece):
+                    continue
+                bucket = first.setdefault(int(ids[0]), {})
+                bucket.setdefault(name, set())
+                bucket[name].add(int(ids[1]))
+                covered = True
+        if not covered:
+            raise ValueError(
+                f"Tool {name!r} has no readable first token: no surface form of it starts "
+                f"with a whole-word or >=3-character prefix token. Rename the tool or add a "
+                f"surface form; leaving it out would silently report p=0 for it."
+            )
     shared = []
     for token, names in first.items():
         if len(names) > 1:
@@ -700,20 +797,28 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--report", default=str(_DEMO_DIR / "output" / "capture" / "evaluation.json")
+        "--scenario",
+        default=None,
+        help="Scenario to build for (default: tool_selection); reads demo/<scenario>/.",
     )
+    parser.add_argument("--report", default=None)
     parser.add_argument("--steering", default=None)
     parser.add_argument("--trace", default=None, help="trace_results.json from trace_pairs.py")
-    parser.add_argument("--output", default=str(_DEMO_DIR / "output" / "ui_data.json"))
+    parser.add_argument("--output", default=None)
     parser.add_argument("--layer", type=int, default=None)
     args = parser.parse_args()
-    report = json.loads(Path(args.report).read_text())
+    if args.scenario:
+        configure(args.scenario)
+    report_path = args.report or DEMO_DIR / "output" / "capture" / "evaluation.json"
+    output_path = args.output or DEMO_DIR / "output" / "ui_data.json"
+    report = json.loads(Path(report_path).read_text())
     steering = json.loads(Path(args.steering).read_text()) if args.steering else None
     trace = json.loads(Path(args.trace).read_text()) if args.trace else None
     ui_data = build_ui_data(report, steering, layer=args.layer, trace=trace)
     ui_data = hr.attach_spec_sheet(
-        ui_data, "tool_selection", int(ui_data["runMetadata"]["saeLayer"])
+        ui_data, SCENARIO_NAME, int(ui_data["runMetadata"]["saeLayer"])
     )
+    args.output = str(output_path)
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(json.dumps(ui_data, indent=2))
     print(f"Wrote {args.output}")

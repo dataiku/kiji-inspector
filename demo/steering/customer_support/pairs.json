@@ -1,0 +1,178 @@
+{
+  "source": {
+    "meta": "demo/steering/sweep/output/sweep_candidates/customer_support/meta.json",
+    "sweep": "demo/steering/sweep/output/sweep_candidates/customer_support/sweep.jsonl",
+    "pairsScored": 327988,
+    "pairsFlipping": 206120
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "minFlip": 0.6
+  },
+  "pairs": [
+    {
+      "id": "billing_vs_technical",
+      "title": "Billing vs technical",
+      "cue": "... vs ...",
+      "signal": "billing vs technical",
+      "score": 0.7073,
+      "flip": 0.7073,
+      "jaccard": 1.0,
+      "a": {
+        "request": "I was billed for a feature I can't find in my account",
+        "cueWords": [],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7073
+        }
+      },
+      "b": {
+        "request": "I can't find the feature I was billed for in my account",
+        "cueWords": [],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7887
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist",
+      "title": "Self service vs agent assist",
+      "cue": "... vs ...",
+      "signal": "user reports revocation failure",
+      "score": 0.6014,
+      "flip": 0.7518,
+      "jaccard": 0.8,
+      "a": {
+        "request": "How do I revoke an API key?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9391
+        }
+      },
+      "b": {
+        "request": "I can\u2019t revoke my API key \u2014 do it for me",
+        "cueWords": [],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.7518
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot",
+      "title": "Refund vs troubleshoot",
+      "cue": "Can you refund me for missing vs Why are",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.5434,
+      "flip": 0.7246,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Can you refund me for missing rate limit headers in API responses?",
+        "cueWords": [
+          "Can you refund me for missing"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7246
+        }
+      },
+      "b": {
+        "request": "Why are rate limit headers missing from my API responses?",
+        "cueWords": [
+          "Why are"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9496
+        }
+      }
+    },
+    {
+      "id": "new_vs_returning_customer",
+      "title": "New vs returning customer",
+      "cue": "New user vs now",
+      "signal": "new user learning permissions vs returning user reporting loss",
+      "score": 0.395,
+      "flip": 0.6912,
+      "jaccard": 0.5714,
+      "a": {
+        "request": "New user \u2014 why can\u2019t I access this folder?",
+        "cueWords": [
+          "New user"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7522
+        }
+      },
+      "b": {
+        "request": "I could access this folder \u2014 why can\u2019t I now?",
+        "cueWords": [
+          "now"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.6912
+        }
+      }
+    },
+    {
+      "id": "single_issue_vs_complex_case",
+      "title": "Single issue vs complex case",
+      "cue": "... vs ...",
+      "signal": "downgrade triggered multi-domain impact",
+      "score": 0.3925,
+      "flip": 0.6977,
+      "jaccard": 0.5625,
+      "a": {
+        "request": "I downgraded my plan \u2014 why am I still being charged the old rate?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7416
+        }
+      },
+      "b": {
+        "request": "I downgraded my plan \u2014 why am I still being charged the old rate, my team lost access to features, and my usage metrics are missing?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6977
+        }
+      }
+    },
+    {
+      "id": "urgent_vs_routine",
+      "title": "Urgent vs routine",
+      "cue": "today \u2014 does our plan / We need to enable vs Does enabling",
+      "signal": "urgent setup needed vs routine process question",
+      "score": 0.3806,
+      "flip": 0.6344,
+      "jaccard": 0.6,
+      "a": {
+        "request": "We need to enable SSO today \u2014 does our plan require manual approval for this?",
+        "cueWords": [
+          "today \u2014 does our plan",
+          "We need to enable"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6344
+        }
+      },
+      "b": {
+        "request": "Does enabling SSO require manual approval for our plan?",
+        "cueWords": [
+          "Does enabling"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9551
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "about": "Hand-written probes for the pairs in pairs.json. For each side: two paraphrases (same meaning as the request, none of that side's cue words) and one keyword control (the OTHER side's request with one of this side's cue words slipped in without changing what is asked). The question: do the side's cue features follow the meaning (fire on the paraphrases) or the word (fire on the keyword control)?",
+  "demand_pull_vs_supply_push": {
+    "a": {
+      "paraphrases": [
+        "Adjust inventory for items whose customers have been placing orders more and more often lately.",
+        "Update stock levels for products that are being ordered at an increasing rate right now."
+      ]
+    },
+    "b": {
+      "paraphrases": [
+        "Adjust inventory for items where customer order frequency is projected to rise.",
+        "Update stock levels for products expected to be ordered more often in the period ahead."
+      ],
+      "keyword": {
+        "cue": "forecasted",
+        "request": "Adjust inventory for items with rising customer order frequency, using the cost codes from the forecasted budget approved last week."
+      }
+    }
+  },
+  "local_vs_global_sourcing": {
+    "a": {
+      "paraphrases": [
+        "Track delivery performance of our in-country supplier for electronic components over last quarter.",
+        "Track how well the supplier down the road has been delivering electronic components these past three months."
+      ],
+      "keyword": {
+        "cue": "local",
+        "request": "Track delivery performance of our global supplier for electronic components over last quarter, with timestamps shown in local time."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Track delivery performance of our overseas supplier for electronic components over last quarter.",
+        "Track how well our supplier on the other side of the world has been delivering electronic components these past three months."
+      ],
+      "keyword": {
+        "cue": "global",
+        "request": "Track delivery performance of our local supplier for electronic components over last quarter, formatted with our global reporting template."
+      }
+    }
+  },
+  "cost_vs_speed_optimization": {
+    "a": {
+      "paraphrases": [
+        "Deliver items for product launch event using the cheapest shipping option available.",
+        "Get the product launch event materials there while keeping the freight bill as low as possible."
+      ],
+      "keyword": {
+        "cue": "economical",
+        "request": "Deliver items for product launch event using express shipping; the economical option was already rejected by finance."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Deliver items for product launch event using the fastest shipping available.",
+        "Get the product launch event materials there overnight, whatever it costs."
+      ],
+      "keyword": {
+        "cue": "express",
+        "request": "Deliver items for product launch event using economical shipping, and express any concerns about the timing to the vendor."
+      }
+    }
+  },
+  "single_source_vs_multi_source": {
+    "a": {
+      "paraphrases": [
+        "Calculate safety stock for seasonal promotions using figures from our primary vendor.",
+        "Work out the buffer stock for seasonal promotions from the numbers our largest supplier reports."
+      ],
+      "keyword": {
+        "cue": "main",
+        "request": "Calculate safety stock for seasonal promotions using data from all suppliers that ship into the main warehouse."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Calculate safety stock for seasonal promotions using figures from every vendor we buy from.",
+        "Work out the buffer stock for seasonal promotions by combining the numbers across our whole supplier base."
+      ],
+      "keyword": {
+        "cue": "all",
+        "request": "Calculate safety stock for all seasonal promotions this year using data from our main supplier."
+      }
+    }
+  }
+}

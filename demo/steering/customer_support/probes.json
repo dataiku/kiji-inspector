@@ -1,0 +1,107 @@
+{
+  "about": "Hand-written probes for the pairs in pairs.json. For each side: two paraphrases (same meaning as the request, none of that side's cue words) and, where the side has a lexical cue at all, one keyword control (the OTHER side's request with one of this side's cue words slipped in without changing what is asked). Several customer_support pairs contrast pragmatic framing rather than vocabulary -- billing_vs_technical uses the *same* content words in a different order -- so those sides have no cue word to slip in and carry paraphrases only.",
+  "billing_vs_technical": {
+    "a": {
+      "paraphrases": [
+        "There is a charge on my account for something I do not seem to have.",
+        "My invoice includes a feature that is not showing up for me."
+      ]
+    },
+    "b": {
+      "paraphrases": [
+        "A feature I paid for is not appearing anywhere in my account.",
+        "I cannot locate the thing I purchased inside the product."
+      ]
+    }
+  },
+  "self_service_vs_agent_assist": {
+    "a": {
+      "paraphrases": [
+        "What are the steps to revoke an API key?",
+        "Where is the documented procedure for revoking an API key?"
+      ]
+    },
+    "b": {
+      "paraphrases": [
+        "Revoking my API key is not working; please do it on my behalf.",
+        "The revoke action fails for my API key, so could someone on your side handle it?"
+      ]
+    }
+  },
+  "refund_vs_troubleshoot": {
+    "a": {
+      "paraphrases": [
+        "I would like money back because rate limit headers are absent from API responses.",
+        "Please issue credit for the rate limit headers that never appeared in API responses."
+      ],
+      "keyword": {
+        "cue": "refund",
+        "request": "Why are rate limit headers missing from my API responses? I do not want a refund, only an explanation."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "What causes rate limit headers to be absent from my API responses?",
+        "Rate limit headers never show up in my API responses, and I want to understand the reason."
+      ],
+      "keyword": {
+        "cue": "why",
+        "request": "Can you refund me for missing rate limit headers in API responses? No need to explain why, just process it."
+      }
+    }
+  },
+  "new_vs_returning_customer": {
+    "a": {
+      "paraphrases": [
+        "I just joined the team, so why can I not open this folder?",
+        "I am brand new here and this folder will not open for me."
+      ],
+      "keyword": {
+        "cue": "new",
+        "request": "I could access this folder — why can’t I now? Nothing changed except our new office network."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "This folder used to open for me and suddenly does not.",
+        "I had access to this folder before and I have lost it."
+      ],
+      "keyword": {
+        "cue": "now",
+        "request": "New user — why can’t I access this folder? It is the one the team uses for onboarding now."
+      }
+    }
+  },
+  "single_issue_vs_complex_case": {
+    "a": {
+      "paraphrases": [
+        "After switching to a cheaper plan my bill still shows the previous price.",
+        "My plan went down a tier but the amount charged did not change."
+      ]
+    },
+    "b": {
+      "paraphrases": [
+        "After switching to a cheaper plan the bill is unchanged, my colleagues can no longer use features, and the usage numbers have vanished.",
+        "My downgrade left three problems: the old price is still charged, teammates lost feature access, and metrics disappeared."
+      ]
+    }
+  },
+  "urgent_vs_routine": {
+    "a": {
+      "paraphrases": [
+        "SSO has to be live for us by end of day; is manual approval part of our plan?",
+        "We are switching SSO on right away, so will someone have to approve it by hand?"
+      ],
+      "keyword": {
+        "cue": "today",
+        "request": "Does enabling SSO require manual approval for our plan? I am asking for today’s onboarding notes, no rush."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "For our plan, is manual approval needed to turn SSO on?",
+        "Is switching SSO on something that has to be approved by hand on our plan?"
+      ]
+    }
+  }
+}

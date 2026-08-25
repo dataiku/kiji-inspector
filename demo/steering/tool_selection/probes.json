@@ -1,0 +1,157 @@
+{
+  "about": "Hand-written probes for the pairs in pairs.json. For each side: two paraphrases (same meaning as the request, none of that side's cue words) and one keyword control (the OTHER side's request with one of this side's cue words slipped in without changing what is asked). The question: do the side's cue features follow the meaning (fire on the paraphrases) or the word (fire on the keyword control)?",
+  "internal_vs_external": {
+    "a": {
+      "paraphrases": [
+        "What do our own company guidelines currently say about how many hours remote staff should work?",
+        "Look up the organisation's most recent rule on working hours for people who work from home."
+      ],
+      "keyword": {
+        "cue": "internal",
+        "request": "Find the latest public trends on remote work hours to quote in our internal newsletter."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "What are companies out there doing these days about how long remote employees work?",
+        "Look up what is being reported lately across the industry on working hours for people who work from home."
+      ],
+      "keyword": {
+        "cue": "public",
+        "request": "Find the latest internal policy on remote work hours for public-facing staff."
+      }
+    }
+  },
+  "specific_vs_broad": {
+    "a": {
+      "paraphrases": [
+        "Open the PDF sitting at /reports/q3_2023_sales.pdf and tell me the revenue numbers it contains.",
+        "Pull the sales numbers out of the third-quarter 2023 document stored under /reports/ (q3_2023_sales.pdf)."
+      ],
+      "keyword": {
+        "cue": "the Q3",
+        "request": "Show me the sales figures for all quarterly reports from 2023 and compare each to the Q3 figure."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "I would like the revenue numbers from every one of last year's quarter-end summaries.",
+        "Give me the sales totals across each 2023 quarter's report."
+      ],
+      "keyword": {
+        "cue": "all quarterly reports from",
+        "request": "Among all quarterly reports from 2023, show me the sales figures in the one located at /reports/q3_2023_sales.pdf"
+      }
+    }
+  },
+  "local_vs_remote": {
+    "a": {
+      "paraphrases": [
+        "Open /etc/app/config.json on this machine and tell me what the timeout is set to.",
+        "Have a look inside the config stored on this box under /etc/app/config.json and report the timeout value."
+      ],
+      "keyword": {
+        "cue": "local",
+        "request": "Please fetch the contents of the remote configuration file hosted at https://config.example.com/app/config.json to check the current timeout settings used by the local team."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Pull down https://config.example.com/app/config.json from the server and tell me what the timeout is set to.",
+        "Go to the config published at config.example.com (app/config.json) and report the timeout value."
+      ],
+      "keyword": {
+        "cue": "remote",
+        "request": "Please read the contents of the local configuration file at /etc/app/config.json to check the current timeout settings for remote workers."
+      }
+    }
+  },
+  "verified_vs_unverified": {
+    "a": {
+      "paraphrases": [
+        "What do our own engineering docs say the payment gateway's request-per-minute caps are — the confirmed numbers, please.",
+        "Look up the payment gateway's official throttling limits in the company's tech docs."
+      ],
+      "keyword": {
+        "cue": "verified",
+        "request": "Find the API rate limits for the payment gateway by searching the public web and verified community forums."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Look online for what the payment gateway allows in requests per minute.",
+        "Search the internet for the payment gateway's throttling caps."
+      ],
+      "keyword": {
+        "cue": "public web",
+        "request": "Find the verified API rate limits for the payment gateway in our internal technical documentation about the public web endpoints."
+      }
+    }
+  },
+  "query_vs_mutate": {
+    "a": {
+      "paraphrases": [
+        "What is MAX_RETRY_LIMIT set to right now in the configuration?",
+        "Tell me the present setting of MAX_RETRY_LIMIT in the config."
+      ],
+      "keyword": {
+        "cue": "Check the current value of",
+        "request": "Update the MAX_RETRY_LIMIT value in the config file to 5 and check the current value of the related timeout afterwards."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Set MAX_RETRY_LIMIT to 5 in the configuration.",
+        "Change the config so that MAX_RETRY_LIMIT becomes 5."
+      ],
+      "keyword": {
+        "cue": "Update",
+        "request": "Check the current value of the MAX_RETRY_LIMIT in the config file before the next update."
+      }
+    }
+  },
+  "direct_vs_delegated": {
+    "a": {
+      "paraphrases": [
+        "What was the mean time-to-respond across the tickets we closed over the past seven days?",
+        "Give me the average of how long responses took on last week's closed tickets."
+      ],
+      "keyword": {
+        "cue": "Calculate",
+        "request": "Analyze the root causes behind the spike in average response time for tickets closed last week, calculate its impact, and suggest process improvements."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Why did the time it took us to respond to tickets jump over the past seven days, and what should we change in how we work?",
+        "Figure out what drove last week's slower ticket replies and recommend how to fix the workflow."
+      ],
+      "keyword": {
+        "cue": "Analyze",
+        "request": "Calculate the average response time for tickets closed last week so I can analyze it."
+      }
+    }
+  },
+  "single_vs_batch": {
+    "a": {
+      "paraphrases": [
+        "Pull up the preferences stored for customer number 492.",
+        "What are the config options on record for user #492?"
+      ],
+      "keyword": {
+        "cue": "user account with ID 492",
+        "request": "Retrieve the configuration settings for all user accounts created in the last 24 hours; the user account with ID 492 can be skipped."
+      }
+    },
+    "b": {
+      "paraphrases": [
+        "Pull up the preferences stored for every customer who signed up since yesterday.",
+        "What config options are on record for each account opened in the past day?"
+      ],
+      "keyword": {
+        "cue": "accounts created in the last 24 hours",
+        "request": "Retrieve the configuration settings for the user account with ID 492, one of the accounts created in the last 24 hours."
+      }
+    }
+  }
+}

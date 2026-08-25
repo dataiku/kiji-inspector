@@ -193,22 +193,28 @@ def main() -> None:
     parser.add_argument("--compare-layers", default="27")
     parser.add_argument("--threshold-offset", type=float, default=demo.hr._HF_THRESHOLD_OFFSET)
     parser.add_argument(
-        "--report", default=str(demo._DEMO_DIR / "output" / "capture" / "evaluation.json")
+        "--scenario",
+        default=None,
+        help="Scenario to run (default: tool_selection); reads demo/<scenario>/.",
     )
+    parser.add_argument("--report", default=None)
     parser.add_argument("--results-dir", default=None)
     parser.add_argument("--scales", default=",".join(str(s) for s in DEFAULT_SCALES))
     parser.add_argument("--gen-tokens", type=int, default=48)
     parser.add_argument("--control-draws", type=int, default=3)
     parser.add_argument("--device", default="auto")
     args = parser.parse_args()
+    if args.scenario:
+        demo.configure(args.scenario)
 
     layer = args.layer
     compare_layers = [int(x) for x in args.compare_layers.split(",") if x.strip()]
     all_layers = [layer] + [x for x in compare_layers if x != layer]
     scales = [float(x) for x in args.scales.split(",")]
-    results_dir = Path(args.results_dir or demo._DEMO_DIR / "output" / f"trace_layer{layer}")
+    results_dir = Path(args.results_dir or demo.DEMO_DIR / "output" / f"trace_layer{layer}")
     results_dir.mkdir(parents=True, exist_ok=True)
-    report = json.loads(Path(args.report).read_text())
+    report_path = args.report or demo.DEMO_DIR / "output" / "capture" / "evaluation.json"
+    report = json.loads(Path(report_path).read_text())
     demo.check_report_prompts(report)
     decisions = {d["step"]: d for d in report.get("decisions") or []}
 

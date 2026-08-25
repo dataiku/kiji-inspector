@@ -62,7 +62,11 @@ def _link_or_copy(src: Path, dst: Path) -> None:
         shutil.copytree(src, dst)
         return
     try:
-        os.link(src, dst)
+        # resolve() first: in a HuggingFace cache the snapshot entries are
+        # *relative* symlinks into ../../blobs/, and os.link would hardlink the
+        # symlink itself, leaving a dangling link once it is out of the
+        # snapshot directory.
+        os.link(src.resolve(), dst)
     except OSError:
         shutil.copy2(src, dst)
 
