@@ -79,6 +79,65 @@ def test_summarize_steering_counts(ui):
     assert "setControlCaveat" in summary
 
 
+def _set_matched_fixture():
+    """One side where the set-level band is the one that decides the verdict."""
+    return {
+        "layer": 43,
+        "attribution": {
+            "pair1": {
+                # the cue set moves 0.09; a band drawn to one family says that
+                # clears control, a band drawn to the whole set says it does not
+                "a": {
+                    "targetTool": "web_search",
+                    "allRows": {"deltaTarget": -0.09, "size": 6},
+                    "controlThreshold": 0.03,
+                    "setControlThreshold": 0.12,
+                    "setControlMassMatched": True,
+                    "rows": [{"deltaTarget": -0.05}],
+                },
+                # ceiling: the pool could not reach the cue set's mass
+                "b": {
+                    "targetTool": "internal_search",
+                    "allRows": {"deltaTarget": -0.40, "size": 4},
+                    "controlThreshold": 0.02,
+                    "setControlThreshold": 0.02,
+                    "setControlMassMatched": False,
+                    "rows": [{"deltaTarget": -0.35}],
+                },
+            }
+        },
+    }
+
+
+def test_all_families_arm_is_judged_against_the_set_matched_band(ui):
+    summary = ui.summarize_steering(_set_matched_fixture())
+    side_a = next(s for s in summary["sides"] if s["side"] == "a")
+    # 0.09 clears the per-family band (0.03) but not the set-matched one (0.12)
+    assert side_a["control"] == 0.03 and side_a["setControl"] == 0.12
+    assert side_a["allBeyondControl"] is False
+    # the row itself is still judged against the per-family band, which is the
+    # like-for-like comparison at that granularity
+    assert side_a["familiesBeyondControl"] == 1
+    side_b = next(s for s in summary["sides"] if s["side"] == "b")
+    assert side_b["allBeyondControl"] is True
+    assert summary["sidesAllBeyondControl"] == 1
+
+
+def test_ceiling_draws_are_counted_and_named(ui):
+    summary = ui.summarize_steering(_set_matched_fixture())
+    assert summary["setControlSides"] == 2 and summary["setControlCeilings"] == 1
+    assert "1 of 2" in summary["setControlCaveat"]
+    assert "whole eligible pool" in summary["setControlCaveat"]
+
+
+def test_results_without_a_set_matched_arm_fall_back_and_say_so(ui):
+    summary = ui.summarize_steering(_steering_fixture())
+    assert summary["setControlSides"] == 0
+    assert "per-family" in summary["setControlCaveat"]
+    side_a = next(s for s in summary["sides"] if s["side"] == "a")
+    assert side_a["setControl"] == side_a["control"]
+
+
 def test_summarize_steering_empty(ui):
     summary = ui.summarize_steering({"layer": 6})
     assert summary["nSides"] == 0 and summary["nCross"] == 0

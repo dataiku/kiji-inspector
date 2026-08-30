@@ -296,6 +296,348 @@ def test_injection_plan_and_summary(steering):
     assert summary["hfChoice"] == "ManualCheck"
 
 
+def test_residual_patch_hook_swaps_one_token_and_leaves_the_rest(steering):
+    """The ceiling arm patches the model's own basis, no dictionary involved."""
+    hidden = torch.tensor([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]])
+    donor = torch.tensor([9.0, 9.0, 9.0])
+
+    out = _run_hook(steering.make_residual_patch_hook(donor), hidden)
+    assert torch.allclose(out[0, 0], hidden[0, 0])
+    assert torch.allclose(out[0, 1], donor)
+
+    # the second forward appends a token, so the decision token is at -2
+    second = _run_hook(steering.make_residual_patch_hook(donor, position=-2), hidden, True)
+    assert torch.allclose(second[0, 0], donor)
+    assert torch.allclose(second[0, 1], hidden[0, 1])
+
+    # a sequence too short for the requested position is left alone rather than
+    # patched at the wrong place
+    short = torch.tensor([[[1.0, 2.0, 3.0]]])
+    assert torch.allclose(
+        _run_hook(steering.make_residual_patch_hook(donor, position=-2), short), short
+    )
+
+    with pytest.raises(ValueError):
+        steering.make_residual_patch_hook(donor, position=0)
+
+
+def test_contrast_controls_match_how_much_the_set_differs_across_the_pair(steering):
+    """Mass-matching leaves the selection rule uncontrolled.
+
+    Cue families are chosen *because* they differ across the pair, so a control
+    matched only on activation mass answers "does removing this much matter?"
+    and not "does removing the differing features matter?".  The contrast arm
+    draws sets whose across-pair difference matches the cue set's.
+    """
+    rows = [{"index": 1, "label": "Gasket search", "merged": []}]
+    # feature 1 is the cue: present here, absent on the other side.  Feature 3
+    # is heavy but identical across the pair, so it is a poor contrast match;
+    # features 4 and 6 differ and are the ones a contrast draw should reach for.
+    hf_active = [(1, 4.0), (3, 9.0), (4, 3.0), (6, 2.0)]
+    other_active = [(3, 9.0), (4, 0.5), (6, 0.0)]
+
+    plan = steering.attribution_plan(rows, hf_active, draws=2, seed=0, other_active=other_active)
+
+    assert plan["setContrastMass"] == 4.0  # |4.0 - 0.0| for the cue feature
+    assert len(plan["contrastControls"]) == 2
+    for control in plan["contrastControls"]:
+        assert 1 not in control["features"]
+        assert control["targetContrastMass"] == 4.0
+        # a mass-matched draw could satisfy itself with feature 3 alone; a
+        # contrast-matched one cannot, because feature 3 does not differ
+        assert control["features"] != [3]
+        assert control["contrastMass"] >= 4.0 - 1e-6 or not control["massMatched"]
+
+
+def test_contrast_controls_report_a_ceiling_when_the_cue_set_is_the_difference(steering):
+    """If nothing else differs, that is the finding, not a broken control."""
+    rows = [{"index": 1, "label": "Cue", "merged": []}]
+    hf_active = [(1, 6.0), (3, 9.0)]
+    other_active = [(3, 9.0)]  # only feature 1 differs across the pair
+
+    plan = steering.attribution_plan(rows, hf_active, draws=3, seed=0, other_active=other_active)
+
+    controls = plan["contrastControls"]
+    assert controls and not any(c["massMatched"] for c in controls)
+    # the pool outside the cue set carries no across-pair difference at all, so
+    # the arm records an explicit empty draw rather than going missing
+    assert controls == [
+        {
+            "matchesRow": None,
+            "draw": 0,
+            "features": [],
+            "size": 0,
+            "contrastMass": 0.0,
+            "targetContrastMass": 6.0,
+            "massMatched": False,
+            "poolEmpty": True,
+        }
+    ]
+
+
+def test_attribution_plan_without_the_other_side_has_no_contrast_arm(steering):
+    """Callers that cannot supply the pair's other side keep the old plan."""
+    plan = steering.attribution_plan(
+        [{"index": 1, "label": "Cue", "merged": []}], [(1, 4.0), (3, 2.0)], draws=2, seed=0
+    )
+    assert "contrastControls" not in plan and "setContrastMass" not in plan
+
+
+def test_attribution_controls_record_the_tool_they_produced(steering):
+    """Without the argmax, the ablation arm has no outcome partition."""
+    rows = [{"index": 1, "label": "Cue", "merged": []}]
+    hf_active = [(1, 4.0), (3, 2.0), (4, 2.0)]
+    plan = steering.attribution_plan(rows, hf_active, draws=2, seed=0, other_active=[(3, 2.0)])
+    baseline = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.7, "ManualCheck": 0.3}}
+    moved = {"display": "ManualCheck", "distribution": {"PartsSearch": 0.3, "ManualCheck": 0.7}}
+
+    summary = steering.summarize_attribution(
+        plan,
+        baseline,
+        [moved],
+        moved,
+        [baseline] * len(plan["controls"]),
+        "PartsSearch",
+        [baseline] * len(plan["setControls"]),
+        [moved] * len(plan["contrastControls"]),
+    )
+
+    assert all(c["choice"] == "PartsSearch" for c in summary["controls"])
+    assert all(c["choice"] == "PartsSearch" for c in summary["setControls"])
+    assert all(c["choice"] == "ManualCheck" for c in summary["contrastControls"])
+    assert summary["allRows"]["choice"] == "ManualCheck"
+    assert summary["contrastControlThreshold"] == 0.4
+
+
+def test_set_controls_match_the_whole_cue_set_not_one_family(steering):
+    """The set-level arm needs its own draws: row-matched ones are far lighter.
+
+    ``allFeatures`` / ``allRowsTargets`` ablate or clamp every family at once,
+    so the only honest reference is a draw matched to the union's count and
+    mass.  ``controls`` cannot serve: each is matched to a single row, and a
+    row that is silent under HF gets a one-feature draw.
+    """
+    rows = [
+        {"index": 1, "label": "Gasket search", "merged": [2]},
+        {"index": 5, "label": "Silent under HF", "merged": []},
+    ]
+    hf_active = [(1, 4.0), (2, 1.0), (3, 2.0), (4, 3.0), (6, 0.5)]
+
+    plan = steering.attribution_plan(rows, hf_active, draws=2, seed=0)
+
+    assert plan["setMass"] == 5.0 and plan["setActiveSize"] == 2
+    assert len(plan["setControls"]) == 2
+    for control in plan["setControls"]:
+        assert control["matchesRow"] is None
+        assert not set(control["features"]) & {1, 2, 5}
+        assert control["size"] >= plan["setActiveSize"]
+        assert control["hfMass"] >= plan["setMass"]
+        assert control["targetMass"] == plan["setMass"] and control["massMatched"]
+    # the row matched to the silent family is a single feature — 0.5 of mass
+    # against the set's 5.0, which is exactly why it cannot stand in for it
+    silent = [c for c in plan["controls"] if c["matchesRow"] == 5]
+    assert silent and min(c["hfMass"] for c in silent) < plan["setMass"]
+
+    baseline = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.8, "ManualCheck": 0.2}}
+    row_readings = [
+        {"display": "ManualCheck", "distribution": {"PartsSearch": 0.4, "ManualCheck": 0.6}},
+        {"display": "PartsSearch", "distribution": {"PartsSearch": 0.8, "ManualCheck": 0.2}},
+    ]
+    all_reading = {
+        "display": "ManualCheck",
+        "distribution": {"PartsSearch": 0.3, "ManualCheck": 0.7},
+    }
+    control_readings = [
+        {"display": "PartsSearch", "distribution": {"PartsSearch": 0.78, "ManualCheck": 0.22}}
+    ] * 4
+    set_control_readings = [
+        {"display": "PartsSearch", "distribution": {"PartsSearch": 0.7, "ManualCheck": 0.3}},
+        {"display": "PartsSearch", "distribution": {"PartsSearch": 0.75, "ManualCheck": 0.25}},
+    ]
+
+    summary = steering.summarize_attribution(
+        plan,
+        baseline,
+        row_readings,
+        all_reading,
+        control_readings,
+        "PartsSearch",
+        set_control_readings,
+    )
+
+    # the two bands are different quantities and both are reported
+    assert summary["controlThreshold"] == pytest.approx(0.02)
+    assert summary["setControlThreshold"] == pytest.approx(0.10)
+    assert summary["setMass"] == 5.0 and len(summary["setControls"]) == 2
+    assert summary["setControlMassMatched"] is True
+    assert summary["setControlDistinctDraws"] == 2
+
+    # ...and omitting the readings leaves the set band out rather than
+    # silently reusing the per-family one
+    without = steering.summarize_attribution(
+        plan, baseline, row_readings, all_reading, control_readings, "PartsSearch"
+    )
+    assert "setControlThreshold" not in without
+
+
+def test_set_controls_report_when_the_pool_cannot_reach_the_cue_mass(steering):
+    """A cue set heavier than everything else active gets a ceiling, not a draw.
+
+    ``matched_random_sets`` then returns the whole pool for every draw.  The
+    plan has to say so, or the band reads as a matched control when it is
+    really "every other active feature at once".
+    """
+    rows = [{"index": 1, "label": "Carries most of the mass", "merged": [2]}]
+    hf_active = [(1, 40.0), (2, 30.0), (3, 2.0), (4, 1.0)]
+
+    plan = steering.attribution_plan(rows, hf_active, draws=3, seed=0)
+
+    assert plan["setMass"] == 70.0
+    assert len({tuple(c["features"]) for c in plan["setControls"]}) == 1  # the whole pool
+    assert all(c["features"] == [3, 4] for c in plan["setControls"])
+    assert not any(c["massMatched"] for c in plan["setControls"])
+
+    baseline = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.9, "ManualCheck": 0.1}}
+    reading = {"display": "ManualCheck", "distribution": {"PartsSearch": 0.2, "ManualCheck": 0.8}}
+    flat = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.88, "ManualCheck": 0.12}}
+    summary = steering.summarize_attribution(
+        plan, baseline, [reading], reading, [flat] * 3, "PartsSearch", [flat] * 3
+    )
+
+    assert summary["setControlMassMatched"] is False
+    assert summary["setControlDistinctDraws"] == 1
+    assert summary["setControlThreshold"] == pytest.approx(0.02)
+
+
+def test_injection_set_controls_match_the_clamped_set(steering):
+    rows = [
+        {"index": 1, "label": "Gasket search", "merged": [2]},
+        {"index": 5, "label": "Absent on base", "merged": []},
+    ]
+    base_active = [(1, 4.0), (2, 1.0), (3, 2.0), (4, 3.0), (6, 0.5)]
+    open_active = [(2, 0.5), (7, 2.0)]
+
+    plan = steering.injection_plan(rows, base_active, open_active, draws=2, seed=0)
+
+    assert plan["setMass"] == 5.0 and plan["setActiveSize"] == 2
+    assert len(plan["setControls"]) == 2
+    for control in plan["setControls"]:
+        assert control["matchesRow"] is None
+        assert not set(map(int, control["targets"])) & {1, 2, 5}
+        assert control["baseMass"] >= plan["setMass"]
+
+    baseline = {"display": "ManualCheck", "distribution": {"PartsSearch": 0.1, "ManualCheck": 0.9}}
+    row_readings = [
+        {"display": "PartsSearch", "distribution": {"PartsSearch": 0.6, "ManualCheck": 0.4}},
+        {"display": "ManualCheck", "distribution": {"PartsSearch": 0.1, "ManualCheck": 0.9}},
+    ]
+    all_rows = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.7, "ManualCheck": 0.3}}
+    all_base = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.9, "ManualCheck": 0.1}}
+    controls = [
+        {"display": "ManualCheck", "distribution": {"PartsSearch": 0.12, "ManualCheck": 0.88}}
+    ] * 4
+    set_controls = [
+        {"display": "ManualCheck", "distribution": {"PartsSearch": 0.2, "ManualCheck": 0.8}},
+        {"display": "ManualCheck", "distribution": {"PartsSearch": 0.15, "ManualCheck": 0.85}},
+    ]
+
+    summary = steering.summarize_injection(
+        plan, baseline, row_readings, all_rows, all_base, controls, "PartsSearch", set_controls
+    )
+
+    assert summary["controlThreshold"] == pytest.approx(0.02)
+    assert summary["setControlThreshold"] == pytest.approx(0.10)
+    assert summary["setControls"][0]["choice"] == "ManualCheck"
+
+
+def test_delta_controls_match_the_change_the_clamp_makes(steering):
+    """Donor mass is not the perturbation; sum |donor - recipient| is.
+
+    A cross-patch clamps a donor activation onto a recipient that may already
+    carry some of it, so a feature can be heavy on the donor and move nothing.
+    Cue features are picked for differing across the pair, so the cue set moves
+    most of its donor mass -- a donor-matched random draw carries no such
+    guarantee, and would be a lighter intervention wearing a matched label.
+    """
+    rows = [
+        {"index": 1, "label": "Gasket search", "merged": [2]},
+        {"index": 5, "label": "Absent on base", "merged": []},
+    ]
+    base_active = [(1, 4.0), (2, 1.0), (3, 2.0), (4, 3.0), (6, 0.5)]
+    # feature 1 is already mostly there on the recipient, and feature 3 sits at
+    # exactly its donor value: clamping 3 is a no-op however heavy it is
+    open_active = [(1, 3.0), (3, 2.0), (7, 2.0)]
+
+    plan = steering.injection_plan(rows, base_active, open_active, draws=2, seed=0)
+
+    # the cue row weighs 5.0 on the donor but moves 2.0 = |4-3| + |1-0|
+    assert plan["rows"][0]["baseMass"] == 5.0
+    assert plan["rows"][0]["deltaMass"] == 2.0
+    assert plan["setMass"] == 5.0 and plan["setDeltaMass"] == 2.0
+
+    # the delta-matched draws reach the realised change, and feature 3 is not
+    # eligible at all -- zero movement means zero weight in that pool
+    assert len(plan["deltaControls"]) == 2
+    for control in plan["deltaControls"]:
+        assert "3" not in control["targets"]
+        assert control["deltaMass"] >= plan["setDeltaMass"]
+        assert control["targetDeltaMass"] == plan["setDeltaMass"]
+        assert control["deltaMassMatched"]
+
+    # ...whereas a donor-matched draw is free to spend its mass on feature 3,
+    # which is exactly the overstatement this arm exists to expose
+    padded = [c for c in plan["setControls"] if "3" in c["targets"]]
+    assert padded and all(c["deltaMass"] < c["baseMass"] for c in padded)
+
+    # every stored control now carries its realised change, so the match can be
+    # checked from the artefacts instead of taken on trust
+    for control in plan["controls"] + plan["setControls"] + plan["deltaControls"]:
+        assert "deltaMass" in control
+
+
+def test_ablation_plan_needs_no_delta_arm(steering):
+    """Ablation's target is zero, so its donor mass *is* its realised change."""
+    rows = [{"index": 1, "label": "Gasket search", "merged": [2]}]
+    hf_active = [(1, 4.0), (2, 1.0), (3, 2.0), (4, 3.0)]
+
+    plan = steering.attribution_plan(rows, hf_active, draws=2, seed=0)
+
+    assert "deltaControls" not in plan
+    # switching off against a silent recipient: the change equals the mass
+    assert steering._delta_mass({1: 4.0, 2: 1.0}, {}) == plan["rows"][0]["hfMass"] == 5.0
+
+
+def test_injection_summary_reports_all_three_bands(steering):
+    rows = [{"index": 1, "label": "Gasket search", "merged": [2]}]
+    base_active = [(1, 4.0), (2, 1.0), (3, 2.0), (4, 3.0), (6, 0.5)]
+    open_active = [(1, 3.0), (3, 2.0), (7, 2.0)]
+
+    plan = steering.injection_plan(rows, base_active, open_active, draws=2, seed=0)
+
+    baseline = {"display": "ManualCheck", "distribution": {"PartsSearch": 0.1, "ManualCheck": 0.9}}
+    hit = {"display": "PartsSearch", "distribution": {"PartsSearch": 0.7, "ManualCheck": 0.3}}
+    quiet = {"display": "ManualCheck", "distribution": {"PartsSearch": 0.12, "ManualCheck": 0.88}}
+    louder = {"display": "ManualCheck", "distribution": {"PartsSearch": 0.25, "ManualCheck": 0.75}}
+
+    summary = steering.summarize_injection(
+        plan, baseline, [hit], hit, hit, [quiet] * 2, "PartsSearch", [quiet] * 2, [louder] * 2
+    )
+
+    assert summary["controlThreshold"] == pytest.approx(0.02)
+    assert summary["setControlThreshold"] == pytest.approx(0.02)
+    assert summary["deltaControlThreshold"] == pytest.approx(0.15)
+    assert summary["setDeltaMass"] == 2.0
+    # the headline of the finding: only 40% of the donor mass is a real change
+    assert summary["setDeltaOverDonorMass"] == pytest.approx(0.4)
+    assert summary["deltaControlMassMatched"] is True
+
+    # omitting the readings leaves the band out rather than reusing a weaker one
+    without = steering.summarize_injection(
+        plan, baseline, [hit], hit, hit, [quiet] * 2, "PartsSearch", [quiet] * 2
+    )
+    assert "deltaControlThreshold" not in without
+
+
 def test_delta_mode_edits_an_earlier_position_when_asked(steering):
     sae = FakeSAE()
     hidden = torch.tensor([[[9.0, 17.0, 3.0], [9.0, 17.0, 3.0], [0.0, 0.0, 0.0]]])

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -189,6 +190,25 @@ def main() -> None:
                         help="Drop pairs naming a tool outright, as select_pairs.py does.")
     parser.add_argument("--output", default=None, help="Write all scored rows as JSON")
     parser.add_argument("--emit-pairs", default=None, help="Write a pairs.json of the top rows")
+    parser.add_argument(
+        "--sample",
+        type=int,
+        default=None,
+        help="With --emit-pairs: emit a uniform random sample of the gate-passing pairs "
+        "instead of the top-scored ones. Top-scored selection is right for a demo page; "
+        "for estimating a flip *rate* over the gated population it is biased upward, "
+        "so evaluation sets should use this.",
+    )
+    parser.add_argument("--seed", type=int, default=0, help="RNG seed for --sample")
+    parser.add_argument(
+        "--theme-cap",
+        type=int,
+        default=None,
+        help="With --sample: at most this many pairs per theme. The gated population is "
+        "dominated by whichever contrast type the template generator wrote most minimal "
+        "variants of, and within-theme pairs are near-duplicates, so an uncapped sample "
+        "spends most of its budget on correlated copies of one theme.",
+    )
     args = parser.parse_args()
 
     meta = json.loads(Path(args.meta).read_text())
@@ -275,7 +295,27 @@ def main() -> None:
 
     if args.emit_pairs:
         emit = strong
-        if args.select_demo:
+        if args.sample is not None:
+            if args.select_demo:
+                raise SystemExit("--sample and --select-demo are mutually exclusive")
+            pool = list(strong)
+            random.Random(args.seed).shuffle(pool)
+            if args.theme_cap is not None:
+                emit, taken = [], Counter()
+                for row in pool:
+                    if taken[row["theme"]] >= args.theme_cap:
+                        continue
+                    emit.append(row)
+                    taken[row["theme"]] += 1
+                    if len(emit) >= args.sample:
+                        break
+            else:
+                emit = pool[: args.sample]
+            themes = Counter(row["theme"] for row in emit)
+            print(f"\nsample: {len(emit)} of {len(strong)} gate-passing pairs (seed {args.seed})")
+            for theme, count in themes.most_common():
+                print(f"  {theme:<36} {count}")
+        elif args.select_demo:
             emit, themes, combos = [], set(), {}
             for row in strong:  # already sorted by score
                 combo = frozenset((row["toolA"], row["toolB"]))
@@ -285,13 +325,18 @@ def main() -> None:
                 themes.add(row["theme"])
                 combos[combo] = combos.get(combo, 0) + 1
             print(f"\nselect-demo: {len(emit)} pairs (1/theme, <={args.per_tools}/tool pair)")
-        emit = emit[: args.top] if args.top else emit
+        if args.sample is None:
+            emit = emit[: args.top] if args.top else emit
         out = {
             "source": {"meta": args.meta, "sweep": args.sweep,
-                       "pairsScored": len(usable), "pairsFlipping": len(flipping)},
+                       "pairsScored": len(usable), "pairsFlipping": len(flipping),
+                       "pairsPassingGate": len(strong)},
             "rule": {"flip": "min(p_A, p_B) if top tools differ else 0",
                      "score": "flip * jaccard(content words A, content words B)",
                      "minFlip": args.min_flip},
+            **({"sample": {"n": len(emit), "seed": args.seed, "population": len(strong),
+                           "themeCap": args.theme_cap}}
+               if args.sample is not None else {}),
             "pairs": to_pair_records(emit),
         }
         Path(args.emit_pairs).write_text(json.dumps(out, indent=2) + "\n")

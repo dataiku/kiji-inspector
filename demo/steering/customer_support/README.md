@@ -73,8 +73,9 @@ half the themes for the wrong reason.
 
 ## What the run shows (layer 34)
 
-**Ablation** — switching a side's cue families off at the decision token flips 8 of 12 sides, with
-set effects up to −0.55 against control bands of 0.004–0.13.
+**Ablation** — switching a side's cue families off at the decision token changes the tool on 8 of
+12 sides, 6 of them onto the other side's tool (the *directed* count `paper/steering/` reports),
+with set effects up to −0.64 against set-matched control bands of 0.019–0.121.
 
 **Cross-patch** — clamping one side's cue families into the other side's request flips 4 of 12
 directions. The prompt is never modified.
@@ -107,6 +108,16 @@ urgent_vs_routine b→a
   steered : "knowledge base to check our documentation about SSO…"
   control : customer_history (reworded, same tool)
 ```
+
+### Against the ceiling
+
+`ceiling_pairs.py` patches the donor's whole residual into the recipient's decision token —
+activation patching in the model's own basis, no dictionary in the path — which bounds what any
+decomposition read there could do. On these 12 directions it flips **9 / 12**, against **2 / 12** for
+the cue set and **4 / 12** for every donor-active feature: a recovery of **0.22** and **0.44**.
+Random directions at the same norm flip 1 of 36. Difference-in-means needs several pairs per contrast
+type, so it is undefined here and reported on the `*_expanded` sets instead.
+
 
 ## Caveats
 

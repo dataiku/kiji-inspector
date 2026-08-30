@@ -1,0 +1,938 @@
+{
+  "source": {
+    "meta": "demo/steering/sweep/output/sweep_candidates/customer_support/meta.json",
+    "sweep": "demo/steering/sweep/output/sweep_candidates/customer_support/sweep.jsonl",
+    "pairsScored": 327988,
+    "pairsFlipping": 206120,
+    "pairsPassingGate": 1616
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "minFlip": 0.6
+  },
+  "sample": {
+    "n": 32,
+    "seed": 0,
+    "population": 1616,
+    "themeCap": 10
+  },
+  "pairs": [
+    {
+      "id": "billing_vs_technical_0",
+      "title": "Billing vs technical",
+      "cue": "paid vs m eligible",
+      "signal": "payment validation vs beta access rules",
+      "score": 0.4304,
+      "flip": 0.6887,
+      "jaccard": 0.625,
+      "a": {
+        "request": "I paid for the beta but can\u2019t access it \u2014 why?",
+        "cueWords": [
+          "paid"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8997
+        }
+      },
+      "b": {
+        "request": "I\u2019m eligible for the beta but can\u2019t access it \u2014 why?",
+        "cueWords": [
+          "m eligible"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.6887
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_1",
+      "title": "Billing vs technical",
+      "cue": "can you refund vs how do I improve it",
+      "signal": "billing vs technical",
+      "score": 0.4253,
+      "flip": 0.638,
+      "jaccard": 0.6667,
+      "a": {
+        "request": "I paid for the service but it\u2019s not performing \u2014 can you refund?",
+        "cueWords": [
+          "can you refund"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.638
+        }
+      },
+      "b": {
+        "request": "I paid for the service but it\u2019s not performing \u2014 how do I improve it?",
+        "cueWords": [
+          "how do I improve it"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8174
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_2",
+      "title": "Billing vs technical",
+      "cue": "price vs features",
+      "signal": "price vs feature update",
+      "score": 0.4871,
+      "flip": 0.6819,
+      "jaccard": 0.7143,
+      "a": {
+        "request": "I tried upgrading \u2014 why is the price not updated?",
+        "cueWords": [
+          "price"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7471
+        }
+      },
+      "b": {
+        "request": "I tried upgrading \u2014 why are the features not updated?",
+        "cueWords": [
+          "features"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6819
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_3",
+      "title": "Billing vs technical",
+      "cue": "price vs features",
+      "signal": "price change vs feature change",
+      "score": 0.5201,
+      "flip": 0.7282,
+      "jaccard": 0.7143,
+      "a": {
+        "request": "Why did my subscription renew at a different price?",
+        "cueWords": [
+          "price"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.8608
+        }
+      },
+      "b": {
+        "request": "Why did my subscription renew with different features?",
+        "cueWords": [
+          "features"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7282
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_4",
+      "title": "Billing vs technical",
+      "cue": "can I get / refund vs known fix",
+      "signal": "refund request vs fix availability",
+      "score": 0.3893,
+      "flip": 0.6117,
+      "jaccard": 0.6364,
+      "a": {
+        "request": "I was billed for the service \u2014 but it\u2019s not working \u2014 can I get a refund?",
+        "cueWords": [
+          "can I get",
+          "refund"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.6617
+        }
+      },
+      "b": {
+        "request": "I was billed for the service \u2014 but it\u2019s not working \u2014 is there a known fix?",
+        "cueWords": [
+          "known fix"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.6117
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_5",
+      "title": "Billing vs technical",
+      "cue": "my invoice / pricing vs feature set / the UI",
+      "signal": "billing vs technical functionality",
+      "score": 0.4524,
+      "flip": 0.7755,
+      "jaccard": 0.5833,
+      "a": {
+        "request": "I upgraded my plan but my invoice still shows the old pricing \u2014 why?",
+        "cueWords": [
+          "my invoice",
+          "pricing"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.8549
+        }
+      },
+      "b": {
+        "request": "I upgraded my plan but the UI still shows the old feature set \u2014 why?",
+        "cueWords": [
+          "feature set",
+          "the UI"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7755
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_6",
+      "title": "Billing vs technical",
+      "cue": "billed / was vs the service / works",
+      "signal": "billing_system explains charges; product_docs explains service persistence",
+      "score": 0.3801,
+      "flip": 0.6841,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "I canceled my subscription but was still billed \u2014 why?",
+        "cueWords": [
+          "billed",
+          "was"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.6841
+        }
+      },
+      "b": {
+        "request": "I canceled my subscription but the service still works \u2014 why?",
+        "cueWords": [
+          "the service",
+          "works"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8314
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_7",
+      "title": "Billing vs technical",
+      "cue": "can you correct vs now my reports are delayed",
+      "signal": "trial billing vs report timing",
+      "score": 0.3858,
+      "flip": 0.643,
+      "jaccard": 0.6,
+      "a": {
+        "request": "I paid for the service but was charged for a trial \u2014 can you correct?",
+        "cueWords": [
+          "can you correct"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.8116
+        }
+      },
+      "b": {
+        "request": "I paid for the service but was charged for a trial \u2014 now my reports are delayed.",
+        "cueWords": [
+          "now my reports are delayed"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.643
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_8",
+      "title": "Billing vs technical",
+      "cue": "you confirm vs t I view the new reports / why",
+      "signal": "billing confirmation vs report access failure",
+      "score": 0.3756,
+      "flip": 0.6103,
+      "jaccard": 0.6154,
+      "a": {
+        "request": "I upgraded to the advanced analytics package but wasn\u2019t billed \u2014 can you confirm?",
+        "cueWords": [
+          "you confirm"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.6103
+        }
+      },
+      "b": {
+        "request": "I upgraded to the advanced analytics package but wasn\u2019t billed \u2014 why can\u2019t I view the new reports?",
+        "cueWords": [
+          "t I view the new reports",
+          "why"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8099
+        }
+      }
+    },
+    {
+      "id": "billing_vs_technical_9",
+      "title": "Billing vs technical",
+      "cue": "... vs but my storage is full",
+      "signal": "billing_system for billing dispute, product_docs for storage anomaly",
+      "score": 0.4674,
+      "flip": 0.7345,
+      "jaccard": 0.6364,
+      "a": {
+        "request": "I was charged for exceeding storage, but I didn\u2019t upload anything \u2014 why?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7345
+        }
+      },
+      "b": {
+        "request": "I didn\u2019t upload anything, but my storage is full \u2014 why?",
+        "cueWords": [
+          "but my storage is full"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7976
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_0",
+      "title": "Refund vs troubleshoot",
+      "cue": "I want a refund since vs Why",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.3954,
+      "flip": 0.7117,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "I want a refund since my trial extension didn\u2019t activate",
+        "cueWords": [
+          "I want a refund since"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7117
+        }
+      },
+      "b": {
+        "request": "Why didn\u2019t my trial extension activate?",
+        "cueWords": [
+          "Why"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7202
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_1",
+      "title": "Refund vs troubleshoot",
+      "cue": "Refund me for the missing vs Why is my",
+      "signal": "refund vs troubleshoot",
+      "score": 0.4049,
+      "flip": 0.6074,
+      "jaccard": 0.6667,
+      "a": {
+        "request": "Refund me for the missing API response data",
+        "cueWords": [
+          "Refund me for the missing"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.6569
+        }
+      },
+      "b": {
+        "request": "Why is my API response missing data?",
+        "cueWords": [
+          "Why is my"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.6074
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_0",
+      "title": "Self service vs agent assist",
+      "cue": "Is there a way to restore vs by accident \u2014 can you restore them for me",
+      "signal": "user requests restoration \u2014 implies data recovery requiring agent action",
+      "score": 0.3949,
+      "flip": 0.6581,
+      "jaccard": 0.6,
+      "a": {
+        "request": "Is there a way to restore deleted files?",
+        "cueWords": [
+          "Is there a way to restore"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9854
+        }
+      },
+      "b": {
+        "request": "I deleted files by accident \u2014 can you restore them for me?",
+        "cueWords": [
+          "by accident \u2014 can you restore them for me"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.6581
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_2",
+      "title": "Refund vs troubleshoot",
+      "cue": "Can you refund me for missing vs Why are",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.5434,
+      "flip": 0.7246,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Can you refund me for missing rate limit headers in API responses?",
+        "cueWords": [
+          "Can you refund me for missing"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7246
+        }
+      },
+      "b": {
+        "request": "Why are rate limit headers missing from my API responses?",
+        "cueWords": [
+          "Why are"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9496
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_3",
+      "title": "Refund vs troubleshoot",
+      "cue": "the difference / refund vs can you help / enable it",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.4209,
+      "flip": 0.7576,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "I paid for a feature that\u2019s not available \u2014 refund me the difference.",
+        "cueWords": [
+          "the difference",
+          "refund"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.8298
+        }
+      },
+      "b": {
+        "request": "I paid for a feature that\u2019s not available \u2014 can you help me enable it?",
+        "cueWords": [
+          "can you help",
+          "enable it"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7576
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_4",
+      "title": "Refund vs troubleshoot",
+      "cue": "refund me vs can you help me access it",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.3611,
+      "flip": 0.6499,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "I paid for a feature not available in my region \u2014 refund me.",
+        "cueWords": [
+          "refund me"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.6499
+        }
+      },
+      "b": {
+        "request": "I paid for a feature not available in my region \u2014 can you help me access it?",
+        "cueWords": [
+          "can you help me access it"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8565
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_5",
+      "title": "Refund vs troubleshoot",
+      "cue": "I want compensation vs can you fix the routing",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.4157,
+      "flip": 0.6533,
+      "jaccard": 0.6364,
+      "a": {
+        "request": "I missed 3 critical emails due to delivery failure \u2014 I want compensation.",
+        "cueWords": [
+          "I want compensation"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7207
+        }
+      },
+      "b": {
+        "request": "I missed 3 critical emails due to delivery failure \u2014 can you fix the routing?",
+        "cueWords": [
+          "can you fix the routing"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.6533
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_1",
+      "title": "Self service vs agent assist",
+      "cue": "I merge two accounts vs ...",
+      "signal": "self-service merge failure requires agent to process",
+      "score": 0.3781,
+      "flip": 0.6302,
+      "jaccard": 0.6,
+      "a": {
+        "request": "How do I merge two accounts?",
+        "cueWords": [
+          "I merge two accounts"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9069
+        }
+      },
+      "b": {
+        "request": "I can\u2019t merge my accounts \u2014 can you do it for me?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6302
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_6",
+      "title": "Refund vs troubleshoot",
+      "cue": "I want a credit for / risk vs notification settings / can you help me fix",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.441,
+      "flip": 0.784,
+      "jaccard": 0.5625,
+      "a": {
+        "request": "I missed 3 critical alerts because emails didn\u2019t arrive \u2014 I want a credit for the risk.",
+        "cueWords": [
+          "I want a credit for",
+          "risk"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.784
+        }
+      },
+      "b": {
+        "request": "I missed 3 critical alerts because emails didn\u2019t arrive \u2014 can you help me fix the notification settings?",
+        "cueWords": [
+          "notification settings",
+          "can you help me fix"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8245
+        }
+      }
+    },
+    {
+      "id": "new_vs_returning_customer",
+      "title": "New vs returning customer",
+      "cue": "New user vs now",
+      "signal": "new user learning permissions vs returning user reporting loss",
+      "score": 0.395,
+      "flip": 0.6912,
+      "jaccard": 0.5714,
+      "a": {
+        "request": "New user \u2014 why can\u2019t I access this folder?",
+        "cueWords": [
+          "New user"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7522
+        }
+      },
+      "b": {
+        "request": "I could access this folder \u2014 why can\u2019t I now?",
+        "cueWords": [
+          "now"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.6912
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_7",
+      "title": "Refund vs troubleshoot",
+      "cue": "I need a credit for that time vs can you explain what caused it",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.3512,
+      "flip": 0.602,
+      "jaccard": 0.5833,
+      "a": {
+        "request": "My team lost 3 hours of productivity due to the outage \u2014 I need a credit for that time.",
+        "cueWords": [
+          "I need a credit for that time"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.9295
+        }
+      },
+      "b": {
+        "request": "My team lost 3 hours of productivity due to the outage \u2014 can you explain what caused it?",
+        "cueWords": [
+          "can you explain what caused it"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.602
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_8",
+      "title": "Refund vs troubleshoot",
+      "cue": "difference / refund vs can you help me fix / upgrade",
+      "signal": "refund request vs troubleshooting intent",
+      "score": 0.4092,
+      "flip": 0.6365,
+      "jaccard": 0.6429,
+      "a": {
+        "request": "I was charged for the Pro tier but didn\u2019t get the features \u2014 refund the difference.",
+        "cueWords": [
+          "difference",
+          "refund"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.709
+        }
+      },
+      "b": {
+        "request": "I was charged for the Pro tier but didn\u2019t get the features \u2014 can you help me fix the upgrade?",
+        "cueWords": [
+          "can you help me fix",
+          "upgrade"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6365
+        }
+      }
+    },
+    {
+      "id": "refund_vs_troubleshoot_9",
+      "title": "Refund vs troubleshoot",
+      "cue": "Refund me for the API slowness that delayed vs Why is",
+      "signal": "refund_vs_troubleshoot",
+      "score": 0.3392,
+      "flip": 0.6106,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "Refund me for the API slowness that delayed my campaign reporting",
+        "cueWords": [
+          "Refund me for the API slowness that delayed"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.6106
+        }
+      },
+      "b": {
+        "request": "Why is my campaign reporting delayed due to API slowness, and how can I fix it?",
+        "cueWords": [
+          "Why is"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9021
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_2",
+      "title": "Self service vs agent assist",
+      "cue": "How do I regenerate an expired vs ...",
+      "signal": "regeneration blocked \u2014 requires agent to manually reset key",
+      "score": 0.3613,
+      "flip": 0.6322,
+      "jaccard": 0.5714,
+      "a": {
+        "request": "How do I regenerate an expired API key?",
+        "cueWords": [
+          "How do I regenerate an expired"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.958
+        }
+      },
+      "b": {
+        "request": "My API key expired and I can\u2019t regenerate it \u2014 can you reset it for me?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6322
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_3",
+      "title": "Self service vs agent assist",
+      "cue": "... vs ...",
+      "signal": "user reports revocation failure",
+      "score": 0.6014,
+      "flip": 0.7518,
+      "jaccard": 0.8,
+      "a": {
+        "request": "How do I revoke an API key?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9391
+        }
+      },
+      "b": {
+        "request": "I can\u2019t revoke my API key \u2014 do it for me",
+        "cueWords": [],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.7518
+        }
+      }
+    },
+    {
+      "id": "urgent_vs_routine_0",
+      "title": "Urgent vs routine",
+      "cue": "We need to present it to stakeholders tomorrow vs ...",
+      "signal": "stakeholder presentation tomorrow + need to present vs general feature check",
+      "score": 0.38,
+      "flip": 0.684,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "Is the advanced analytics feature included in our plan? We need to present it to stakeholders tomorrow.",
+        "cueWords": [
+          "We need to present it to stakeholders tomorrow"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.684
+        }
+      },
+      "b": {
+        "request": "Is the advanced analytics feature included in my plan?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.9339
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_4",
+      "title": "Self service vs agent assist",
+      "cue": "... vs ...",
+      "signal": "user reports removal failure",
+      "score": 0.525,
+      "flip": 0.6563,
+      "jaccard": 0.8,
+      "a": {
+        "request": "How do I remove a team member?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.7255
+        }
+      },
+      "b": {
+        "request": "I can\u2019t remove a team member \u2014 do it for me",
+        "cueWords": [],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.6563
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_5",
+      "title": "Self service vs agent assist",
+      "cue": "... vs immediately \u2014 can you do it for me / need to",
+      "signal": "urgent regeneration requires agent to assist",
+      "score": 0.4651,
+      "flip": 0.6977,
+      "jaccard": 0.6667,
+      "a": {
+        "request": "How do I regenerate my API key?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9462
+        }
+      },
+      "b": {
+        "request": "I need to regenerate my API key immediately \u2014 can you do it for me?",
+        "cueWords": [
+          "immediately \u2014 can you do it for me",
+          "need to"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6977
+        }
+      }
+    },
+    {
+      "id": "self_service_vs_agent_assist_6",
+      "title": "Self service vs agent assist",
+      "cue": "... vs by accident \u2014 restore it immediately",
+      "signal": "urgent recovery requires ticket",
+      "score": 0.3727,
+      "flip": 0.6212,
+      "jaccard": 0.6,
+      "a": {
+        "request": "Can I restore a deleted project?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.6212
+        }
+      },
+      "b": {
+        "request": "I deleted a project by accident \u2014 restore it immediately.",
+        "cueWords": [
+          "by accident \u2014 restore it immediately"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.7784
+        }
+      }
+    },
+    {
+      "id": "urgent_vs_routine_1",
+      "title": "Urgent vs routine",
+      "cue": "Our quarterly report is due in 30 minutes \u2014 why vs ...",
+      "signal": "report deadline vs. troubleshooting",
+      "score": 0.3415,
+      "flip": 0.6147,
+      "jaccard": 0.5556,
+      "a": {
+        "request": "Our quarterly report is due in 30 minutes \u2014 why isn\u2019t it generating?",
+        "cueWords": [
+          "Our quarterly report is due in 30 minutes \u2014 why"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.6147
+        }
+      },
+      "b": {
+        "request": "Why isn\u2019t my report generating?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.7155
+        }
+      }
+    },
+    {
+      "id": "urgent_vs_routine_2",
+      "title": "Urgent vs routine",
+      "cue": "today \u2014 does our plan / We need to enable vs Does enabling",
+      "signal": "urgent setup needed vs routine process question",
+      "score": 0.3806,
+      "flip": 0.6344,
+      "jaccard": 0.6,
+      "a": {
+        "request": "We need to enable SSO today \u2014 does our plan require manual approval for this?",
+        "cueWords": [
+          "today \u2014 does our plan",
+          "We need to enable"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6344
+        }
+      },
+      "b": {
+        "request": "Does enabling SSO require manual approval for our plan?",
+        "cueWords": [
+          "Does enabling"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9551
+        }
+      }
+    },
+    {
+      "id": "single_issue_vs_complex_case",
+      "title": "Single issue vs complex case",
+      "cue": "... vs ...",
+      "signal": "downgrade triggered multi-domain impact",
+      "score": 0.3925,
+      "flip": 0.6977,
+      "jaccard": 0.5625,
+      "a": {
+        "request": "I downgraded my plan \u2014 why am I still being charged the old rate?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7416
+        }
+      },
+      "b": {
+        "request": "I downgraded my plan \u2014 why am I still being charged the old rate, my team lost access to features, and my usage metrics are missing?",
+        "cueWords": [],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6977
+        }
+      }
+    }
+  ]
+}

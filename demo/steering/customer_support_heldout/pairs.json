@@ -1,0 +1,219 @@
+{
+  "source": {
+    "meta": "demo/steering/sweep/output/sweep_candidates/customer_support_heldout/meta.json",
+    "sweep": "demo/steering/sweep/output/sweep_candidates/customer_support_heldout/sweep.jsonl",
+    "pairsScored": 48,
+    "pairsFlipping": 25,
+    "pairsPassingGate": 7
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "minFlip": 0.6
+  },
+  "pairs": [
+    {
+      "id": "coverage_vs_repair_0",
+      "title": "Coverage vs repair",
+      "cue": "who covers vs how to fix",
+      "signal": "warranty coverage vs repair guidance",
+      "score": 0.5358,
+      "flip": 0.7501,
+      "jaccard": 0.7143,
+      "a": {
+        "request": "The customer wants to know who covers their payment terminal",
+        "cueWords": [
+          "who covers"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.7501
+        }
+      },
+      "b": {
+        "request": "The customer wants to know how to fix their payment terminal",
+        "cueWords": [
+          "how to fix"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9385
+        }
+      }
+    },
+    {
+      "id": "many_customers_vs_one_customer_0",
+      "title": "Many customers vs one customer",
+      "cue": "many reports vs a single report",
+      "signal": "widespread outage vs single-customer fault",
+      "score": 0.509,
+      "flip": 0.7999,
+      "jaccard": 0.6364,
+      "a": {
+        "request": "We are getting many reports that the router firmware stopped responding in one region",
+        "cueWords": [
+          "many reports"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.8021
+        }
+      },
+      "b": {
+        "request": "We are getting a single report that the router firmware stopped responding in one region",
+        "cueWords": [
+          "a single report"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.7999
+        }
+      }
+    },
+    {
+      "id": "many_customers_vs_one_customer_1",
+      "title": "Many customers vs one customer",
+      "cue": "many reports vs a single report",
+      "signal": "widespread outage vs single-customer fault",
+      "score": 0.488,
+      "flip": 0.7668,
+      "jaccard": 0.6364,
+      "a": {
+        "request": "We are getting many reports that the smart meter stopped responding in one region",
+        "cueWords": [
+          "many reports"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.7668
+        }
+      },
+      "b": {
+        "request": "We are getting a single report that the smart meter stopped responding in one region",
+        "cueWords": [
+          "a single report"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.8841
+        }
+      }
+    },
+    {
+      "id": "past_orders_vs_open_invoice_0",
+      "title": "Past orders vs open invoice",
+      "cue": "previous orders vs outstanding invoice",
+      "signal": "prior orders vs outstanding invoice",
+      "score": 0.4677,
+      "flip": 0.7016,
+      "jaccard": 0.6667,
+      "a": {
+        "request": "Pull this customer's previous orders while I have them on the line about the tablet reader",
+        "cueWords": [
+          "previous orders"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.8853
+        }
+      },
+      "b": {
+        "request": "Pull this customer's outstanding invoice while I have them on the line about the tablet reader",
+        "cueWords": [
+          "outstanding invoice"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.7016
+        }
+      }
+    },
+    {
+      "id": "past_orders_vs_open_invoice_1",
+      "title": "Past orders vs open invoice",
+      "cue": "previous orders vs outstanding invoice",
+      "signal": "prior orders vs outstanding invoice",
+      "score": 0.4563,
+      "flip": 0.6845,
+      "jaccard": 0.6667,
+      "a": {
+        "request": "Show me this customer's previous orders before I call them back about the payment terminal",
+        "cueWords": [
+          "previous orders"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.6845
+        }
+      },
+      "b": {
+        "request": "Show me this customer's outstanding invoice before I call them back about the payment terminal",
+        "cueWords": [
+          "outstanding invoice"
+        ],
+        "sweep": {
+          "tool": "billing_system",
+          "prob": 0.9165
+        }
+      }
+    },
+    {
+      "id": "coverage_vs_repair_1",
+      "title": "Coverage vs repair",
+      "cue": "who covers vs how to fix",
+      "signal": "warranty coverage vs repair guidance",
+      "score": 0.4321,
+      "flip": 0.605,
+      "jaccard": 0.7143,
+      "a": {
+        "request": "The customer wants to know who covers their mobile app",
+        "cueWords": [
+          "who covers"
+        ],
+        "sweep": {
+          "tool": "customer_history",
+          "prob": 0.605
+        }
+      },
+      "b": {
+        "request": "The customer wants to know how to fix their mobile app",
+        "cueWords": [
+          "how to fix"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.9848
+        }
+      }
+    },
+    {
+      "id": "many_customers_vs_one_customer_2",
+      "title": "Many customers vs one customer",
+      "cue": "many reports vs a single report",
+      "signal": "widespread outage vs single-customer fault",
+      "score": 0.3901,
+      "flip": 0.613,
+      "jaccard": 0.6364,
+      "a": {
+        "request": "We are getting many reports that the scanner unit stopped responding in one region",
+        "cueWords": [
+          "many reports"
+        ],
+        "sweep": {
+          "tool": "knowledge_base",
+          "prob": 0.613
+        }
+      },
+      "b": {
+        "request": "We are getting a single report that the scanner unit stopped responding in one region",
+        "cueWords": [
+          "a single report"
+        ],
+        "sweep": {
+          "tool": "ticket_lookup",
+          "prob": 0.9071
+        }
+      }
+    }
+  ]
+}

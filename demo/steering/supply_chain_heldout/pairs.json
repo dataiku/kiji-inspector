@@ -1,0 +1,248 @@
+{
+  "source": {
+    "meta": "demo/steering/sweep/output/sweep_candidates/supply_chain_heldout/meta.json",
+    "sweep": "demo/steering/sweep/output/sweep_candidates/supply_chain_heldout/sweep.jsonl",
+    "pairsScored": 48,
+    "pairsFlipping": 20,
+    "pairsPassingGate": 8
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "minFlip": 0.6
+  },
+  "pairs": [
+    {
+      "id": "warehouse_vs_transit_capacity_0",
+      "title": "Warehouse vs transit capacity",
+      "cue": "storage vs delivery",
+      "signal": "warehouse capacity vs transit capacity",
+      "score": 0.6736,
+      "flip": 0.7961,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "We are running short of storage capacity around Gdansk and need a plan before the peak weeks arrive",
+        "cueWords": [
+          "storage"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.936
+        }
+      },
+      "b": {
+        "request": "We are running short of delivery capacity around Gdansk and need a plan before the peak weeks arrive",
+        "cueWords": [
+          "delivery"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.7961
+        }
+      }
+    },
+    {
+      "id": "past_usage_vs_future_usage",
+      "title": "Past usage vs future usage",
+      "cue": "last vs next",
+      "signal": "recorded consumption vs projected consumption",
+      "score": 0.6286,
+      "flip": 0.7543,
+      "jaccard": 0.8333,
+      "a": {
+        "request": "Give me a clear picture of what the Gdansk site consumes last quarter so we can plan around it",
+        "cueWords": [
+          "last"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.983
+        }
+      },
+      "b": {
+        "request": "Give me a clear picture of what the Gdansk site consumes next quarter so we can plan around it",
+        "cueWords": [
+          "next"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7543
+        }
+      }
+    },
+    {
+      "id": "carrier_distance_vs_carrier_price_0",
+      "title": "Carrier distance vs carrier price",
+      "cue": "distance vs price",
+      "signal": "carrier distance vs carrier price",
+      "score": 0.6171,
+      "flip": 0.7293,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "Put together a ranking of every carrier working the Aarhus lane, ordered by distance from best to worst",
+        "cueWords": [
+          "distance"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7293
+        }
+      },
+      "b": {
+        "request": "Put together a ranking of every carrier working the Aarhus lane, ordered by price from best to worst",
+        "cueWords": [
+          "price"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.8001
+        }
+      }
+    },
+    {
+      "id": "warehouse_vs_transit_capacity_1",
+      "title": "Warehouse vs transit capacity",
+      "cue": "storage vs delivery",
+      "signal": "warehouse capacity vs transit capacity",
+      "score": 0.6167,
+      "flip": 0.7288,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "We are running short of storage capacity around Valencia and need a plan before the peak weeks arrive",
+        "cueWords": [
+          "storage"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9525
+        }
+      },
+      "b": {
+        "request": "We are running short of delivery capacity around Valencia and need a plan before the peak weeks arrive",
+        "cueWords": [
+          "delivery"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.7288
+        }
+      }
+    },
+    {
+      "id": "warehouse_vs_transit_capacity_2",
+      "title": "Warehouse vs transit capacity",
+      "cue": "storage vs delivery",
+      "signal": "warehouse capacity vs transit capacity",
+      "score": 0.5769,
+      "flip": 0.6818,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "Work out how much additional storage capacity the Naples operation should add before volumes climb again",
+        "cueWords": [
+          "storage"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9288
+        }
+      },
+      "b": {
+        "request": "Work out how much additional delivery capacity the Naples operation should add before volumes climb again",
+        "cueWords": [
+          "delivery"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6818
+        }
+      }
+    },
+    {
+      "id": "carrier_distance_vs_carrier_price_1",
+      "title": "Carrier distance vs carrier price",
+      "cue": "distance vs price",
+      "signal": "carrier distance vs carrier price",
+      "score": 0.5695,
+      "flip": 0.673,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "Put together a ranking of every carrier working the Antwerp lane, ordered by distance from best to worst",
+        "cueWords": [
+          "distance"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.673
+        }
+      },
+      "b": {
+        "request": "Put together a ranking of every carrier working the Antwerp lane, ordered by price from best to worst",
+        "cueWords": [
+          "price"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.8159
+        }
+      }
+    },
+    {
+      "id": "carrier_distance_vs_carrier_price_2",
+      "title": "Carrier distance vs carrier price",
+      "cue": "distance vs price",
+      "signal": "carrier distance vs carrier price",
+      "score": 0.523,
+      "flip": 0.6181,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "Put together a ranking of every carrier working the Naples lane, ordered by distance from best to worst",
+        "cueWords": [
+          "distance"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6181
+        }
+      },
+      "b": {
+        "request": "Put together a ranking of every carrier working the Naples lane, ordered by price from best to worst",
+        "cueWords": [
+          "price"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.7718
+        }
+      }
+    },
+    {
+      "id": "warehouse_vs_transit_capacity_3",
+      "title": "Warehouse vs transit capacity",
+      "cue": "storage vs delivery",
+      "signal": "warehouse capacity vs transit capacity",
+      "score": 0.5144,
+      "flip": 0.6079,
+      "jaccard": 0.8462,
+      "a": {
+        "request": "Work out how much additional storage capacity the Malmo operation should add before volumes climb again",
+        "cueWords": [
+          "storage"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9069
+        }
+      },
+      "b": {
+        "request": "Work out how much additional delivery capacity the Malmo operation should add before volumes climb again",
+        "cueWords": [
+          "delivery"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6079
+        }
+      }
+    }
+  ]
+}

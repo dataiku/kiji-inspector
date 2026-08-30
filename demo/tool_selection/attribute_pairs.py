@@ -6,11 +6,15 @@ For each side of each pair:
 * **ablation** — switch off each of that side's cue families (the features
   stronger on this side than on the other, as shown on the page) at the
   decision token and re-read the tool distribution; compare with
-  mass-matched random ablations of other active features; also all families
-  together;
+  mass-matched random ablations of other active features -- matched to the
+  single family, and, for the all-families arm, a second set of draws matched
+  to the whole cue set's count and mass; also all families together;
 * **cross-patch** — clamp this side's cue families into the *other* side's
   prompt at their activations here, and see whether the other side's decision
-  moves toward this side's tool (with matched random controls).
+  moves toward this side's tool.  Three control families: matched to one cue
+  family's donor mass, to the whole cue set's donor mass, and to the change
+  the clamp actually makes on the recipient (donor mass overstates that
+  whenever a feature is already active there).
 
 Readout is the same token-prefix tree as the vLLM capture (``file_read`` /
 ``file_write`` share ``" file"``: a second forward with that token appended
@@ -233,14 +237,34 @@ def main() -> None:
                 (decisions.get(step) or baselines[step]).get("distribution", {}),
             )
             prompt = prompt_text[step]
-            plan = steer.attribution_plan(rows, hf_active[step], draws=args.control_draws, seed=0)
+            plan = steer.attribution_plan(
+                rows,
+                hf_active[step],
+                draws=args.control_draws,
+                seed=0,
+                other_active=hf_active.get(other_step),
+            )
             row_readings = [_read(prompt, dict.fromkeys(r["family"])) for r in plan["rows"]]
             all_reading = _read(prompt, dict.fromkeys(plan["allFeatures"]))
             control_readings = [
                 _read(prompt, dict.fromkeys(c["features"])) for c in plan["controls"]
             ]
+            set_control_readings = [
+                _read(prompt, dict.fromkeys(c["features"])) for c in plan["setControls"]
+            ]
+            contrast_control_readings = [
+                _read(prompt, dict.fromkeys(c["features"]))
+                for c in plan.get("contrastControls") or []
+            ]
             summary = steer.summarize_attribution(
-                plan, baselines[step], row_readings, all_reading, control_readings, target_tool
+                plan,
+                baselines[step],
+                row_readings,
+                all_reading,
+                control_readings,
+                target_tool,
+                set_control_readings,
+                contrast_control_readings,
             )
             base_other = float(baselines[step]["distribution"].get(other_tool, 0.0))
             for row, reading in zip(summary["rows"], row_readings, strict=True):
@@ -264,8 +288,11 @@ def main() -> None:
                     f" (hf act {row['hfActivation']:.2f}, {row['familySize']} feats) {row['label']}"
                 )
             print(
-                f"    all rows: {summary['allRows']['deltaTarget']:+.3f}; control max |delta| "
-                f"{summary['controlThreshold']:.3f}"
+                f"    all rows: {summary['allRows']['deltaTarget']:+.3f}; per-family control max "
+                f"|delta| {summary['controlThreshold']:.3f}; set-matched control max |delta| "
+                f"{summary.get('setControlThreshold', float('nan')):.3f} "
+                f"(cue mass {summary.get('setMass', 0.0):.1f} over "
+                f"{summary.get('setActiveSize', 0)} features)"
             )
 
             # Cross-patch: this side's families into the other side's prompt.
@@ -281,6 +308,8 @@ def main() -> None:
             inj_all = _clamp(plan_in["allRowsTargets"])
             inj_base = _clamp(plan_in["allBaseTargets"])
             inj_controls = [_clamp(c["targets"]) for c in plan_in["controls"]]
+            inj_set_controls = [_clamp(c["targets"]) for c in plan_in["setControls"]]
+            inj_delta_controls = [_clamp(c["targets"]) for c in plan_in["deltaControls"]]
             inj = steer.summarize_injection(
                 plan_in,
                 baselines[other_step],
@@ -289,6 +318,8 @@ def main() -> None:
                 inj_base,
                 inj_controls,
                 target_tool,
+                inj_set_controls,
+                inj_delta_controls,
             )
             inj["fromSide"], inj["intoSide"], inj["intoStep"] = side, other, other_step
             inj["intoBaselineChoice"] = baselines[other_step]["display"]
@@ -301,7 +332,13 @@ def main() -> None:
             print(
                 f"    all families {inj['allRows']['deltaTarget']:+.3f} -> {inj['allRows']['choice']}; "
                 f"all {inj['allBase']['size']} active {inj['allBase']['deltaTarget']:+.3f} -> "
-                f"{inj['allBase']['choice']}; control max |delta| {inj['controlThreshold']:.3f}"
+                f"{inj['allBase']['choice']}; per-family control max |delta| "
+                f"{inj['controlThreshold']:.3f}; set-matched control max |delta| "
+                f"{inj.get('setControlThreshold', float('nan')):.3f}; "
+                f"delta-matched control max |delta| "
+                f"{inj.get('deltaControlThreshold', float('nan')):.3f} "
+                f"(clamp moves {inj.get('setDeltaMass', 0.0):.1f} of "
+                f"{inj.get('setMass', 0.0):.1f} donor mass)"
             )
 
     engine.cleanup()

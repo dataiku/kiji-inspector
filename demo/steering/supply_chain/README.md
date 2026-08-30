@@ -39,25 +39,37 @@ says so.
 
 **Ablation — switching a side's cue families off at the decision token.** 7 of 8 sides flip:
 
-| pair · side | Δp(target) | control band |
-|---|---:|---:|
-| demand_pull · b | **−0.847** | 0.034 |
-| single_source · b | **−0.666** | 0.035 |
-| local_vs_global · b | **−0.633** | 0.089 |
-| local_vs_global · a | **−0.585** | 0.037 |
-| demand_pull · a | **−0.498** | 0.032 |
-| cost_vs_speed · b | −0.405 | 0.205 |
-| single_source · a | −0.281 | 0.183 |
-| cost_vs_speed · a | −0.259 (no flip) | 0.123 |
+The band is drawn to the whole cue set's activation mass and count, which is what the
+ablation removes; the per-family band beside it is the narrower one used for single rows. A third
+family, `contrastControls`, matches on how much the drawn set *differs across the pair* rather than
+on how much of it is there — the control that tests why the cue families were selected. On 5 of
+these 8 sides no other set differs that much, so the draw is a ceiling and the answer is that the
+differing features essentially are the cue set.
 
-The top five beat mass-matched random ablations by 10–25×.
+| pair · side | Δp(target) | set-matched band | per-family band |
+|---|---:|---:|---:|
+| demand_pull · b | **−0.847** | 0.034 † | 0.034 |
+| single_source · b | **−0.666** | 0.045 † | 0.035 |
+| local_vs_global · b | **−0.633** | 0.105 | 0.089 |
+| local_vs_global · a | **−0.585** | 0.037 | 0.037 |
+| demand_pull · a | **−0.498** | 0.033 | 0.032 |
+| cost_vs_speed · b | −0.405 | 0.190 | 0.205 |
+| single_source · a | −0.281 | 0.130 | 0.183 |
+| cost_vs_speed · a | −0.259 (no flip) | 0.123 | 0.123 |
+
+† *ceiling*: the cue set outweighs every other active feature on that side, so the draw is the
+whole eligible pool rather than a matched set. The five largest beat their set-matched bands by
+6–25×.
 
 **Cross-patch — clamping one side's cue families into the other side's request.** The prompt is not
 changed; only feature activations at the decision token are. Three directions flip:
 
+Cross-patch carries a third band: `Δ-matched`, drawn to the change the clamp actually applies
+(`Σ|donor − recipient|`) rather than to the donor's mass.
+
 ```
-demand_pull     a→b   +0.583 (all families) / +0.745 (all base-active)   control 0.054   FLIPS
-local_vs_global a→b   +0.532 / +0.575                                    control 0.021   FLIPS
+demand_pull     a→b   +0.583 (all families) / +0.745 (all base-active)   set 0.054  Δ 0.054†  FLIPS
+local_vs_global a→b   +0.532 / +0.575                                    set 0.021  Δ 0.000†  FLIPS
 single_source   b→a   +0.199 / +0.226                                    control 0.025   FLIPS
 ```
 
@@ -71,7 +83,8 @@ single_source   b→a   0.03 → 0.49 (1×) → 0.70          crosses at 1.5×
 ```
 
 **Depth.** The full ablation + cross-patch battery was run at all six SAE layers. Layers 6–20 are
-inert — not weak, *zero* flips, best |Δp| below 0.06 against control bands of ~0.02:
+inert — not weak, *zero* flips, best |Δp| below 0.06, which does not clear the set-matched
+control bands there (median 0.007 at layer 6, 0.009 at 13, 0.023 at 20):
 
 | layer | cross-patch flips | ablation flips | best Δp |
 |---|---:|---:|---:|
@@ -86,8 +99,10 @@ All three cross-patch flips here come from the six cue families; clamping every 
 instead adds nothing. That is what a healthy layer looks like — compare `../customer_support/`,
 where layer 43 flips 9 / 12 but 8 of those need all 1,162 active features clamped.
 
-**Where the cue lives.** Ablating at the *request* tokens changes almost nothing (0.85 → 0.85);
-ablating at the *decision token alone* does the whole job. Layer 27 barely moves (0.85 → 0.41 at
+**Where the cue lives.** Ablating the cue features at the *request* tokens moves p by at most
+0.007 and flips **0 / 8** sides; ablating them at *every position except the decision token* moves
+p by at most 0.054 and also flips 0 / 8. The *decision token alone* flips 7 / 8, and ablating
+everywhere adds nothing to that (max |Δp| 0.850 vs 0.847). Layer 27 barely moves (0.85 → 0.41 at
 best, usually unchanged) — description early, causal leverage late, matching the spec sheet's depth
 curve.
 
@@ -106,16 +121,39 @@ The model names a different first tool and restructures its plan. `demand_pull a
 (`demand forecasting tool` → `inventory_manager`), though its control drifted slightly in wording
 while keeping the same tool.
 
-**Is it the word or the meaning? The meaning — narrowly.** The keyword controls are 3/3 correct:
-the cue word present but semantically inert never moved the decision (`"…rising customer order
-frequency, using the cost codes from the forecasted budget approved last week"` stays
-`inventory_manager`). So it is not token matching. But paraphrases held only 4/6 —
-`"projected to rise"` held, `"expected to be ordered more often"` fell back — so the feature tracks
-a fairly narrow sense of *forecast framing of the demand signal* rather than forecast-in-general.
+**Is it the word or the meaning? The meaning — narrowly.** A keyword control takes the *other*
+side's request, slips this side's cue word in without changing what is asked, and is correct when
+the model keeps the other side's tool. Across the four pairs they hold **4/7**, and all three
+failures are on the pairs that carry no causal weight anyway — `cost_vs_speed` (0/2, the pair
+flagged inconclusive below) and `single_source` b. On the two pairs that actually flip they are
+3/3: `"…rising customer order frequency, using the cost codes from the forecasted budget approved
+last week"` stays `inventory_manager`. So on the load-bearing pairs it is not token matching.
+
+Paraphrases held **13/16** — `"projected to rise"` held, `"expected to be ordered more often in
+the period ahead"` fell back — so the feature tracks a fairly narrow sense of *forecast framing of
+the demand signal* rather than forecast-in-general.
+
+| pair | paraphrases held | keyword controls held |
+|---|---:|---:|
+| `demand_pull_vs_supply_push` | 3/4 | 1/1 |
+| `local_vs_global_sourcing` | 3/4 | 2/2 |
+| `cost_vs_speed_optimization` | 3/4 | **0/2** |
+| `single_source_vs_multi_source` | 4/4 | 1/2 |
+
+(Regenerate with `python paper/steering/extract_results.py`, which reads the same `ui_data.json`.)
+
+### Against the ceiling
+
+`ceiling_pairs.py` patches the donor's whole residual into the recipient's decision token —
+activation patching in the model's own basis, no dictionary in the path — which bounds what any
+decomposition read there could do. On these 8 directions it flips **8 / 8**, against **3 / 8** for
+the cue set and **3 / 8** for every donor-active feature: a recovery of **0.38** and **0.38**.
+Random directions at the same norm flip 0 of 24. Difference-in-means needs several pairs per contrast
+type, so it is undefined here and reported on the `*_expanded` sets instead.
 
 ## Caveats
 
-- **`cost_vs_speed` is the weak pair.** Wide control bands (0.12–0.21), side A does not flip under
+- **`cost_vs_speed` is the weak pair.** Wide control bands (set-matched, 0.12–0.19), side A does not flip under
   ablation, and neither cross-patch direction flips. Three independent signals agree; treat it as
   inconclusive rather than load-bearing.
 - **Patching is directional.** `a→b` succeeds where `b→a` fails on both top pairs, and

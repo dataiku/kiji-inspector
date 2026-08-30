@@ -1,0 +1,957 @@
+{
+  "source": {
+    "meta": "demo/steering/sweep/output/sweep_candidates/supply_chain/meta.json",
+    "sweep": "demo/steering/sweep/output/sweep_candidates/supply_chain/sweep.jsonl",
+    "pairsScored": 377626,
+    "pairsFlipping": 145604,
+    "pairsPassingGate": 1094
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "minFlip": 0.6
+  },
+  "sample": {
+    "n": 32,
+    "seed": 1,
+    "population": 1094,
+    "themeCap": 10
+  },
+  "pairs": [
+    {
+      "id": "local_vs_global_sourcing_0",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing preference",
+      "score": 0.4696,
+      "flip": 0.6038,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Reorder stock for peak season based on local demand patterns",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.6038
+        }
+      },
+      "b": {
+        "request": "Reorder stock for peak season based on global demand patterns",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.6864
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_0",
+      "title": "Demand pull vs supply push",
+      "cue": "current vs forecasted",
+      "signal": "current sales vs forecasted sales",
+      "score": 0.5632,
+      "flip": 0.7241,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Stock items based on current sales to new customer segment",
+        "cueWords": [
+          "current"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.7241
+        }
+      },
+      "b": {
+        "request": "Stock items based on forecasted sales to new customer segment",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.9417
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_1",
+      "title": "Demand pull vs supply push",
+      "cue": "current vs forecasted",
+      "signal": "Current sales (pull) vs. forecasted sales (push)",
+      "score": 0.5359,
+      "flip": 0.7145,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Replenish e-commerce SKUs based on current platform sales",
+        "cueWords": [
+          "current"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9021
+        }
+      },
+      "b": {
+        "request": "Replenish e-commerce SKUs based on forecasted platform sales",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7145
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_2",
+      "title": "Demand pull vs supply push",
+      "cue": "actual vs forecasted",
+      "signal": "observed segment behavior vs modeled segment behavior",
+      "score": 0.4976,
+      "flip": 0.622,
+      "jaccard": 0.8,
+      "a": {
+        "request": "Adjust stock levels based on actual purchase behavior of customer segments.",
+        "cueWords": [
+          "actual"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.88
+        }
+      },
+      "b": {
+        "request": "Adjust stock levels based on forecasted purchase behavior of customer segments.",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.622
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_3",
+      "title": "Demand pull vs supply push",
+      "cue": "actual vs forecasted",
+      "signal": "demand_pull_vs_supply_push",
+      "score": 0.5462,
+      "flip": 0.7023,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Increase stock for high-margin items based on actual sales performance",
+        "cueWords": [
+          "actual"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.8793
+        }
+      },
+      "b": {
+        "request": "Increase stock for high-margin items based on forecasted sales performance",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7023
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_4",
+      "title": "Demand pull vs supply push",
+      "cue": "their current vs forecasted / increase",
+      "signal": "pull: current sales rate vs push: forecasted sales rate",
+      "score": 0.4929,
+      "flip": 0.7042,
+      "jaccard": 0.7,
+      "a": {
+        "request": "Prevent stockouts for high-velocity SKUs based on their current sales rate",
+        "cueWords": [
+          "their current"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.7308
+        }
+      },
+      "b": {
+        "request": "Prevent stockouts for high-velocity SKUs based on forecasted sales rate increase",
+        "cueWords": [
+          "forecasted",
+          "increase"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7042
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_5",
+      "title": "Demand pull vs supply push",
+      "cue": "actual vs forecasted",
+      "signal": "pull: actual margin sales; push: forecasted margin sales",
+      "score": 0.617,
+      "flip": 0.7933,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Increase stock for high-margin SKUs based on actual margin-driven sales",
+        "cueWords": [
+          "actual"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.8494
+        }
+      },
+      "b": {
+        "request": "Increase stock for high-margin SKUs based on forecasted margin-driven sales",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7933
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_6",
+      "title": "Demand pull vs supply push",
+      "cue": "current vs forecasted",
+      "signal": "pull: current share vs push: forecasted share",
+      "score": 0.4809,
+      "flip": 0.6183,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Increase stock for competitive SKUs based on current market share",
+        "cueWords": [
+          "current"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.6183
+        }
+      },
+      "b": {
+        "request": "Increase stock for competitive SKUs based on forecasted market share",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.8769
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_7",
+      "title": "Demand pull vs supply push",
+      "cue": "actual vs forecasted / planned",
+      "signal": "demand_pull_vs_supply_push",
+      "score": 0.5202,
+      "flip": 0.6936,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Adjust stock levels based on actual sales response to regional price changes",
+        "cueWords": [
+          "actual"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9416
+        }
+      },
+      "b": {
+        "request": "Adjust stock levels based on forecasted sales response to planned regional price changes",
+        "cueWords": [
+          "forecasted",
+          "planned"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.6936
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_8",
+      "title": "Demand pull vs supply push",
+      "cue": "actual vs forecasted / next",
+      "signal": "demand_pull_vs_supply_push",
+      "score": 0.5113,
+      "flip": 0.7305,
+      "jaccard": 0.7,
+      "a": {
+        "request": "Allocate inventory to regions based on actual sales performance this month",
+        "cueWords": [
+          "actual"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9505
+        }
+      },
+      "b": {
+        "request": "Allocate inventory to regions based on forecasted sales performance next month",
+        "cueWords": [
+          "forecasted",
+          "next"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7305
+        }
+      }
+    },
+    {
+      "id": "demand_pull_vs_supply_push_9",
+      "title": "Demand pull vs supply push",
+      "cue": "last vs predicted / next",
+      "signal": "pull: past patterns | push: future patterns",
+      "score": 0.494,
+      "flip": 0.7057,
+      "jaccard": 0.7,
+      "a": {
+        "request": "Adjust inventory based on last month\u2019s demand patterns",
+        "cueWords": [
+          "last"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.7057
+        }
+      },
+      "b": {
+        "request": "Adjust inventory based on next month\u2019s predicted demand patterns",
+        "cueWords": [
+          "predicted",
+          "next"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.9147
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_1",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing preference",
+      "score": 0.5293,
+      "flip": 0.7057,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Track on-time delivery performance of our local battery supplier",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.7057
+        }
+      },
+      "b": {
+        "request": "Track on-time delivery performance of our global battery supplier",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.8144
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_0",
+      "title": "Cost vs speed optimization",
+      "cue": "budget-friendly vs guaranteed-on-time",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.5238,
+      "flip": 0.6735,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Plan logistics for trade show materials using budget-friendly shipping",
+        "cueWords": [
+          "budget-friendly"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.6735
+        }
+      },
+      "b": {
+        "request": "Plan logistics for trade show materials using guaranteed-on-time shipping",
+        "cueWords": [
+          "guaranteed-on-time"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6777
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_1",
+      "title": "Cost vs speed optimization",
+      "cue": "economical vs fastest",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.548,
+      "flip": 0.7307,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Coordinate display shipment via economical carrier and route",
+        "cueWords": [
+          "economical"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7307
+        }
+      },
+      "b": {
+        "request": "Coordinate display shipment via fastest carrier and route",
+        "cueWords": [
+          "fastest"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.8672
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_2",
+      "title": "Cost vs speed optimization",
+      "cue": "lowest-cost vs fastest",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.5052,
+      "flip": 0.6495,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Process customer returns using lowest-cost return shipping method",
+        "cueWords": [
+          "lowest-cost"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.8892
+        }
+      },
+      "b": {
+        "request": "Process customer returns using fastest return shipping method",
+        "cueWords": [
+          "fastest"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6495
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_3",
+      "title": "Cost vs speed optimization",
+      "cue": "cost-effective vs time-critical",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.5483,
+      "flip": 0.7049,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Schedule shipment for product launch materials using cost-effective logistics",
+        "cueWords": [
+          "cost-effective"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.9033
+        }
+      },
+      "b": {
+        "request": "Schedule shipment for product launch materials using time-critical logistics",
+        "cueWords": [
+          "time-critical"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7049
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_2",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing constraint",
+      "score": 0.4831,
+      "flip": 0.6211,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Track on-time delivery performance of local suppliers for quality assurance",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.867
+        }
+      },
+      "b": {
+        "request": "Track on-time delivery performance of global suppliers for quality assurance",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6211
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_3",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing preference",
+      "score": 0.6283,
+      "flip": 0.7539,
+      "jaccard": 0.8333,
+      "a": {
+        "request": "Track on-time delivery performance of local supplier for precision gears over last quarter",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.7539
+        }
+      },
+      "b": {
+        "request": "Track on-time delivery performance of global supplier for precision gears over last quarter",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.9435
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_4",
+      "title": "Cost vs speed optimization",
+      "cue": "economical vs expedited",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.4673,
+      "flip": 0.6008,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Ship replacement inventory to retail stores using economical transport",
+        "cueWords": [
+          "economical"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.6008
+        }
+      },
+      "b": {
+        "request": "Ship replacement inventory to retail stores using expedited transport",
+        "cueWords": [
+          "expedited"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.6736
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_4",
+      "title": "Local vs global sourcing",
+      "cue": "regional vs and trends / global",
+      "signal": "local_vs_global_sourcing",
+      "score": 0.4737,
+      "flip": 0.6513,
+      "jaccard": 0.7273,
+      "a": {
+        "request": "Adjust inventory levels for the seasonal item based on regional sales history",
+        "cueWords": [
+          "regional"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9626
+        }
+      },
+      "b": {
+        "request": "Adjust inventory levels for the seasonal item based on global sales history and trends",
+        "cueWords": [
+          "and trends",
+          "global"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.6513
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_5",
+      "title": "Cost vs speed optimization",
+      "cue": "cheapest vs fastest",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.5478,
+      "flip": 0.7043,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Ship returned items for refurbishment using the cheapest return method",
+        "cueWords": [
+          "cheapest"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.8347
+        }
+      },
+      "b": {
+        "request": "Ship returned items for refurbishment using the fastest return method",
+        "cueWords": [
+          "fastest"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7043
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_5",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local_vs_global_sourcing",
+      "score": 0.564,
+      "flip": 0.6768,
+      "jaccard": 0.8333,
+      "a": {
+        "request": "Track average lead time for components from our local supplier over the past 6 months",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.6768
+        }
+      },
+      "b": {
+        "request": "Track average lead time for components from our global supplier over the past 6 months",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.874
+        }
+      }
+    },
+    {
+      "id": "single_source_vs_multi_source_0",
+      "title": "Single source vs multi source",
+      "cue": "our single / supplier vs suppliers",
+      "signal": "single_source_vs_multi_source",
+      "score": 0.4643,
+      "flip": 0.6191,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Generate shortage risk forecast for silicon wafers based on data from our single approved supplier",
+        "cueWords": [
+          "our single",
+          "supplier"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.6191
+        }
+      },
+      "b": {
+        "request": "Generate shortage risk forecast for silicon wafers based on data from all approved suppliers",
+        "cueWords": [
+          "suppliers"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.6474
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_6",
+      "title": "Cost vs speed optimization",
+      "cue": "lowest-cost vs available / fastest",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.492,
+      "flip": 0.7028,
+      "jaccard": 0.7,
+      "a": {
+        "request": "Plan logistics for recall using lowest-cost return shipping options",
+        "cueWords": [
+          "lowest-cost"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.7028
+        }
+      },
+      "b": {
+        "request": "Plan logistics for recall using fastest return shipping options available",
+        "cueWords": [
+          "available",
+          "fastest"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7768
+        }
+      }
+    },
+    {
+      "id": "single_source_vs_multi_source_1",
+      "title": "Single source vs multi source",
+      "cue": "our main supplier vs all suppliers",
+      "signal": "single_source_vs_multi_source",
+      "score": 0.4986,
+      "flip": 0.7123,
+      "jaccard": 0.7,
+      "a": {
+        "request": "Calculate safety stock for seasonal promotions using data from our main supplier",
+        "cueWords": [
+          "our main supplier"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.7123
+        }
+      },
+      "b": {
+        "request": "Calculate safety stock for seasonal promotions using data from all suppliers",
+        "cueWords": [
+          "all suppliers"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.8256
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_7",
+      "title": "Cost vs speed optimization",
+      "cue": "economical vs premium",
+      "signal": "cost_vs_speed_optimization",
+      "score": 0.5097,
+      "flip": 0.6796,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Arrange delivery for customer-specified date using economical shipping",
+        "cueWords": [
+          "economical"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.6796
+        }
+      },
+      "b": {
+        "request": "Arrange delivery for customer-specified date using premium shipping",
+        "cueWords": [
+          "premium"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7972
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_8",
+      "title": "Cost vs speed optimization",
+      "cue": "economical vs expedited",
+      "signal": "cost vs speed optimization",
+      "score": 0.4645,
+      "flip": 0.6194,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Ship prototypes to engineering team using economical shipping",
+        "cueWords": [
+          "economical"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.6194
+        }
+      },
+      "b": {
+        "request": "Ship prototypes to engineering team using expedited shipping",
+        "cueWords": [
+          "expedited"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.8779
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_6",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing",
+      "score": 0.5208,
+      "flip": 0.651,
+      "jaccard": 0.8,
+      "a": {
+        "request": "Track on-time delivery performance of local supplier for past 3 months",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.651
+        }
+      },
+      "b": {
+        "request": "Track on-time delivery performance of global supplier for past 3 months",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.9788
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_7",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing",
+      "score": 0.582,
+      "flip": 0.776,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Track delivery performance of local supplier for monthly evaluation",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.9579
+        }
+      },
+      "b": {
+        "request": "Track delivery performance of global supplier for monthly evaluation",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.776
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization_9",
+      "title": "Cost vs speed optimization",
+      "cue": "cost-efficient vs time-sensitive",
+      "signal": "cost vs speed optimization",
+      "score": 0.5023,
+      "flip": 0.6458,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Arrange delivery for production line resumption using cost-efficient logistics",
+        "cueWords": [
+          "cost-efficient"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.6458
+        }
+      },
+      "b": {
+        "request": "Arrange delivery for production line resumption using time-sensitive logistics",
+        "cueWords": [
+          "time-sensitive"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.9449
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_8",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local_vs_global_sourcing",
+      "score": 0.5987,
+      "flip": 0.7983,
+      "jaccard": 0.75,
+      "a": {
+        "request": "Track delivery performance of local supplier against SLA",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.7983
+        }
+      },
+      "b": {
+        "request": "Track delivery performance of global supplier against SLA",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.9932
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing_9",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing preference",
+      "score": 0.5167,
+      "flip": 0.62,
+      "jaccard": 0.8333,
+      "a": {
+        "request": "Track delivery performance of local suppliers for 1000 units of connectors over past quarter",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.62
+        }
+      },
+      "b": {
+        "request": "Track delivery performance of global suppliers for 1000 units of connectors over past quarter",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.8322
+        }
+      }
+    }
+  ]
+}

@@ -321,6 +321,37 @@ def contrast_experiments(
     return experiments
 
 
+def make_residual_patch_hook(vector, position: int = -1):
+    """Forward pre-hook that swaps the residual at one token for ``vector``.
+
+    Activation patching in the model's own basis, with no dictionary in the
+    path.  This is the ceiling for any sparse decomposition read at that
+    position: whatever causal signal the transplanted state carries, this moves
+    all of it, so a feature-level intervention can be scored as a fraction of
+    it rather than reported on its own.
+
+    ``position`` is a negative index from the end, matching
+    :func:`make_feature_edit_hook`, so the same call sites work for the second
+    forward that appends a tool's shared token.
+    """
+    if position >= 0:
+        raise ValueError("position must be a negative index from the end of the sequence")
+
+    def hook(module, args, kwargs):
+        hidden = args[0] if args else kwargs["hidden_states"]
+        if hidden.shape[1] < -position:
+            return None
+        new_hidden = hidden.clone()
+        new_hidden[0, position, :] = vector.to(device=hidden.device, dtype=hidden.dtype)
+        if args:
+            return (new_hidden,) + tuple(args[1:]), kwargs
+        new_kwargs = dict(kwargs)
+        new_kwargs["hidden_states"] = new_hidden
+        return args, new_kwargs
+
+    return hook
+
+
 def matched_random_sets(
     active: list[tuple[int, float]],
     exclude: set[int],
@@ -335,6 +366,11 @@ def matched_random_sets(
     both the family's count and its summed activation are reached, so ablating
     a draw removes at least as much as ablating the family.  Deterministic for
     a given ``seed``.
+
+    A draw can fall short: if every eligible feature together carries less than
+    ``target_mass``, the draw is the whole pool and all draws are identical.
+    That is not a matched control -- it is the strongest control available, and
+    the caller must record which of the two it got (``massMatched`` below).
     """
     pool = [(int(i), float(a)) for i, a in active if int(i) not in exclude and a > 0]
     if not pool:
@@ -354,10 +390,45 @@ def matched_random_sets(
     return sets
 
 
+def _delta_mass(targets: dict[int, float], open_map: dict[int, float]) -> float:
+    """How much a clamp of ``targets`` actually moves on the recipient prompt.
+
+    ``sum |donor - recipient|`` over the clamped features.  Donor mass alone
+    overstates this whenever a feature is already active on the recipient, and
+    understates nothing -- a feature *more* active on the recipient is pulled
+    down, which is still a change.  Ablation needs no equivalent: its target is
+    zero, so its realised change is the activation itself.
+    """
+    return sum(abs(value - open_map.get(index, 0.0)) for index, value in targets.items())
+
+
 def attribution_plan(
-    rows: list[dict], hf_active: list[tuple[int, float]], draws: int = 3, seed: int = 0
+    rows: list[dict],
+    hf_active: list[tuple[int, float]],
+    draws: int = 3,
+    seed: int = 0,
+    other_active: list[tuple[int, float]] | None = None,
 ) -> dict:
-    """What to ablate for one problem's snapshot rows, plus matched controls."""
+    """What to ablate for one problem's snapshot rows, plus matched controls.
+
+    Three control families are planned, and they answer different questions.
+    ``controls`` matches *each row* on its own count and mass, which is the
+    reference for a single cue family.  ``setControls`` matches the union of
+    all rows -- what ``allFeatures`` ablates -- on the union's count and mass,
+    which is the reference for the set-level effect.  A row-matched draw is
+    typically several times lighter than the whole cue set, so the two are not
+    interchangeable.
+
+    ``contrastControls`` needs ``other_active``, the activations at the *other*
+    side of the pair, and matches on how much the drawn set differs across the
+    pair rather than on how much of it is there.  Cue families are selected
+    because they differ across the pair, so a control matched only on mass
+    leaves open whether the effect comes from the cue-ness or from removing
+    that much activation.  This family closes that: it draws sets that differ
+    across the pair by a comparable amount and carry no cue label.  Where the
+    pool cannot reach the cue set's differential mass the draw is a ceiling,
+    which is itself the answer -- the differing features *are* the cue set.
+    """
     hf_map = {int(i): float(a) for i, a in hf_active}
     families = {int(row["index"]): demo.row_family(row) for row in rows}
     exclude = {index for family in families.values() for index in family}
@@ -384,16 +455,90 @@ def attribution_plan(
                 hf_active, exclude, mass, max(1, len(present)), draws, seed + 97 * position
             )
         ):
+            drawn_mass = sum(hf_map.get(i, 0.0) for i in chosen)
             controls.append(
                 {
                     "matchesRow": int(row["index"]),
                     "draw": draw,
                     "features": chosen,
                     "size": len(chosen),
-                    "hfMass": round(sum(hf_map.get(i, 0.0) for i in chosen), 4),
+                    "hfMass": round(drawn_mass, 4),
+                    "targetMass": round(mass, 4),
+                    "massMatched": drawn_mass >= mass - 1e-6,
                 }
             )
-    return {"rows": plan_rows, "allFeatures": sorted(exclude), "controls": controls}
+    set_present = [index for index in sorted(exclude) if hf_map.get(index, 0.0) > 0]
+    set_mass = sum(hf_map.get(index, 0.0) for index in exclude)
+    set_controls = []
+    for draw, chosen in enumerate(
+        matched_random_sets(
+            hf_active, exclude, set_mass, max(1, len(set_present)), draws, seed + 9973
+        )
+    ):
+        drawn_mass = sum(hf_map.get(i, 0.0) for i in chosen)
+        set_controls.append(
+            {
+                "matchesRow": None,
+                "draw": draw,
+                "features": chosen,
+                "size": len(chosen),
+                "hfMass": round(drawn_mass, 4),
+                "targetMass": round(set_mass, 4),
+                "massMatched": drawn_mass >= set_mass - 1e-6,
+            }
+        )
+    plan = {
+        "rows": plan_rows,
+        "allFeatures": sorted(exclude),
+        "setMass": round(set_mass, 4),
+        "setActiveSize": len(set_present),
+        "controls": controls,
+        "setControls": set_controls,
+    }
+    if other_active is not None:
+        other_map = {int(i): float(a) for i, a in other_active}
+        contrast_pool = [
+            (index, abs(value - other_map.get(index, 0.0))) for index, value in hf_map.items()
+        ]
+        set_contrast = sum(abs(hf_map.get(i, 0.0) - other_map.get(i, 0.0)) for i in exclude)
+        contrast_controls = []
+        for draw, chosen in enumerate(
+            matched_random_sets(
+                contrast_pool, exclude, set_contrast, max(1, len(set_present)), draws, seed + 6151
+            )
+        ):
+            drawn = sum(abs(hf_map.get(i, 0.0) - other_map.get(i, 0.0)) for i in chosen)
+            contrast_controls.append(
+                {
+                    "matchesRow": None,
+                    "draw": draw,
+                    "features": chosen,
+                    "size": len(chosen),
+                    "contrastMass": round(drawn, 4),
+                    "targetContrastMass": round(set_contrast, 4),
+                    "massMatched": drawn >= set_contrast - 1e-6,
+                }
+            )
+        if not contrast_controls:
+            # Nothing outside the cue set differs across the pair at all.  That
+            # is the answer to the question this family asks, so record it as an
+            # explicit empty draw rather than omitting the arm and looking like
+            # it was never run.
+            contrast_controls = [
+                {
+                    "matchesRow": None,
+                    "draw": 0,
+                    "features": [],
+                    "size": 0,
+                    "contrastMass": 0.0,
+                    "targetContrastMass": round(set_contrast, 4),
+                    "massMatched": False,
+                    "poolEmpty": True,
+                }
+            ]
+        plan["contrastControls"] = contrast_controls
+        plan["setContrastMass"] = round(set_contrast, 4)
+    return plan
 
 
 def summarize_attribution(
@@ -403,6 +548,8 @@ def summarize_attribution(
     all_reading: dict | None,
     control_readings: list[dict],
     target_tool: str,
+    set_control_readings: list[dict] | None = None,
+    contrast_control_readings: list[dict] | None = None,
 ) -> dict:
     """Combine the readings of one problem's attribution run into the UI block."""
     base_dist = baseline["distribution"]
@@ -424,7 +571,9 @@ def summarize_attribution(
         )
     controls = []
     for plan_control, reading in zip(plan["controls"], control_readings, strict=True):
-        controls.append({**plan_control, "deltaTarget": _delta(reading)})
+        controls.append(
+            {**plan_control, "deltaTarget": _delta(reading), "choice": reading.get("display")}
+        )
     control_threshold = max((abs(c["deltaTarget"]) for c in controls), default=0.0)
     result = {
         "targetTool": target_tool,
@@ -437,6 +586,48 @@ def summarize_attribution(
             sum(abs(c["deltaTarget"]) for c in controls) / len(controls) if controls else 0.0, 4
         ),
     }
+    if set_control_readings:
+        set_controls = [
+            {**plan_control, "deltaTarget": _delta(reading), "choice": reading.get("display")}
+            for plan_control, reading in zip(
+                plan.get("setControls") or [], set_control_readings, strict=True
+            )
+        ]
+        result["setControls"] = set_controls
+        result["setMass"] = plan.get("setMass")
+        result["setActiveSize"] = plan.get("setActiveSize")
+        result["setControlThreshold"] = round(
+            max(abs(c["deltaTarget"]) for c in set_controls), 4
+        )
+        result["setControlMeanAbsDelta"] = round(
+            sum(abs(c["deltaTarget"]) for c in set_controls) / len(set_controls), 4
+        )
+        # a draw that could not reach the cue set's mass is the whole rest of
+        # the active set, not a matched sample -- the band is then a ceiling on
+        # what any other features can do, and the draws are all the same set
+        result["setControlMassMatched"] = all(c.get("massMatched") for c in set_controls)
+        result["setControlDistinctDraws"] = len({
+            tuple(sorted((c.get("features") or c.get("targets") or []))) for c in set_controls
+        })
+    if contrast_control_readings:
+        contrast_controls = [
+            {**plan_control, "deltaTarget": _delta(reading), "choice": reading.get("display")}
+            for plan_control, reading in zip(
+                plan.get("contrastControls") or [], contrast_control_readings, strict=True
+            )
+        ]
+        result["contrastControls"] = contrast_controls
+        result["setContrastMass"] = plan.get("setContrastMass")
+        result["contrastControlThreshold"] = round(
+            max(abs(c["deltaTarget"]) for c in contrast_controls), 4
+        )
+        result["contrastControlMassMatched"] = all(
+            c.get("massMatched") for c in contrast_controls
+        )
+        result["contrastControlDistinctDraws"] = len(
+            {tuple(sorted(c.get("features") or [])) for c in contrast_controls}
+        )
+        result["contrastPoolEmpty"] = any(c.get("poolEmpty") for c in contrast_controls)
     if all_reading is not None:
         result["allRows"] = {
             "features": plan["allFeatures"],
@@ -444,6 +635,7 @@ def summarize_attribution(
             "intervened": all_reading["distribution"],
             "deltaTarget": _delta(all_reading),
             "argmaxChanged": all_reading.get("display") != baseline.get("display"),
+            "choice": all_reading.get("display"),
         }
     return result
 
@@ -461,8 +653,20 @@ def injection_plan(
     (explicit-ask) prompt; ``allRows`` clamps every family together; ``allBase``
     clamps *every* feature active on the base prompt to its base value (the
     upper bound of what the SAE feature space can put back).  Controls are
-    random sets of base-active features outside the families, matched to each
-    row's count and activation mass, clamped to their base values.
+    random sets of base-active features outside the families, clamped to their
+    base values: ``controls`` matches each row's own count and mass (the
+    reference for a single cue family), ``setControls`` matches the count and
+    mass of ``allRowsTargets`` (the reference for the set-level effect).
+
+    Both of those match on the *donor's* activation, which is not the same as
+    the perturbation the clamp applies: a feature already at its donor value on
+    the recipient moves nothing when clamped there.  Cue features are selected
+    for differing across the pair, so their recipient-side activation is low
+    and the clamp moves most of the donor mass; a draw from the donor-active
+    pool carries no such guarantee.  ``deltaControls`` therefore matches on the
+    realised change, sum |base - open| over the clamped features, and every
+    row, set and control record stores its own ``deltaMass`` so the match can
+    be checked rather than assumed.
     """
     base_map = {int(i): float(a) for i, a in base_active if a > 0}
     open_map = {int(i): float(a) for i, a in open_active if a > 0}
@@ -483,6 +687,9 @@ def injection_plan(
                 "targets": {str(k): round(v, 4) for k, v in targets.items()},
                 "baseMass": round(mass, 4),
                 "openMass": round(sum(open_map.get(index, 0.0) for index in family), 4),
+                # what the clamp actually moves: a feature already at its donor
+                # value on the recipient contributes nothing, however heavy
+                "deltaMass": round(_delta_mass(targets, open_map), 4),
                 "absentOnBase": not targets,
             }
         )
@@ -496,23 +703,81 @@ def injection_plan(
                 seed + 97 * position,
             )
         ):
+            drawn = {index: base_map[index] for index in chosen}
+            drawn_mass = sum(drawn.values())
             controls.append(
                 {
                     "matchesRow": int(row["index"]),
                     "draw": draw,
-                    "targets": {str(index): round(base_map[index], 4) for index in chosen},
+                    "targets": {str(index): round(value, 4) for index, value in drawn.items()},
                     "size": len(chosen),
-                    "baseMass": round(sum(base_map[index] for index in chosen), 4),
+                    "baseMass": round(drawn_mass, 4),
+                    "targetMass": round(mass, 4),
+                    "massMatched": drawn_mass >= mass - 1e-6,
+                    "deltaMass": round(_delta_mass(drawn, open_map), 4),
                 }
             )
     all_rows = {}
     for plan_row in plan_rows:
         all_rows.update({int(k): float(v) for k, v in plan_row["targets"].items()})
+    set_mass = sum(all_rows.values())
+    set_controls = []
+    for draw, chosen in enumerate(
+        matched_random_sets(
+            list(base_map.items()), exclude, set_mass, max(1, len(all_rows)), draws, seed + 9973
+        )
+    ):
+        drawn = {index: base_map[index] for index in chosen}
+        drawn_mass = sum(drawn.values())
+        set_controls.append(
+            {
+                "matchesRow": None,
+                "draw": draw,
+                "targets": {str(index): round(value, 4) for index, value in drawn.items()},
+                "size": len(chosen),
+                "baseMass": round(drawn_mass, 4),
+                "targetMass": round(set_mass, 4),
+                "massMatched": drawn_mass >= set_mass - 1e-6,
+                "deltaMass": round(_delta_mass(drawn, open_map), 4),
+            }
+        )
+    # Draws matched on the realised change instead of the donor activation.
+    # The pool is still the base-active features (those are what can be clamped
+    # to a donor value), but each is weighted by how far that clamp would move
+    # it on the recipient -- so a feature already sitting at its donor value is
+    # correctly worth nothing here, and drops out of the pool entirely.
+    set_delta_mass = _delta_mass(all_rows, open_map)
+    delta_pool = [(index, abs(value - open_map.get(index, 0.0))) for index, value in base_map.items()]
+    delta_controls = []
+    for draw, chosen in enumerate(
+        matched_random_sets(
+            delta_pool, exclude, set_delta_mass, max(1, len(all_rows)), draws, seed + 7919
+        )
+    ):
+        drawn = {index: base_map[index] for index in chosen}
+        drawn_delta = _delta_mass(drawn, open_map)
+        delta_controls.append(
+            {
+                "matchesRow": None,
+                "draw": draw,
+                "targets": {str(index): round(value, 4) for index, value in drawn.items()},
+                "size": len(chosen),
+                "baseMass": round(sum(drawn.values()), 4),
+                "deltaMass": round(drawn_delta, 4),
+                "targetDeltaMass": round(set_delta_mass, 4),
+                "deltaMassMatched": drawn_delta >= set_delta_mass - 1e-6,
+            }
+        )
     return {
         "rows": plan_rows,
         "allRowsTargets": {str(k): round(v, 4) for k, v in sorted(all_rows.items())},
         "allBaseTargets": {str(k): round(v, 4) for k, v in sorted(base_map.items())},
+        "setMass": round(set_mass, 4),
+        "setDeltaMass": round(set_delta_mass, 4),
+        "setActiveSize": len(all_rows),
         "controls": controls,
+        "setControls": set_controls,
+        "deltaControls": delta_controls,
     }
 
 
@@ -524,8 +789,18 @@ def summarize_injection(
     all_base_reading: dict | None,
     control_readings: list[dict],
     target_tool: str,
+    set_control_readings: list[dict] | None = None,
+    delta_control_readings: list[dict] | None = None,
 ) -> dict:
-    """Combine the readings of one problem's injection run (open prompt)."""
+    """Combine the readings of one problem's injection run (open prompt).
+
+    Three control bands come out of this, and they are not interchangeable:
+    ``controlThreshold`` (draws matched to one cue family's donor mass),
+    ``setControlThreshold`` (matched to the whole cue set's donor mass) and
+    ``deltaControlThreshold`` (matched to the change the clamp actually makes).
+    The last is the one the set-level cross-patch effect should be read
+    against; the others are reported so the comparison stays auditable.
+    """
     base_dist = baseline["distribution"]
     base_target = float(base_dist.get(target_tool, 0.0))
 
@@ -562,6 +837,57 @@ def summarize_injection(
             sum(abs(c["deltaTarget"]) for c in controls) / len(controls) if controls else 0.0, 4
         ),
     }
+    if set_control_readings:
+        set_controls = [
+            {**plan_control, "deltaTarget": _delta(reading), "choice": reading.get("display")}
+            for plan_control, reading in zip(
+                plan.get("setControls") or [], set_control_readings, strict=True
+            )
+        ]
+        result["setControls"] = set_controls
+        result["setMass"] = plan.get("setMass")
+        result["setActiveSize"] = plan.get("setActiveSize")
+        result["setControlThreshold"] = round(
+            max(abs(c["deltaTarget"]) for c in set_controls), 4
+        )
+        result["setControlMeanAbsDelta"] = round(
+            sum(abs(c["deltaTarget"]) for c in set_controls) / len(set_controls), 4
+        )
+        # a draw that could not reach the cue set's mass is the whole rest of
+        # the active set, not a matched sample -- the band is then a ceiling on
+        # what any other features can do, and the draws are all the same set
+        result["setControlMassMatched"] = all(c.get("massMatched") for c in set_controls)
+        result["setControlDistinctDraws"] = len({
+            tuple(sorted((c.get("features") or c.get("targets") or []))) for c in set_controls
+        })
+    if delta_control_readings:
+        delta_controls = [
+            {**plan_control, "deltaTarget": _delta(reading), "choice": reading.get("display")}
+            for plan_control, reading in zip(
+                plan.get("deltaControls") or [], delta_control_readings, strict=True
+            )
+        ]
+        result["deltaControls"] = delta_controls
+        result["setDeltaMass"] = plan.get("setDeltaMass")
+        result["deltaControlThreshold"] = round(
+            max(abs(c["deltaTarget"]) for c in delta_controls), 4
+        )
+        result["deltaControlMeanAbsDelta"] = round(
+            sum(abs(c["deltaTarget"]) for c in delta_controls) / len(delta_controls), 4
+        )
+        # same ceiling caveat as the set band: if nothing else on this prompt
+        # can be moved as far as the cue set moves, the draw is the whole pool
+        result["deltaControlMassMatched"] = all(
+            c.get("deltaMassMatched") for c in delta_controls
+        )
+        result["deltaControlDistinctDraws"] = len(
+            {tuple(sorted(c.get("targets") or [])) for c in delta_controls}
+        )
+        # the finding in one number: how much of the donor mass the clamp moves
+        set_mass = plan.get("setMass") or 0.0
+        result["setDeltaOverDonorMass"] = (
+            round((plan.get("setDeltaMass") or 0.0) / set_mass, 4) if set_mass else None
+        )
     if all_rows_reading is not None:
         result["allRows"] = _arm(all_rows_reading, {"size": len(plan["allRowsTargets"])})
     if all_base_reading is not None:
@@ -887,10 +1213,20 @@ def main() -> None:
                 _read(prompt, make_feature_edit_hook(sae, dict.fromkeys(c["features"]), "delta"))
                 for c in plan["controls"]
             ]
+            set_control_readings = [
+                _read(prompt, make_feature_edit_hook(sae, dict.fromkeys(c["features"]), "delta"))
+                for c in plan["setControls"]
+            ]
             attribution[pid] = {
                 "step": step,
                 **summarize_attribution(
-                    plan, baselines[step], row_readings, all_reading, control_readings, target_tool
+                    plan,
+                    baselines[step],
+                    row_readings,
+                    all_reading,
+                    control_readings,
+                    target_tool,
+                    set_control_readings,
                 ),
                 "backend": "hf",
                 "parity": parity.get(step, {}),
@@ -904,7 +1240,8 @@ def main() -> None:
             print(f"    all rows: {attribution[pid]['allRows']['deltaTarget']:+.3f}")
             print(
                 f"    control max |delta| {attribution[pid]['controlThreshold']:.3f} "
-                f"(mean {attribution[pid]['controlMeanAbsDelta']:.3f})"
+                f"(mean {attribution[pid]['controlMeanAbsDelta']:.3f}); set-matched "
+                f"{attribution[pid].get('setControlThreshold', float('nan')):.3f}"
             )
 
     # Injection: put the explicit-ask request's snapshot families back into the
@@ -948,6 +1285,8 @@ def main() -> None:
             all_rows_reading = _clamp(plan["allRowsTargets"])
             all_base_reading = _clamp(plan["allBaseTargets"])
             control_readings = [_clamp(c["targets"]) for c in plan["controls"]]
+            set_control_readings = [_clamp(c["targets"]) for c in plan["setControls"]]
+            delta_control_readings = [_clamp(c["targets"]) for c in plan["deltaControls"]]
             injection[pid] = {
                 "step": open_step,
                 "baseStep": base_step,
@@ -959,6 +1298,8 @@ def main() -> None:
                     all_base_reading,
                     control_readings,
                     target_tool,
+                    set_control_readings,
+                    delta_control_readings,
                 ),
                 "baseHfChoice": baselines[base_step].get("display"),
                 "backend": "hf",
@@ -977,7 +1318,10 @@ def main() -> None:
                 )
             print(
                 f"    control max |delta| {injection[pid]['controlThreshold']:.3f} "
-                f"(mean {injection[pid]['controlMeanAbsDelta']:.3f})"
+                f"(mean {injection[pid]['controlMeanAbsDelta']:.3f}); set-matched "
+                f"{injection[pid].get('setControlThreshold', float('nan')):.3f}; "
+                f"delta-matched "
+                f"{injection[pid].get('deltaControlThreshold', float('nan')):.3f}"
             )
 
     engine.cleanup()

@@ -31,10 +31,23 @@ _MIN_EFFECT = 0.02  # same floor as the tool_selection demo
 def summarize_steering(steering: dict) -> dict:
     """Condense one attribute_pairs.py result file into per-side effect counts."""
     sides = []
+    set_matched_sides = 0
+    ceiling_sides = 0
     for pid, by_side in (steering.get("attribution") or {}).items():
         for side, entry in by_side.items():
             all_rows = entry.get("allRows") or {}
             control = float(entry.get("controlThreshold") or 0.0)
+            # ``control`` is drawn to one cue family's mass, so it is the band
+            # for a single row.  The all-families arm moves the whole cue set,
+            # which carries several times that mass, and needs a band drawn to
+            # the set.  Result files written before that arm existed only have
+            # the per-family band; fall back to it and say so in the caveat.
+            set_raw = entry.get("setControlThreshold")
+            set_control = float(control if set_raw is None else set_raw)
+            if set_raw is not None:
+                set_matched_sides += 1
+                if entry.get("setControlMassMatched") is False:
+                    ceiling_sides += 1
             all_delta = float(all_rows.get("deltaTarget") or 0.0)
             row_effects = sum(
                 1
@@ -49,9 +62,11 @@ def summarize_steering(steering: dict) -> dict:
                     "allDelta": round(all_delta, 4),
                     "allSize": all_rows.get("size"),
                     "control": round(control, 4),
+                    "setControl": round(set_control, 4),
+                    "setControlMassMatched": entry.get("setControlMassMatched"),
                     "nFamilies": len(entry.get("rows", [])),
                     "familiesBeyondControl": row_effects,
-                    "allBeyondControl": abs(all_delta) > max(control, _MIN_EFFECT),
+                    "allBeyondControl": abs(all_delta) > max(set_control, _MIN_EFFECT),
                 }
             )
     cross = []
@@ -88,12 +103,27 @@ def summarize_steering(steering: dict) -> dict:
         "cross": cross,
         "crossFlips": sum(1 for c in cross if c["flippedToTarget"]),
         "nCross": len(cross),
-        "setControlCaveat": (
+        "setControlSides": set_matched_sides,
+        "setControlCeilings": ceiling_sides,
+        "setControlCaveat": _set_control_caveat(len(sides), set_matched_sides, ceiling_sides),
+    }
+
+
+def _set_control_caveat(n_sides: int, set_matched: int, ceilings: int) -> str:
+    """What the reader needs to know about the band beside the all-families row."""
+    if not n_sides or set_matched < n_sides:
+        return (
             "the all-families arm is compared against the max of per-family "
             "mass-matched controls, which are smaller sets; per-family rows are "
             "the like-for-like comparison"
-        ),
-    }
+        )
+    if ceilings:
+        return (
+            f"controls are matched to the whole cue set; on {ceilings} of {n_sides} "
+            "sides the cue set outweighs every other active feature, so its band "
+            "is the whole eligible pool rather than a matched draw"
+        )
+    return "controls are matched to the whole cue set on every side"
 
 
 def _load(path: Path):

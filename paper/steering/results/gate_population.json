@@ -1,0 +1,34 @@
+{
+  "rule": {
+    "minFlip": 0.6,
+    "minCoverage": 0.5,
+    "maxSideProb": 0.8,
+    "excludeToolNamed": true,
+    "minJaccard": {
+      "supply_chain": 0.7,
+      "customer_support": 0.55
+    }
+  },
+  "scenarios": {
+    "supply_chain": {
+      "population": 1094,
+      "byTheme": {
+        "demand_pull_vs_supply_push": 1006,
+        "local_vs_global_sourcing": 52,
+        "cost_vs_speed_optimization": 33,
+        "single_source_vs_multi_source": 3
+      }
+    },
+    "customer_support": {
+      "population": 1616,
+      "byTheme": {
+        "billing_vs_technical": 1565,
+        "refund_vs_troubleshoot": 38,
+        "self_service_vs_agent_assist": 8,
+        "urgent_vs_routine": 3,
+        "new_vs_returning_customer": 1,
+        "single_issue_vs_complex_case": 1
+      }
+    }
+  }
+}

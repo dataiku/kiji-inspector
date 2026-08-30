@@ -104,8 +104,21 @@ def dose_summary(
     best_readings: list[dict] | None,
     control_readings: list[list[dict]],
     target_tool: str,
+    set_control_readings: list[list[dict]] | None = None,
+    delta_control_readings: list[list[dict]] | None = None,
 ) -> dict:
-    """Curves of p(target) against clamp scale, with the random band per scale."""
+    """Curves of p(target) against clamp scale, with the random bands per scale.
+
+    Three bands, because the curves they answer for are not the same size.  ``controlBand`` is the
+    max over draws matched to a single cue family each -- the reference for
+    ``bestRow``.  ``setControlBand`` is the max over draws matched to the whole
+    clamped set's count and mass -- the reference for ``allRows``, which clamps
+    every family at once and therefore carries several times more mass than any
+    one family.  ``deltaControlBand`` is matched instead to the change the
+    clamp makes on *this* prompt: donor mass overstates that for any feature
+    already active on the recipient, and cue features are picked for being
+    absent there, so this is the strictest of the three.
+    """
     base_p = float(baseline["distribution"].get(target_tool, 0.0))
 
     def _curve(readings: list[dict]) -> list[dict]:
@@ -118,22 +131,29 @@ def dose_summary(
             for s, r in zip(scales, readings, strict=True)
         ]
 
-    bands = []
-    for i, _ in enumerate(scales):
-        deltas = [
-            abs(float(c[i]["distribution"].get(target_tool, 0.0)) - base_p)
-            for c in control_readings
-            if len(c) > i
-        ]
-        bands.append(round(max(deltas), 4) if deltas else None)
+    def _band(curves: list[list[dict]]) -> list[float | None]:
+        out = []
+        for i, _ in enumerate(scales):
+            deltas = [
+                abs(float(c[i]["distribution"].get(target_tool, 0.0)) - base_p)
+                for c in curves
+                if len(c) > i
+            ]
+            out.append(round(max(deltas), 4) if deltas else None)
+        return out
+
     out = {
         "targetTool": target_tool,
         "baselineP": round(base_p, 4),
         "baselineChoice": baseline["display"],
         "scales": list(scales),
         "allRows": _curve(all_readings),
-        "controlBand": bands,
+        "controlBand": _band(control_readings),
     }
+    if set_control_readings:
+        out["setControlBand"] = _band(set_control_readings)
+    if delta_control_readings:
+        out["deltaControlBand"] = _band(delta_control_readings)
     if best_row is not None and best_readings is not None:
         out["bestRow"] = {
             "index": int(best_row["index"]),
@@ -366,26 +386,34 @@ def main() -> None:
                         "distribution": reading["distribution"],
                     }
                     if cond in ("decision", "all"):
-                        deltas = []
-                        for c in plan["controls"]:
-                            r = _read(
-                                prompt,
-                                [
-                                    (
-                                        lyr,
-                                        make_position_hook(
-                                            saes[lyr], dict.fromkeys(c["features"]), pos
-                                        ),
-                                    )
-                                ],
-                            )
-                            deltas.append(
-                                abs(
-                                    float(r["distribution"].get(target_tool, 0.0))
-                                    - float(baselines[step]["distribution"].get(target_tool, 0))
+
+                        def _band(controls, pos=pos, lyr=lyr, step=step, prompt=prompt):
+                            deltas = []
+                            for c in controls:
+                                r = _read(
+                                    prompt,
+                                    [
+                                        (
+                                            lyr,
+                                            make_position_hook(
+                                                saes[lyr], dict.fromkeys(c["features"]), pos
+                                            ),
+                                        )
+                                    ],
                                 )
-                            )
-                        item["controlBand"] = round(max(deltas), 4) if deltas else None
+                                deltas.append(
+                                    abs(
+                                        float(r["distribution"].get(target_tool, 0.0))
+                                        - float(baselines[step]["distribution"].get(target_tool, 0))
+                                    )
+                                )
+                            return round(max(deltas), 4) if deltas else None
+
+                        # this arm switches off *every* family, so the band that
+                        # applies to it is the set-matched one; the per-family
+                        # band is kept for continuity with earlier runs
+                        item["controlBand"] = _band(plan["controls"])
+                        item["setControlBand"] = _band(plan["setControls"])
                     ablate[cond] = item
                     print(
                         f"  L{lyr} off {len(family_feats):>2} feats @{cond:<15} "
@@ -445,6 +473,12 @@ def main() -> None:
                 else None
             )
             control_curves = [[_clamp(c["targets"], s) for s in scales] for c in plan["controls"]]
+            set_control_curves = [
+                [_clamp(c["targets"], s) for s in scales] for c in plan["setControls"]
+            ]
+            delta_control_curves = [
+                [_clamp(c["targets"], s) for s in scales] for c in plan["deltaControls"]
+            ]
             dose = dose_summary(
                 baselines[other_step],
                 scales,
@@ -453,6 +487,8 @@ def main() -> None:
                 best_curve,
                 control_curves,
                 target_tool,
+                set_control_curves,
+                delta_control_curves,
             )
             dose["fromSide"], dose["intoSide"], dose["intoStep"] = side, other, other_step
             dose["numFeatures"] = len(plan["allRowsTargets"])
@@ -462,17 +498,40 @@ def main() -> None:
                 + " ".join(f"{c['scale']}x={c['p']:.2f}" for c in dose["allRows"])
             )
 
-            # Generation: unsteered, steered (all positions, every step), matched random set.
+            # Generation, at two intervention scopes.  ``positions=None`` edits
+            # every position the layer receives -- the whole prompt on prefill
+            # and each new token as it is decoded -- which is a much larger
+            # intervention than the decision-token clamp the rest of the paper
+            # reports, and is therefore an upper bound.  Restricting to the
+            # decision token tests the claim the paper actually makes: absolute
+            # indices are dropped on decode steps (where the layer sees one
+            # token), so this clamps the decision token on prefill and nothing
+            # after it.
             full_targets = {int(k): float(v) for k, v in plan["allRowsTargets"].items()}
+            decision_pos = [n_other - 1]
             baseline_text = _generate(other_prompt, [])
             steered_text = _generate(
                 other_prompt, [(layer, make_position_hook(sae, full_targets, None))]
             )
-            control_text = None
-            if plan["controls"]:
-                ctrl_targets = {int(k): float(v) for k, v in plan["controls"][0]["targets"].items()}
+            steered_decision_text = _generate(
+                other_prompt, [(layer, make_position_hook(sae, full_targets, decision_pos))]
+            )
+            # The steer clamps the whole cue set, so its control has to be a
+            # draw matched to the whole cue set -- and matched on the change
+            # that clamp makes, not on the donor activation behind it.  Fall
+            # back through the weaker families only if a stronger one is empty.
+            control_family = next(
+                (k for k in ("deltaControls", "setControls", "controls") if plan.get(k)), None
+            )
+            control_draw = plan[control_family][0] if control_family else None
+            control_text = control_decision_text = None
+            if control_draw:
+                ctrl_targets = {int(k): float(v) for k, v in control_draw["targets"].items()}
                 control_text = _generate(
                     other_prompt, [(layer, make_position_hook(sae, ctrl_targets, None))]
+                )
+                control_decision_text = _generate(
+                    other_prompt, [(layer, make_position_hook(sae, ctrl_targets, decision_pos))]
                 )
             gen_out[pid][f"{side}_into_{other}"] = {
                 "fromSide": side,
@@ -483,11 +542,21 @@ def main() -> None:
                 "baseline": baseline_text,
                 "steered": steered_text,
                 "control": control_text,
-                "controlSize": len(plan["controls"][0]["targets"]) if plan["controls"] else 0,
+                # the decision-token-only arm: same clamp, same control, but
+                # applied where the rest of the paper's interventions are
+                "steeredDecisionToken": steered_decision_text,
+                "controlDecisionToken": control_decision_text,
+                "decisionPosition": decision_pos[0],
+                "controlSize": len(control_draw["targets"]) if control_draw else 0,
+                "controlFamily": control_family,
+                "controlDeltaMass": (control_draw or {}).get("deltaMass"),
+                "steeredDeltaMass": plan.get("setDeltaMass"),
             }
-            print(f"  GEN {other_step} baseline: {baseline_text!r}")
-            print(f"  GEN {other_step} steered : {steered_text!r}")
-            print(f"  GEN {other_step} control : {control_text!r}")
+            print(f"  GEN {other_step} baseline    : {baseline_text!r}")
+            print(f"  GEN {other_step} steered all : {steered_text!r}")
+            print(f"  GEN {other_step} steered dec : {steered_decision_text!r}")
+            print(f"  GEN {other_step} control all : {control_text!r}")
+            print(f"  GEN {other_step} control dec : {control_decision_text!r}")
 
     engine.cleanup()
     output = {

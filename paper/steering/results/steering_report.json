@@ -1,0 +1,5706 @@
+{
+ "scenarios": {
+  "tool_selection": {
+   "demoLayer": null,
+   "numPairs": 7,
+   "pairsScored": 325,
+   "pairsFlipping": 116,
+   "layers": {
+    "6": {
+     "layer": 6,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.0609,
+     "ablationControlMedian": 0.0121,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0565,
+     "medianBaseActive": 52,
+     "medianEffectOverControl": 0.475,
+     "fractionExceedingControl": 0.045,
+     "medianEffectOverSetControl": 0.961,
+     "fractionExceedingSetControl": 0.316,
+     "setControlSides": 19,
+     "medianEffectOverContrastControl": 0.192,
+     "fractionExceedingContrastControl": 0.167,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 3,
+     "medianEffectOverDeltaControl": 1.0,
+     "fractionExceedingDeltaControl": 0.364,
+     "deltaControlDirections": 11,
+     "medianCueDeltaOverDonorMass": 0.614,
+     "medianCueMassOverHeaviestRowDraw": 1.95,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 28
+    },
+    "13": {
+     "layer": 13,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.0545,
+     "ablationControlMedian": 0.0103,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0354,
+     "medianBaseActive": 55,
+     "medianEffectOverControl": 0.5,
+     "fractionExceedingControl": 0.227,
+     "medianEffectOverSetControl": 0.66,
+     "fractionExceedingSetControl": 0.217,
+     "setControlSides": 23,
+     "medianEffectOverContrastControl": 0.974,
+     "fractionExceedingContrastControl": 0.455,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 2,
+     "medianEffectOverDeltaControl": 0.429,
+     "fractionExceedingDeltaControl": 0.091,
+     "deltaControlDirections": 11,
+     "medianCueDeltaOverDonorMass": 0.426,
+     "medianCueMassOverHeaviestRowDraw": 2.1,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 28
+    },
+    "20": {
+     "layer": 20,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.1149,
+     "ablationControlMedian": 0.0094,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0535,
+     "medianBaseActive": 201,
+     "medianEffectOverControl": 0.98,
+     "fractionExceedingControl": 0.318,
+     "medianEffectOverSetControl": 0.986,
+     "fractionExceedingSetControl": 0.333,
+     "setControlSides": 21,
+     "medianEffectOverContrastControl": 0.966,
+     "fractionExceedingContrastControl": 0.364,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 0,
+     "medianEffectOverDeltaControl": 0.991,
+     "fractionExceedingDeltaControl": 0.25,
+     "deltaControlDirections": 12,
+     "medianCueDeltaOverDonorMass": 0.579,
+     "medianCueMassOverHeaviestRowDraw": 2.03,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 28
+    },
+    "27": {
+     "layer": 27,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.173,
+     "ablationControlMedian": 0.0123,
+     "crossPatchFlips": 1,
+     "crossPatchFlipsAnyTool": 1,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 1,
+     "crossPatchBestDelta": 0.2088,
+     "medianBaseActive": 269,
+     "medianEffectOverControl": 2.639,
+     "fractionExceedingControl": 0.652,
+     "medianEffectOverSetControl": 2.938,
+     "fractionExceedingSetControl": 0.727,
+     "setControlSides": 22,
+     "medianEffectOverContrastControl": 3.33,
+     "fractionExceedingContrastControl": 0.818,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 0,
+     "medianEffectOverDeltaControl": 2.391,
+     "fractionExceedingDeltaControl": 0.75,
+     "deltaControlDirections": 12,
+     "medianCueDeltaOverDonorMass": 0.64,
+     "medianCueMassOverHeaviestRowDraw": 2.32,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 28
+    },
+    "34": {
+     "layer": 34,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 1,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.4857,
+     "ablationControlMedian": 0.0134,
+     "crossPatchFlips": 2,
+     "crossPatchFlipsAnyTool": 2,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 2,
+     "crossPatchBestDelta": 0.6607,
+     "medianBaseActive": 481,
+     "medianEffectOverControl": 8.266,
+     "fractionExceedingControl": 0.923,
+     "medianEffectOverSetControl": 16.039,
+     "fractionExceedingSetControl": 0.923,
+     "setControlSides": 26,
+     "medianEffectOverContrastControl": 12.885,
+     "fractionExceedingContrastControl": 0.923,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 0,
+     "medianEffectOverDeltaControl": 9.816,
+     "fractionExceedingDeltaControl": 0.917,
+     "deltaControlDirections": 12,
+     "medianCueDeltaOverDonorMass": 0.796,
+     "medianCueMassOverHeaviestRowDraw": 2.97,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 28
+    },
+    "43": {
+     "layer": 43,
+     "ablationFlips": 3,
+     "ablationFlipsAnyTool": 5,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.6037,
+     "ablationControlMedian": 0.0226,
+     "crossPatchFlips": 5,
+     "crossPatchFlipsAnyTool": 5,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 2,
+     "crossPatchBulkOnly": 3,
+     "crossPatchBestDelta": 0.9878,
+     "medianBaseActive": 352,
+     "medianEffectOverControl": 7.915,
+     "fractionExceedingControl": 0.792,
+     "medianEffectOverSetControl": 9.397,
+     "fractionExceedingSetControl": 0.833,
+     "setControlSides": 24,
+     "medianEffectOverContrastControl": 8.442,
+     "fractionExceedingContrastControl": 0.917,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 0,
+     "medianEffectOverDeltaControl": 10.789,
+     "fractionExceedingDeltaControl": 0.75,
+     "deltaControlDirections": 12,
+     "medianCueDeltaOverDonorMass": 0.817,
+     "medianCueMassOverHeaviestRowDraw": 2.36,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 28
+    }
+   },
+   "dictionary": {
+    "6": {
+     "meanL0": 117.6,
+     "explainedVariance": 0.5229,
+     "constant": 22,
+     "varying": 403,
+     "constantFraction": 0.0518,
+     "sideSpecificMin": 7,
+     "sideSpecificMedian": 19
+    },
+    "13": {
+     "meanL0": 78.7,
+     "explainedVariance": 0.4922,
+     "constant": 35,
+     "varying": 172,
+     "constantFraction": 0.1691,
+     "sideSpecificMin": 1,
+     "sideSpecificMedian": 11
+    },
+    "20": {
+     "meanL0": 241.9,
+     "explainedVariance": 0.5447,
+     "constant": 126,
+     "varying": 313,
+     "constantFraction": 0.287,
+     "sideSpecificMin": 6,
+     "sideSpecificMedian": 20
+    },
+    "27": {
+     "meanL0": 352.6,
+     "explainedVariance": 0.562,
+     "constant": 161,
+     "varying": 535,
+     "constantFraction": 0.2313,
+     "sideSpecificMin": 12,
+     "sideSpecificMedian": 52
+    },
+    "34": {
+     "meanL0": 633.1,
+     "explainedVariance": 0.5215,
+     "constant": 222,
+     "varying": 896,
+     "constantFraction": 0.1986,
+     "sideSpecificMin": 9,
+     "sideSpecificMedian": 69
+    },
+    "43": {
+     "meanL0": 373.6,
+     "explainedVariance": 0.6615,
+     "constant": 219,
+     "varying": 299,
+     "constantFraction": 0.4228,
+     "sideSpecificMin": 5,
+     "sideSpecificMedian": 22
+    }
+   }
+  },
+  "supply_chain": {
+   "demoLayer": 43,
+   "numPairs": 4,
+   "pairsScored": 377626,
+   "pairsFlipping": 145604,
+   "layers": {
+    "6": {
+     "layer": 6,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 8,
+     "ablationBestDelta": 0.0252,
+     "ablationControlMedian": 0.0169,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 8,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0254,
+     "medianBaseActive": 10,
+     "medianEffectOverControl": 0.424,
+     "fractionExceedingControl": 0.0,
+     "medianEffectOverSetControl": 0.899,
+     "fractionExceedingSetControl": 0.154,
+     "setControlSides": 13,
+     "medianEffectOverContrastControl": 0.025,
+     "fractionExceedingContrastControl": 0.0,
+     "contrastControlSides": 8,
+     "contrastCeilingSides": 5,
+     "medianEffectOverDeltaControl": 0.926,
+     "fractionExceedingDeltaControl": 0.0,
+     "deltaControlDirections": 4,
+     "medianCueDeltaOverDonorMass": 0.287,
+     "medianCueMassOverHeaviestRowDraw": 1.57,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 16
+    },
+    "13": {
+     "layer": 13,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 8,
+     "ablationBestDelta": 0.0294,
+     "ablationControlMedian": 0.022,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 8,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0254,
+     "medianBaseActive": 8,
+     "medianEffectOverControl": 0.45,
+     "fractionExceedingControl": 0.2,
+     "medianEffectOverSetControl": 0.917,
+     "fractionExceedingSetControl": 0.357,
+     "setControlSides": 14,
+     "medianEffectOverContrastControl": 0.887,
+     "fractionExceedingContrastControl": 0.375,
+     "contrastControlSides": 8,
+     "contrastCeilingSides": 5,
+     "medianEffectOverDeltaControl": 0.905,
+     "fractionExceedingDeltaControl": 0.0,
+     "deltaControlDirections": 5,
+     "medianCueDeltaOverDonorMass": 0.193,
+     "medianCueMassOverHeaviestRowDraw": 1.56,
+     "sidesWhereRowDrawReachesCueMass": 4,
+     "massAuditSides": 14
+    },
+    "20": {
+     "layer": 20,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 8,
+     "ablationBestDelta": 0.0533,
+     "ablationControlMedian": 0.028,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 8,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0532,
+     "medianBaseActive": 13,
+     "medianEffectOverControl": 0.421,
+     "fractionExceedingControl": 0.25,
+     "medianEffectOverSetControl": 0.992,
+     "fractionExceedingSetControl": 0.385,
+     "setControlSides": 13,
+     "medianEffectOverContrastControl": 0.684,
+     "fractionExceedingContrastControl": 0.5,
+     "contrastControlSides": 8,
+     "contrastCeilingSides": 3,
+     "medianEffectOverDeltaControl": 1.008,
+     "fractionExceedingDeltaControl": 0.6,
+     "deltaControlDirections": 5,
+     "medianCueDeltaOverDonorMass": 0.25,
+     "medianCueMassOverHeaviestRowDraw": 1.91,
+     "sidesWhereRowDrawReachesCueMass": 4,
+     "massAuditSides": 16
+    },
+    "27": {
+     "layer": 27,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 8,
+     "ablationBestDelta": 0.259,
+     "ablationControlMedian": 0.0146,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 8,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.2296,
+     "medianBaseActive": 8,
+     "medianEffectOverControl": 3.189,
+     "fractionExceedingControl": 0.688,
+     "medianEffectOverSetControl": 2.891,
+     "fractionExceedingSetControl": 0.643,
+     "setControlSides": 14,
+     "medianEffectOverContrastControl": 7.79,
+     "fractionExceedingContrastControl": 0.75,
+     "contrastControlSides": 8,
+     "contrastCeilingSides": 5,
+     "medianEffectOverDeltaControl": 1.032,
+     "fractionExceedingDeltaControl": 0.5,
+     "deltaControlDirections": 6,
+     "medianCueDeltaOverDonorMass": 0.533,
+     "medianCueMassOverHeaviestRowDraw": 1.81,
+     "sidesWhereRowDrawReachesCueMass": 2,
+     "massAuditSides": 16
+    },
+    "34": {
+     "layer": 34,
+     "ablationFlips": 1,
+     "ablationFlipsAnyTool": 1,
+     "ablationSides": 8,
+     "ablationBestDelta": 0.3915,
+     "ablationControlMedian": 0.0421,
+     "crossPatchFlips": 2,
+     "crossPatchFlipsAnyTool": 2,
+     "crossPatchDirections": 8,
+     "crossPatchCueDriven": 2,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.503,
+     "medianBaseActive": 13,
+     "medianEffectOverControl": 3.182,
+     "fractionExceedingControl": 0.875,
+     "medianEffectOverSetControl": 3.785,
+     "fractionExceedingSetControl": 0.875,
+     "setControlSides": 16,
+     "medianEffectOverContrastControl": 5.022,
+     "fractionExceedingContrastControl": 0.875,
+     "contrastControlSides": 8,
+     "contrastCeilingSides": 7,
+     "medianEffectOverDeltaControl": 3.44,
+     "fractionExceedingDeltaControl": 0.875,
+     "deltaControlDirections": 8,
+     "medianCueDeltaOverDonorMass": 0.642,
+     "medianCueMassOverHeaviestRowDraw": 1.98,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 16
+    },
+    "43": {
+     "layer": 43,
+     "ablationFlips": 7,
+     "ablationFlipsAnyTool": 7,
+     "ablationSides": 8,
+     "ablationBestDelta": 0.8469,
+     "ablationControlMedian": 0.0633,
+     "crossPatchFlips": 3,
+     "crossPatchFlipsAnyTool": 3,
+     "crossPatchDirections": 8,
+     "crossPatchCueDriven": 3,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.7451,
+     "medianBaseActive": 22,
+     "medianEffectOverControl": 7.482,
+     "fractionExceedingControl": 0.875,
+     "medianEffectOverSetControl": 9.379,
+     "fractionExceedingSetControl": 0.875,
+     "setControlSides": 16,
+     "medianEffectOverContrastControl": 10.828,
+     "fractionExceedingContrastControl": 0.875,
+     "contrastControlSides": 8,
+     "contrastCeilingSides": 5,
+     "medianEffectOverDeltaControl": 4.83,
+     "fractionExceedingDeltaControl": 0.667,
+     "deltaControlDirections": 6,
+     "medianCueDeltaOverDonorMass": 0.44,
+     "medianCueMassOverHeaviestRowDraw": 1.68,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 16
+    }
+   },
+   "dictionary": {
+    "6": {
+     "meanL0": 17.2,
+     "explainedVariance": 0.4709,
+     "constant": 5,
+     "varying": 56,
+     "constantFraction": 0.082,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 1
+    },
+    "13": {
+     "meanL0": 13,
+     "explainedVariance": 0.49,
+     "constant": 4,
+     "varying": 42,
+     "constantFraction": 0.087,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 2
+    },
+    "20": {
+     "meanL0": 24.4,
+     "explainedVariance": 0.5077,
+     "constant": 11,
+     "varying": 76,
+     "constantFraction": 0.1264,
+     "sideSpecificMin": 2,
+     "sideSpecificMedian": 4
+    },
+    "27": {
+     "meanL0": 33.1,
+     "explainedVariance": 0.5725,
+     "constant": 2,
+     "varying": 178,
+     "constantFraction": 0.0111,
+     "sideSpecificMin": 3,
+     "sideSpecificMedian": 8
+    },
+    "34": {
+     "meanL0": 36,
+     "explainedVariance": 0.6238,
+     "constant": 2,
+     "varying": 167,
+     "constantFraction": 0.0118,
+     "sideSpecificMin": 1,
+     "sideSpecificMedian": 18
+    },
+    "43": {
+     "meanL0": 31.6,
+     "explainedVariance": 0.7266,
+     "constant": 16,
+     "varying": 71,
+     "constantFraction": 0.1839,
+     "sideSpecificMin": 5,
+     "sideSpecificMedian": 5
+    }
+   },
+   "dose": [
+    {
+     "pair": "demand_pull_vs_supply_push",
+     "direction": "a_into_b",
+     "targetTool": "inventory_manager",
+     "baselineP": 0.148,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.1645,
+      "0.5": 0.4377,
+      "1.0": 0.7308,
+      "1.5": 0.9239,
+      "2.0": 0.9819,
+      "3.0": 0.9985
+     },
+     "crossesAt": 1.0,
+     "setControlBand": [
+      0.7668,
+      0.2003,
+      0.0538,
+      0.0164,
+      0.0161,
+      0.0416
+     ],
+     "deltaControlBand": [
+      0.7668,
+      0.1728,
+      0.0538,
+      0.0164,
+      0.0161,
+      0.0296
+     ],
+     "controlBand": [
+      0.4139,
+      0.1206,
+      0.0537,
+      0.0165,
+      0.0342,
+      0.0726
+     ],
+     "bestSingleFeature": {
+      "index": 2101,
+      "label": "Safety stock and inventory coverage calculation",
+      "curve": {
+       "0.0": 0.148,
+       "0.5": 0.4686,
+       "1.0": 0.7056,
+       "1.5": 0.8669,
+       "2.0": 0.9465,
+       "3.0": 0.989
+      }
+     }
+    },
+    {
+     "pair": "demand_pull_vs_supply_push",
+     "direction": "b_into_a",
+     "targetTool": "demand_forecaster",
+     "baselineP": 0.0332,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0006,
+      "0.5": 0.0294,
+      "1.0": 0.2228,
+      "1.5": 0.4378,
+      "2.0": 0.5923,
+      "3.0": 0.7534
+     },
+     "crossesAt": 2.0,
+     "setControlBand": [
+      0.0,
+      0.0042,
+      0.0042,
+      0.0042,
+      0.0001,
+      0.0089
+     ],
+     "deltaControlBand": [
+      0.0,
+      0.0042,
+      0.0042,
+      0.0042,
+      0.0001,
+      0.0089
+     ],
+     "controlBand": [
+      0.009,
+      0.0042,
+      0.0042,
+      0.009,
+      0.009,
+      0.0143
+     ],
+     "bestSingleFeature": {
+      "index": 9636,
+      "label": "Inventory forecasting and supplier evaluation",
+      "curve": {
+       "0.0": 0.0041,
+       "0.5": 0.026,
+       "1.0": 0.0852,
+       "1.5": 0.1825,
+       "2.0": 0.269,
+       "3.0": 0.4069
+      }
+     }
+    },
+    {
+     "pair": "local_vs_global_sourcing",
+     "direction": "a_into_b",
+     "targetTool": "supplier_database",
+     "baselineP": 0.2228,
+     "numFeatures": 7,
+     "curve": {
+      "0.0": 0.1194,
+      "0.5": 0.4076,
+      "1.0": 0.7547,
+      "1.5": 0.9144,
+      "2.0": 0.9765,
+      "3.0": 0.9986
+     },
+     "crossesAt": 1.0,
+     "setControlBand": [
+      0.6322,
+      0.2139,
+      0.0209,
+      0.0581,
+      0.1273,
+      0.1694
+     ],
+     "deltaControlBand": [
+      0.6175,
+      0.2136,
+      0.0,
+      0.0581,
+      0.1273,
+      0.1553
+     ],
+     "controlBand": [
+      0.4369,
+      0.1529,
+      0.0209,
+      0.0896,
+      0.1159,
+      0.1469
+     ],
+     "bestSingleFeature": {
+      "index": 5279,
+      "label": "Certified Supplier Sourcing",
+      "curve": {
+       "0.0": 0.2019,
+       "0.5": 0.3488,
+       "1.0": 0.5314,
+       "1.5": 0.7059,
+       "2.0": 0.8671,
+       "3.0": 0.9797
+      }
+     }
+    },
+    {
+     "pair": "local_vs_global_sourcing",
+     "direction": "b_into_a",
+     "targetTool": "shipment_tracker",
+     "baselineP": 0.0373,
+     "numFeatures": 7,
+     "curve": {
+      "0.0": 0.0001,
+      "0.5": 0.0086,
+      "1.0": 0.0758,
+      "1.5": 0.1823,
+      "2.0": 0.2939,
+      "3.0": 0.4991
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.2076,
+      0.1644,
+      0.1644,
+      0.127,
+      0.1103,
+      0.0945
+     ],
+     "deltaControlBand": [
+      0.2315,
+      0.1852,
+      0.1644,
+      0.127,
+      0.0954,
+      0.068
+     ],
+     "controlBand": [
+      0.0955,
+      0.0818,
+      0.0693,
+      0.0693,
+      0.058,
+      0.0477
+     ],
+     "bestSingleFeature": {
+      "index": 9767,
+      "label": "Supplier shipment tracking and monitoring",
+      "curve": {
+       "0.0": 0.0001,
+       "0.5": 0.0059,
+       "1.0": 0.0474,
+       "1.5": 0.1479,
+       "2.0": 0.2225,
+       "3.0": 0.3769
+      }
+     }
+    },
+    {
+     "pair": "cost_vs_speed_optimization",
+     "direction": "a_into_b",
+     "targetTool": "route_optimizer",
+     "baselineP": 0.2664,
+     "numFeatures": 3,
+     "curve": {
+      "0.0": 0.0474,
+      "0.5": 0.1638,
+      "1.0": 0.2915,
+      "1.5": 0.4303,
+      "2.0": 0.5499,
+      "3.0": 0.7079
+     },
+     "crossesAt": 2.0,
+     "setControlBand": [
+      0.4076,
+      0.1988,
+      0.0796,
+      0.0254,
+      0.05,
+      0.0488
+     ],
+     "deltaControlBand": [
+      0.2908,
+      0.1373,
+      0.0515,
+      0.0003,
+      0.0251,
+      0.0472
+     ],
+     "controlBand": [
+      0.318,
+      0.1364,
+      0.0515,
+      0.0516,
+      0.0505,
+      0.0518
+     ],
+     "bestSingleFeature": {
+      "index": 4864,
+      "label": "Logistics rerouting and shipment tracking",
+      "curve": {
+       "0.0": 0.1798,
+       "0.5": 0.2204,
+       "1.0": 0.2918,
+       "1.5": 0.3463,
+       "2.0": 0.4054,
+       "3.0": 0.4984
+      }
+     }
+    },
+    {
+     "pair": "cost_vs_speed_optimization",
+     "direction": "b_into_a",
+     "targetTool": "shipment_tracker",
+     "baselineP": 0.1475,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0229,
+      "0.5": 0.1188,
+      "1.0": 0.2214,
+      "1.5": 0.2923,
+      "2.0": 0.3745,
+      "3.0": 0.4949
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.1727,
+      0.0539,
+      0.0001,
+      0.0415,
+      0.0726,
+      0.096
+     ],
+     "deltaControlBand": [
+      0.2589,
+      0.1208,
+      0.0,
+      0.0291,
+      0.0724,
+      0.1009
+     ],
+     "controlBand": [
+      0.1453,
+      0.0537,
+      0.0163,
+      0.0415,
+      0.0639,
+      0.1022
+     ],
+     "bestSingleFeature": {
+      "index": 9767,
+      "label": "Supplier shipment tracking and monitoring",
+      "curve": {
+       "0.0": 0.0259,
+       "0.5": 0.1188,
+       "1.0": 0.2217,
+       "1.5": 0.2926,
+       "2.0": 0.3465,
+       "3.0": 0.4643
+      }
+     }
+    },
+    {
+     "pair": "single_source_vs_multi_source",
+     "direction": "a_into_b",
+     "targetTool": "supplier_database",
+     "baselineP": 0.0893,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0621,
+      "0.5": 0.1535,
+      "1.0": 0.2567,
+      "1.5": 0.3921,
+      "2.0": 0.5433,
+      "3.0": 0.6735
+     },
+     "crossesAt": 2.0,
+     "setControlBand": [
+      0.0752,
+      0.0686,
+      0.05,
+      0.026,
+      0.0066,
+      0.0319
+     ],
+     "deltaControlBand": [
+      0.7593,
+      0.3112,
+      0.0964,
+      0.0393,
+      0.012,
+      0.0568
+     ],
+     "controlBand": [
+      0.4557,
+      0.223,
+      0.0964,
+      0.0335,
+      0.0193,
+      0.0614
+     ],
+     "bestSingleFeature": {
+      "index": 3487,
+      "label": "Domestic sourcing with regulatory compliance",
+      "curve": {
+       "0.0": 0.0893,
+       "0.5": 0.1247,
+       "1.0": 0.1899,
+       "1.5": 0.2537,
+       "2.0": 0.3318,
+       "3.0": 0.4803
+      }
+     }
+    },
+    {
+     "pair": "single_source_vs_multi_source",
+     "direction": "b_into_a",
+     "targetTool": "inventory_manager",
+     "baselineP": 0.2865,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0293,
+      "0.5": 0.2434,
+      "1.0": 0.4854,
+      "1.5": 0.6292,
+      "2.0": 0.6621,
+      "3.0": 0.703
+     },
+     "crossesAt": 1.0,
+     "setControlBand": [
+      0.0561,
+      0.055,
+      0.0251,
+      0.0508,
+      0.0037,
+      0.0355
+     ],
+     "deltaControlBand": [
+      0.0561,
+      0.055,
+      0.0251,
+      0.0508,
+      0.0037,
+      0.0355
+     ],
+     "controlBand": [
+      0.0829,
+      0.0519,
+      0.0252,
+      0.0506,
+      0.0521,
+      0.0795
+     ],
+     "bestSingleFeature": {
+      "index": 2101,
+      "label": "Safety stock and inventory coverage calculation",
+      "curve": {
+       "0.0": 0.141,
+       "0.5": 0.2617,
+       "1.0": 0.4605,
+       "1.5": 0.5251,
+       "2.0": 0.6465,
+       "3.0": 0.7751
+      }
+     }
+    }
+   ],
+   "generations": [
+    {
+     "pair": "demand_pull_vs_supply_push",
+     "direction": "a_into_b",
+     "targetTool": "inventory_manager",
+     "numFeatures": 6,
+     "baseline": " demand forecasting tool to identify items with rising customer order frequency, then adjust inventory levels accordingly. Let me start by generating demand forecasts.",
+     "steered": " inventory_manager to adjust inventory levels for items with rising forecasted customer order frequency. First, I need to check the current inventory status and then use the demand_forecaster to identify items with increasing order frequency. Let me start by checking the",
+     "control": " demand forecasting tool to identify items with rising order frequency, then adjust inventory levels accordingly. Let me start by generating demand forecasts.",
+     "controlSize": 16,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 23.2969,
+     "steeredDeltaMass": 50.6562,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": null,
+     "steeredTool": "inventory_manager",
+     "controlTool": null,
+     "flipped": true,
+     "controlFollowed": false,
+     "decisionPosition": 212,
+     "steeredDecisionToken": " inventory_manager to check current levels and the demand_forecaster to identify items with rising forecasted customer order frequency, then adjust inventory accordingly. Let me start by checking the current inventory status and generating demand forecasts.",
+     "controlDecisionToken": " demand forecasting tool to identify items with rising customer order frequency, then adjust inventory levels accordingly. Let me start by generating demand forecasts.",
+     "steeredDecisionTool": "inventory_manager",
+     "controlDecisionTool": null,
+     "flippedDecisionToken": true,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    },
+    {
+     "pair": "demand_pull_vs_supply_push",
+     "direction": "b_into_a",
+     "targetTool": "demand_forecaster",
+     "numFeatures": 6,
+     "baseline": " inventory_manager tool to check current inventory levels and identify items with rising order frequency, then adjust reorder points and safety stock accordingly.",
+     "steered": " inventory_manager to check current inventory levels and identify items with rising demand, then adjust reorder points and safety stock accordingly. Let me start by examining the current inventory status.",
+     "control": " inventory_manager tool to check current inventory levels and identify items with rising order frequency, then adjust reorder points and safety stock accordingly.",
+     "controlSize": 16,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 10.25,
+     "steeredDeltaMass": 30.6954,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "inventory_manager",
+     "steeredTool": "inventory_manager",
+     "controlTool": "inventory_manager",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 210,
+     "steeredDecisionToken": " inventory_manager to check current inventory levels and identify items with rising order frequency, then adjust reorder points and safety stock accordingly. Let me start by examining the current inventory status.",
+     "controlDecisionToken": " inventory_manager tool to check current inventory levels and identify items with rising order frequency, then adjust reorder points and safety stock accordingly.",
+     "steeredDecisionTool": "inventory_manager",
+     "controlDecisionTool": "inventory_manager",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    },
+    {
+     "pair": "local_vs_global_sourcing",
+     "direction": "a_into_b",
+     "targetTool": "supplier_database",
+     "numFeatures": 7,
+     "baseline": " shipment_tracker tool to analyze the delivery performance of your global electronic components supplier over the last quarter. This will help me track shipment status, location, ETA, and delivery history across carriers and modes.",
+     "steered": " supplier database to look up the supplier information and then use the shipment tracker to get delivery performance data for the last quarter. Let me start by searching for the supplier.",
+     "control": " shipment_tracker tool to track the delivery performance of your global supplier for electronic components over the last quarter. This will help me analyze shipment status, locations, ETAs, and delivery history across carriers and modes.",
+     "controlSize": 16,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 7.5391,
+     "steeredDeltaMass": 36.25,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "shipment_tracker",
+     "steeredTool": "supplier_database",
+     "controlTool": "shipment_tracker",
+     "flipped": true,
+     "controlFollowed": false,
+     "decisionPosition": 214,
+     "steeredDecisionToken": " supplier database to look up information about your global electronic components supplier and their delivery performance. Let me check what's available.</think>supplier_database",
+     "controlDecisionToken": " shipment_tracker tool to analyze the delivery performance of your global electronic components supplier over the last quarter. This will help me track shipment status, location, ETA, and delivery history across carriers and modes.",
+     "steeredDecisionTool": "supplier_database",
+     "controlDecisionTool": "shipment_tracker",
+     "flippedDecisionToken": true,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    },
+    {
+     "pair": "local_vs_global_sourcing",
+     "direction": "b_into_a",
+     "targetTool": "shipment_tracker",
+     "numFeatures": 7,
+     "baseline": " supplier database to look up the local supplier's performance information for electronic components. Let me check their delivery performance metrics.",
+     "steered": " supplier database to track the delivery performance of your local electronic components supplier. Let me look up their information and performance metrics.",
+     "control": " supplier_database tool to look up the local supplier's performance information for electronic components.",
+     "controlSize": 12,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 15.5547,
+     "steeredDeltaMass": 13.6641,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "supplier_database",
+     "steeredTool": "supplier_database",
+     "controlTool": "supplier_database",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 214,
+     "steeredDecisionToken": " supplier database to look up the local supplier's performance information for electronic components. Let me check their delivery performance metrics.",
+     "controlDecisionToken": " supplier_database tool to look up the local supplier's performance information for electronic components. Let me check their delivery performance metrics.",
+     "steeredDecisionTool": "supplier_database",
+     "controlDecisionTool": "supplier_database",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "cost_vs_speed_optimization",
+     "direction": "a_into_b",
+     "targetTool": "route_optimizer",
+     "numFeatures": 3,
+     "baseline": " shipment tracker to check the status and details of express shipping for your product launch event items. Let me look up the current shipment information.",
+     "steered": " shipment tracker to check the current status and route optimization for your express shipping needs. Let me first understand what needs to be delivered.",
+     "control": " shipment tracker to check the status and details of express shipping for your product launch event items. Let me look up the current shipment information.",
+     "controlSize": 3,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 2.9219,
+     "steeredDeltaMass": 2.6875,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "shipment_tracker",
+     "steeredTool": "shipment_tracker",
+     "controlTool": "shipment_tracker",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 211,
+     "steeredDecisionToken": " shipment tracker to check the status and details of express shipping for your product launch event items. Let me look up the current shipment information.",
+     "controlDecisionToken": " shipment tracker to check the status and details of express shipping for your product launch event items. Let me look up the current shipment information.",
+     "steeredDecisionTool": "shipment_tracker",
+     "controlDecisionTool": "shipment_tracker",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "cost_vs_speed_optimization",
+     "direction": "b_into_a",
+     "targetTool": "shipment_tracker",
+     "numFeatures": 6,
+     "baseline": " route optimizer to find the most economical shipping options for your product launch event items. Let me analyze the best routing and carrier options.",
+     "steered": " route optimizer to find the most economical shipping options for your product launch event items. Let me analyze the best routing and carrier options.",
+     "control": " route optimizer to find the most economical shipping options for your product launch event items. Let me first check what needs to be shipped and then optimize the routes.",
+     "controlSize": 14,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 14.8594,
+     "steeredDeltaMass": 21.0392,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "route_optimizer",
+     "steeredTool": "route_optimizer",
+     "controlTool": "route_optimizer",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 211,
+     "steeredDecisionToken": " route optimizer to find the most economical shipping options for your product launch event items. Let me analyze the best routing and carrier options.",
+     "controlDecisionToken": " route optimizer to find the most economical shipping options for your product launch event items. Let me analyze the best routing and carrier options.",
+     "steeredDecisionTool": "route_optimizer",
+     "controlDecisionTool": "route_optimizer",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "single_source_vs_multi_source",
+     "direction": "a_into_b",
+     "targetTool": "supplier_database",
+     "numFeatures": 6,
+     "baseline": " inventory_manager tool to calculate safety stock for seasonal promotions using data from all suppliers. Let me start by checking the current inventory levels and supplier data.</think>\ninventory_manager",
+     "steered": " inventory_manager tool to calculate safety stock for seasonal promotions using data from all suppliers. This tool can handle safety stock calculations and incorporates supplier data.",
+     "control": " inventory_manager to calculate safety stock for seasonal promotions. Let me first check the current inventory and demand patterns across all suppliers.",
+     "controlSize": 15,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 18.3594,
+     "steeredDeltaMass": 18.3047,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "inventory_manager",
+     "steeredTool": "inventory_manager",
+     "controlTool": "inventory_manager",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 212,
+     "steeredDecisionToken": " inventory_manager tool to calculate safety stock for seasonal promotions using data from all suppliers. Let me start by checking the current inventory levels and supplier data.</think>\ninventory_manager",
+     "controlDecisionToken": " inventory_manager tool to calculate safety stock for seasonal promotions using data from all suppliers. Let me start by checking the current inventory levels and supplier data.</think>\ninventory_manager",
+     "steeredDecisionTool": "inventory_manager",
+     "controlDecisionTool": "inventory_manager",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "single_source_vs_multi_source",
+     "direction": "b_into_a",
+     "targetTool": "inventory_manager",
+     "numFeatures": 6,
+     "baseline": " supplier database to get information about our main supplier, then use the inventory manager to calculate safety stock for seasonal promotions. Let me start by looking up the supplier information.",
+     "steered": " supplier database to get information about our main supplier, then use the inventory manager to calculate safety stock for seasonal promotions. Let me start by looking up the supplier information.",
+     "control": " supplier database to get information about our main supplier, then use the inventory manager to calculate safety stock for seasonal promotions. Let me start by looking up the supplier information.",
+     "controlSize": 16,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 9.4609,
+     "steeredDeltaMass": 16.7968,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "supplier_database",
+     "steeredTool": "supplier_database",
+     "controlTool": "supplier_database",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 213,
+     "steeredDecisionToken": " inventory_manager tool to calculate safety stock for seasonal promotions using data from your main supplier. Let me first check the current inventory and supplier information.</think>inventory_manager",
+     "controlDecisionToken": " supplier database to get information about our main supplier, then use the inventory manager to calculate safety stock for seasonal promotions. Let me start by looking up the supplier information.",
+     "steeredDecisionTool": "inventory_manager",
+     "controlDecisionTool": "supplier_database",
+     "flippedDecisionToken": true,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    }
+   ],
+   "probes": {
+    "paraphrases": {
+     "held": 13,
+     "total": 16,
+     "rows": [
+      {
+       "pair": "demand_pull_vs_supply_push",
+       "side": "a",
+       "expected": "inventory_manager",
+       "got": "inventory_manager",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "demand_pull_vs_supply_push",
+       "side": "a",
+       "expected": "inventory_manager",
+       "got": "inventory_manager",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "demand_pull_vs_supply_push",
+       "side": "b",
+       "expected": "demand_forecaster",
+       "got": "demand_forecaster",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "demand_pull_vs_supply_push",
+       "side": "b",
+       "expected": "demand_forecaster",
+       "got": "inventory_manager",
+       "held": false,
+       "familiesFiring": 5,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "local_vs_global_sourcing",
+       "side": "a",
+       "expected": "supplier_database",
+       "got": "shipment_tracker",
+       "held": false,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "local_vs_global_sourcing",
+       "side": "a",
+       "expected": "supplier_database",
+       "got": "supplier_database",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "local_vs_global_sourcing",
+       "side": "b",
+       "expected": "shipment_tracker",
+       "got": "shipment_tracker",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "local_vs_global_sourcing",
+       "side": "b",
+       "expected": "shipment_tracker",
+       "got": "shipment_tracker",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "cost_vs_speed_optimization",
+       "side": "a",
+       "expected": "route_optimizer",
+       "got": "route_optimizer",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "cost_vs_speed_optimization",
+       "side": "a",
+       "expected": "route_optimizer",
+       "got": "route_optimizer",
+       "held": true,
+       "familiesFiring": 3,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "cost_vs_speed_optimization",
+       "side": "b",
+       "expected": "shipment_tracker",
+       "got": "route_optimizer",
+       "held": false,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "cost_vs_speed_optimization",
+       "side": "b",
+       "expected": "shipment_tracker",
+       "got": "shipment_tracker",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_source_vs_multi_source",
+       "side": "a",
+       "expected": "supplier_database",
+       "got": "supplier_database",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_source_vs_multi_source",
+       "side": "a",
+       "expected": "supplier_database",
+       "got": "supplier_database",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_source_vs_multi_source",
+       "side": "b",
+       "expected": "inventory_manager",
+       "got": "inventory_manager",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_source_vs_multi_source",
+       "side": "b",
+       "expected": "inventory_manager",
+       "got": "inventory_manager",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      }
+     ]
+    },
+    "keywordControls": {
+     "held": 4,
+     "total": 7,
+     "rows": [
+      {
+       "pair": "demand_pull_vs_supply_push",
+       "side": "b",
+       "cue": "forecasted",
+       "expected": "inventory_manager",
+       "got": "inventory_manager",
+       "held": true
+      },
+      {
+       "pair": "local_vs_global_sourcing",
+       "side": "a",
+       "cue": "local",
+       "expected": "shipment_tracker",
+       "got": "shipment_tracker",
+       "held": true
+      },
+      {
+       "pair": "local_vs_global_sourcing",
+       "side": "b",
+       "cue": "global",
+       "expected": "supplier_database",
+       "got": "supplier_database",
+       "held": true
+      },
+      {
+       "pair": "cost_vs_speed_optimization",
+       "side": "a",
+       "cue": "economical",
+       "expected": "shipment_tracker",
+       "got": "route_optimizer",
+       "held": false
+      },
+      {
+       "pair": "cost_vs_speed_optimization",
+       "side": "b",
+       "cue": "express",
+       "expected": "route_optimizer",
+       "got": "shipment_tracker",
+       "held": false
+      },
+      {
+       "pair": "single_source_vs_multi_source",
+       "side": "a",
+       "cue": "main",
+       "expected": "inventory_manager",
+       "got": "inventory_manager",
+       "held": true
+      },
+      {
+       "pair": "single_source_vs_multi_source",
+       "side": "b",
+       "cue": "all",
+       "expected": "supplier_database",
+       "got": "inventory_manager",
+       "held": false
+      }
+     ]
+    }
+   },
+   "positionAblation": {
+    "summary": {
+     "request": {
+      "flips": 0,
+      "sides": 8,
+      "maxAbsDelta": 0.0069
+     },
+     "decision": {
+      "flips": 7,
+      "sides": 8,
+      "maxAbsDelta": 0.8469
+     },
+     "allButDecision": {
+      "flips": 0,
+      "sides": 8,
+      "maxAbsDelta": 0.0537
+     },
+     "all": {
+      "flips": 7,
+      "sides": 8,
+      "maxAbsDelta": 0.8498
+     }
+    },
+    "rows": [
+     {
+      "step": "demand_pull_vs_supply_push_A",
+      "baselineP": 0.9667,
+      "request": {
+       "p": 0.9667,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.4685,
+       "deltaP": -0.4982,
+       "flipped": true,
+       "controlBand": 0.0318,
+       "setControlBand": 0.0329
+      },
+      "allButDecision": {
+       "p": 0.9577,
+       "deltaP": -0.009,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.4684,
+       "deltaP": -0.4983,
+       "flipped": true,
+       "controlBand": 0.0327,
+       "setControlBand": 0.0332
+      }
+     },
+     {
+      "step": "demand_pull_vs_supply_push_B",
+      "baselineP": 0.8515,
+      "request": {
+       "p": 0.8515,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.0046,
+       "deltaP": -0.8469,
+       "flipped": true,
+       "controlBand": 0.0342,
+       "setControlBand": 0.0342
+      },
+      "allButDecision": {
+       "p": 0.7978,
+       "deltaP": -0.0537,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.0017,
+       "deltaP": -0.8498,
+       "flipped": true,
+       "controlBand": 0.0342,
+       "setControlBand": 0.0342
+      }
+     },
+     {
+      "step": "local_vs_global_sourcing_A",
+      "baselineP": 0.9626,
+      "request": {
+       "p": 0.9626,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.3777,
+       "deltaP": -0.5849,
+       "flipped": true,
+       "controlBand": 0.0371,
+       "setControlBand": 0.0373
+      },
+      "allButDecision": {
+       "p": 0.9465,
+       "deltaP": -0.0161,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.2944,
+       "deltaP": -0.6682,
+       "flipped": true,
+       "controlBand": 0.0372,
+       "setControlBand": 0.0373
+      }
+     },
+     {
+      "step": "local_vs_global_sourcing_B",
+      "baselineP": 0.7757,
+      "request": {
+       "p": 0.7757,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.1429,
+       "deltaP": -0.6328,
+       "flipped": true,
+       "controlBand": 0.0895,
+       "setControlBand": 0.1048
+      },
+      "allButDecision": {
+       "p": 0.7754,
+       "deltaP": -0.0003,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.1139,
+       "deltaP": -0.6618,
+       "flipped": true,
+       "controlBand": 0.0759,
+       "setControlBand": 0.1048
+      }
+     },
+     {
+      "step": "cost_vs_speed_optimization_A",
+      "baselineP": 0.849,
+      "request": {
+       "p": 0.849,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.5903,
+       "deltaP": -0.2587,
+       "flipped": false,
+       "controlBand": 0.1226,
+       "setControlBand": 0.1227
+      },
+      "allButDecision": {
+       "p": 0.8325,
+       "deltaP": -0.0165,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.5905,
+       "deltaP": -0.2585,
+       "flipped": false,
+       "controlBand": 0.122,
+       "setControlBand": 0.1287
+      }
+     },
+     {
+      "step": "cost_vs_speed_optimization_B",
+      "baselineP": 0.7235,
+      "request": {
+       "p": 0.7235,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.3181,
+       "deltaP": -0.4054,
+       "flipped": true,
+       "controlBand": 0.2052,
+       "setControlBand": 0.1898
+      },
+      "allButDecision": {
+       "p": 0.6994,
+       "deltaP": -0.0241,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.2669,
+       "deltaP": -0.4566,
+       "flipped": true,
+       "controlBand": 0.2129,
+       "setControlBand": 0.2074
+      }
+     },
+     {
+      "step": "single_source_vs_multi_source_A",
+      "baselineP": 0.6871,
+      "request": {
+       "p": 0.6871,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.4063,
+       "deltaP": -0.2808,
+       "flipped": true,
+       "controlBand": 0.1834,
+       "setControlBand": 0.1299
+      },
+      "allButDecision": {
+       "p": 0.6582,
+       "deltaP": -0.0289,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.3983,
+       "deltaP": -0.2888,
+       "flipped": true,
+       "controlBand": 0.1969,
+       "setControlBand": 0.1478
+      }
+     },
+     {
+      "step": "single_source_vs_multi_source_B",
+      "baselineP": 0.847,
+      "request": {
+       "p": 0.8401,
+       "deltaP": -0.0069,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.1813,
+       "deltaP": -0.6657,
+       "flipped": true,
+       "controlBand": 0.0354,
+       "setControlBand": 0.0453
+      },
+      "allButDecision": {
+       "p": 0.843,
+       "deltaP": -0.004,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.1637,
+       "deltaP": -0.6833,
+       "flipped": true,
+       "controlBand": 0.0452,
+       "setControlBand": 0.0453
+      }
+     }
+    ]
+   },
+   "positionAblationEarly": {
+    "layer": 20,
+    "summary": {
+     "request": {
+      "flips": 0,
+      "sides": 8,
+      "maxAbsDelta": 0.0895
+     },
+     "decision": {
+      "flips": 0,
+      "sides": 8,
+      "maxAbsDelta": 0.0533
+     },
+     "allButDecision": {
+      "flips": 0,
+      "sides": 8,
+      "maxAbsDelta": 0.0896
+     },
+     "all": {
+      "flips": 0,
+      "sides": 8,
+      "maxAbsDelta": 0.0741
+     }
+    },
+    "rows": [
+     {
+      "step": "demand_pull_vs_supply_push_A",
+      "baselineP": 0.9667,
+      "request": {
+       "p": 0.9625,
+       "deltaP": -0.0042,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.9576,
+       "deltaP": -0.0091,
+       "flipped": false,
+       "controlBand": 0.009,
+       "setControlBand": 0.009
+      },
+      "allButDecision": {
+       "p": 0.9705,
+       "deltaP": 0.0038,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.9624,
+       "deltaP": -0.0043,
+       "flipped": false,
+       "controlBand": 0.0101,
+       "setControlBand": 0.0072
+      }
+     },
+     {
+      "step": "demand_pull_vs_supply_push_B",
+      "baselineP": 0.8515,
+      "request": {
+       "p": 0.835,
+       "deltaP": -0.0165,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.8515,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": 0.0286,
+       "setControlBand": 0.0281
+      },
+      "allButDecision": {
+       "p": 0.8172,
+       "deltaP": -0.0343,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7978,
+       "deltaP": -0.0537,
+       "flipped": false,
+       "controlBand": 0.0351,
+       "setControlBand": 0.0009
+      }
+     },
+     {
+      "step": "local_vs_global_sourcing_A",
+      "baselineP": 0.9626,
+      "request": {
+       "p": 0.9578,
+       "deltaP": -0.0048,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.9626,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": 0.008,
+       "setControlBand": 0.0042
+      },
+      "allButDecision": {
+       "p": 0.9525,
+       "deltaP": -0.0101,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.9525,
+       "deltaP": -0.0101,
+       "flipped": false,
+       "controlBand": 0.008,
+       "setControlBand": 0.0102
+      }
+     },
+     {
+      "step": "local_vs_global_sourcing_B",
+      "baselineP": 0.7757,
+      "request": {
+       "p": 0.8652,
+       "deltaP": 0.0895,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7964,
+       "deltaP": 0.0207,
+       "flipped": false,
+       "controlBand": 0.0745,
+       "setControlBand": 0.0579
+      },
+      "allButDecision": {
+       "p": 0.8653,
+       "deltaP": 0.0896,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.8498,
+       "deltaP": 0.0741,
+       "flipped": false,
+       "controlBand": 0.1161,
+       "setControlBand": 0.1155
+      }
+     },
+     {
+      "step": "cost_vs_speed_optimization_A",
+      "baselineP": 0.849,
+      "request": {
+       "p": 0.8491,
+       "deltaP": 0.0001,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.849,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": 0.035,
+       "setControlBand": 0.0349
+      },
+      "allButDecision": {
+       "p": 0.8639,
+       "deltaP": 0.0149,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.8491,
+       "deltaP": 0.0001,
+       "flipped": false,
+       "controlBand": 0.0347,
+       "setControlBand": 0.0347
+      }
+     },
+     {
+      "step": "cost_vs_speed_optimization_B",
+      "baselineP": 0.7235,
+      "request": {
+       "p": 0.7235,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7638,
+       "deltaP": 0.0403,
+       "flipped": false,
+       "controlBand": 0.024,
+       "setControlBand": 0.0016
+      },
+      "allButDecision": {
+       "p": 0.7726,
+       "deltaP": 0.0491,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7882,
+       "deltaP": 0.0647,
+       "flipped": false,
+       "controlBand": 0.0496,
+       "setControlBand": 0.0263
+      }
+     },
+     {
+      "step": "single_source_vs_multi_source_A",
+      "baselineP": 0.6871,
+      "request": {
+       "p": 0.735,
+       "deltaP": 0.0479,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.6338,
+       "deltaP": -0.0533,
+       "flipped": false,
+       "controlBand": 0.0275,
+       "setControlBand": 0.0257
+      },
+      "allButDecision": {
+       "p": 0.7596,
+       "deltaP": 0.0725,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.6893,
+       "deltaP": 0.0022,
+       "flipped": false,
+       "controlBand": 0.0538,
+       "setControlBand": 0.0713
+      }
+     },
+     {
+      "step": "single_source_vs_multi_source_B",
+      "baselineP": 0.847,
+      "request": {
+       "p": 0.8467,
+       "deltaP": -0.0003,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.8209,
+       "deltaP": -0.0261,
+       "flipped": false,
+       "controlBand": 0.0356,
+       "setControlBand": 0.0247
+      },
+      "allButDecision": {
+       "p": 0.8553,
+       "deltaP": 0.0083,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.8085,
+       "deltaP": -0.0385,
+       "flipped": false,
+       "controlBand": 0.0353,
+       "setControlBand": 0.0086
+      }
+     }
+    ]
+   },
+   "parity": {
+    "meanCosine": 0.999,
+    "minCosine": 0.9981,
+    "n": 8
+   }
+  },
+  "customer_support": {
+   "demoLayer": 34,
+   "numPairs": 6,
+   "pairsScored": 327988,
+   "pairsFlipping": 206120,
+   "layers": {
+    "6": {
+     "layer": 6,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 12,
+     "ablationBestDelta": 0.0521,
+     "ablationControlMedian": 0.0323,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 12,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0733,
+     "medianBaseActive": 16,
+     "medianEffectOverControl": 0.661,
+     "fractionExceedingControl": 0.304,
+     "medianEffectOverSetControl": 0.996,
+     "fractionExceedingSetControl": 0.381,
+     "setControlSides": 21,
+     "medianEffectOverContrastControl": 1.759,
+     "fractionExceedingContrastControl": 0.545,
+     "contrastControlSides": 12,
+     "contrastCeilingSides": 8,
+     "medianEffectOverDeltaControl": 1.0,
+     "fractionExceedingDeltaControl": 0.3,
+     "deltaControlDirections": 10,
+     "medianCueDeltaOverDonorMass": 0.644,
+     "medianCueMassOverHeaviestRowDraw": 1.14,
+     "sidesWhereRowDrawReachesCueMass": 10,
+     "massAuditSides": 24
+    },
+    "13": {
+     "layer": 13,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 12,
+     "ablationBestDelta": 0.0861,
+     "ablationControlMedian": 0.0504,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 12,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0928,
+     "medianBaseActive": 8,
+     "medianEffectOverControl": 0.456,
+     "fractionExceedingControl": 0.217,
+     "medianEffectOverSetControl": 0.57,
+     "fractionExceedingSetControl": 0.333,
+     "setControlSides": 21,
+     "medianEffectOverContrastControl": 1.053,
+     "fractionExceedingContrastControl": 0.5,
+     "contrastControlSides": 12,
+     "contrastCeilingSides": 10,
+     "medianEffectOverDeltaControl": 0.053,
+     "fractionExceedingDeltaControl": 0.111,
+     "deltaControlDirections": 9,
+     "medianCueDeltaOverDonorMass": 0.347,
+     "medianCueMassOverHeaviestRowDraw": 1.39,
+     "sidesWhereRowDrawReachesCueMass": 8,
+     "massAuditSides": 24
+    },
+    "20": {
+     "layer": 20,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 12,
+     "ablationBestDelta": 0.1508,
+     "ablationControlMedian": 0.0413,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 12,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0367,
+     "medianBaseActive": 68,
+     "medianEffectOverControl": 0.919,
+     "fractionExceedingControl": 0.435,
+     "medianEffectOverSetControl": 1.027,
+     "fractionExceedingSetControl": 0.545,
+     "setControlSides": 22,
+     "medianEffectOverContrastControl": 1.424,
+     "fractionExceedingContrastControl": 0.583,
+     "contrastControlSides": 12,
+     "contrastCeilingSides": 0,
+     "medianEffectOverDeltaControl": 0.948,
+     "fractionExceedingDeltaControl": 0.364,
+     "deltaControlDirections": 11,
+     "medianCueDeltaOverDonorMass": 0.426,
+     "medianCueMassOverHeaviestRowDraw": 1.91,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 24
+    },
+    "27": {
+     "layer": 27,
+     "ablationFlips": 1,
+     "ablationFlipsAnyTool": 1,
+     "ablationSides": 12,
+     "ablationBestDelta": 0.3455,
+     "ablationControlMedian": 0.0452,
+     "crossPatchFlips": 1,
+     "crossPatchFlipsAnyTool": 1,
+     "crossPatchDirections": 12,
+     "crossPatchCueDriven": 1,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.4032,
+     "medianBaseActive": 24,
+     "medianEffectOverControl": 3.613,
+     "fractionExceedingControl": 0.696,
+     "medianEffectOverSetControl": 4.646,
+     "fractionExceedingSetControl": 0.739,
+     "setControlSides": 23,
+     "medianEffectOverContrastControl": 4.983,
+     "fractionExceedingContrastControl": 0.833,
+     "contrastControlSides": 12,
+     "contrastCeilingSides": 6,
+     "medianEffectOverDeltaControl": 3.296,
+     "fractionExceedingDeltaControl": 0.545,
+     "deltaControlDirections": 11,
+     "medianCueDeltaOverDonorMass": 0.528,
+     "medianCueMassOverHeaviestRowDraw": 1.86,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 24
+    },
+    "34": {
+     "layer": 34,
+     "ablationFlips": 6,
+     "ablationFlipsAnyTool": 8,
+     "ablationSides": 12,
+     "ablationBestDelta": 0.6347,
+     "ablationControlMedian": 0.0792,
+     "crossPatchFlips": 4,
+     "crossPatchFlipsAnyTool": 4,
+     "crossPatchDirections": 12,
+     "crossPatchCueDriven": 2,
+     "crossPatchBulkOnly": 2,
+     "crossPatchBestDelta": 0.5378,
+     "medianBaseActive": 48,
+     "medianEffectOverControl": 5.956,
+     "fractionExceedingControl": 0.958,
+     "medianEffectOverSetControl": 4.764,
+     "fractionExceedingSetControl": 1.0,
+     "setControlSides": 24,
+     "medianEffectOverContrastControl": 4.437,
+     "fractionExceedingContrastControl": 0.917,
+     "contrastControlSides": 12,
+     "contrastCeilingSides": 5,
+     "medianEffectOverDeltaControl": 5.484,
+     "fractionExceedingDeltaControl": 0.917,
+     "deltaControlDirections": 12,
+     "medianCueDeltaOverDonorMass": 0.751,
+     "medianCueMassOverHeaviestRowDraw": 2.25,
+     "sidesWhereRowDrawReachesCueMass": 2,
+     "massAuditSides": 24
+    },
+    "43": {
+     "layer": 43,
+     "ablationFlips": 1,
+     "ablationFlipsAnyTool": 2,
+     "ablationSides": 12,
+     "ablationBestDelta": 0.2738,
+     "ablationControlMedian": 0.0554,
+     "crossPatchFlips": 9,
+     "crossPatchFlipsAnyTool": 10,
+     "crossPatchDirections": 12,
+     "crossPatchCueDriven": 1,
+     "crossPatchBulkOnly": 8,
+     "crossPatchBestDelta": 0.8165,
+     "medianBaseActive": 1163,
+     "medianEffectOverControl": 1.732,
+     "fractionExceedingControl": 0.739,
+     "medianEffectOverSetControl": 2.132,
+     "fractionExceedingSetControl": 0.739,
+     "setControlSides": 23,
+     "medianEffectOverContrastControl": 1.799,
+     "fractionExceedingContrastControl": 0.75,
+     "contrastControlSides": 12,
+     "contrastCeilingSides": 0,
+     "medianEffectOverDeltaControl": 1.732,
+     "fractionExceedingDeltaControl": 0.545,
+     "deltaControlDirections": 11,
+     "medianCueDeltaOverDonorMass": 0.197,
+     "medianCueMassOverHeaviestRowDraw": 2.05,
+     "sidesWhereRowDrawReachesCueMass": 0,
+     "massAuditSides": 24
+    }
+   },
+   "dictionary": {
+    "6": {
+     "meanL0": 57.5,
+     "explainedVariance": 0.6048,
+     "constant": 7,
+     "varying": 383,
+     "constantFraction": 0.0179,
+     "sideSpecificMin": 2,
+     "sideSpecificMedian": 18
+    },
+    "13": {
+     "meanL0": 17.5,
+     "explainedVariance": 0.5931,
+     "constant": 6,
+     "varying": 99,
+     "constantFraction": 0.0571,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 7
+    },
+    "20": {
+     "meanL0": 84.2,
+     "explainedVariance": 0.5827,
+     "constant": 68,
+     "varying": 107,
+     "constantFraction": 0.3886,
+     "sideSpecificMin": 1,
+     "sideSpecificMedian": 7
+    },
+    "27": {
+     "meanL0": 53.1,
+     "explainedVariance": 0.6499,
+     "constant": 16,
+     "varying": 297,
+     "constantFraction": 0.0511,
+     "sideSpecificMin": 5,
+     "sideSpecificMedian": 21
+    },
+    "34": {
+     "meanL0": 72.7,
+     "explainedVariance": 0.6809,
+     "constant": 42,
+     "varying": 181,
+     "constantFraction": 0.1883,
+     "sideSpecificMin": 8,
+     "sideSpecificMedian": 13
+    },
+    "43": {
+     "meanL0": 1167.3,
+     "explainedVariance": 0.8626,
+     "constant": 1162,
+     "varying": 32,
+     "constantFraction": 0.9732,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 1
+    }
+   },
+   "dose": [
+    {
+     "pair": "billing_vs_technical",
+     "direction": "a_into_b",
+     "targetTool": "billing_system",
+     "baselineP": 0.0463,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0504,
+      "0.5": 0.2469,
+      "1.0": 0.424,
+      "1.5": 0.5463,
+      "2.0": 0.6283,
+      "3.0": 0.7967
+     },
+     "crossesAt": 1.5,
+     "setControlBand": [
+      0.0814,
+      0.0624,
+      0.0491,
+      0.0182,
+      0.0007,
+      0.0198
+     ],
+     "deltaControlBand": [
+      0.0734,
+      0.0544,
+      0.0488,
+      0.0169,
+      0.0002,
+      0.0206
+     ],
+     "controlBand": [
+      0.0882,
+      0.0649,
+      0.0407,
+      0.0263,
+      0.0124,
+      0.0125
+     ],
+     "bestSingleFeature": {
+      "index": 1359,
+      "label": "Invoice configuration and billing issues",
+      "curve": {
+       "0.0": 0.0463,
+       "0.5": 0.1046,
+       "1.0": 0.1617,
+       "1.5": 0.2651,
+       "2.0": 0.4027,
+       "3.0": 0.5791
+      }
+     }
+    },
+    {
+     "pair": "billing_vs_technical",
+     "direction": "b_into_a",
+     "targetTool": "customer_history",
+     "baselineP": 0.1955,
+     "numFeatures": 7,
+     "curve": {
+      "0.0": 0.0879,
+      "0.5": 0.2441,
+      "1.0": 0.3286,
+      "1.5": 0.416,
+      "2.0": 0.4467,
+      "3.0": 0.4373
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.0431,
+      0.0032,
+      0.01,
+      0.0501,
+      0.0448,
+      0.06
+     ],
+     "deltaControlBand": [
+      0.0432,
+      0.0031,
+      0.01,
+      0.0031,
+      0.0319,
+      0.0446
+     ],
+     "controlBand": [
+      0.0631,
+      0.0189,
+      0.0189,
+      0.0189,
+      0.0631,
+      0.0753
+     ],
+     "bestSingleFeature": {
+      "index": 3238,
+      "label": "Complex multi-factor login failure",
+      "curve": {
+       "0.0": 0.08,
+       "0.5": 0.1791,
+       "1.0": 0.2711,
+       "1.5": 0.3833,
+       "2.0": 0.475,
+       "3.0": 0.5308
+      }
+     }
+    },
+    {
+     "pair": "self_service_vs_agent_assist",
+     "direction": "a_into_b",
+     "targetTool": "knowledge_base",
+     "baselineP": 0.0097,
+     "numFeatures": 14,
+     "curve": {
+      "0.0": 0.007,
+      "0.5": 0.0292,
+      "1.0": 0.1202,
+      "1.5": 0.3249,
+      "2.0": 0.4881,
+      "3.0": 0.482
+     },
+     "crossesAt": 2.0,
+     "setControlBand": [
+      0.0076,
+      0.0026,
+      0.0067,
+      0.0226,
+      0.0475,
+      0.1176
+     ],
+     "deltaControlBand": [
+      0.0076,
+      0.0026,
+      0.0067,
+      0.0225,
+      0.0474,
+      0.1044
+     ],
+     "controlBand": [
+      0.0076,
+      0.0036,
+      0.0044,
+      0.0127,
+      0.0337,
+      0.072
+     ],
+     "bestSingleFeature": {
+      "index": 10603,
+      "label": "New user onboarding and initial setup",
+      "curve": {
+       "0.0": 0.009,
+       "0.5": 0.0183,
+       "1.0": 0.0417,
+       "1.5": 0.0653,
+       "2.0": 0.1033,
+       "3.0": 0.2492
+      }
+     }
+    },
+    {
+     "pair": "self_service_vs_agent_assist",
+     "direction": "b_into_a",
+     "targetTool": "ticket_lookup",
+     "baselineP": 0.0063,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0071,
+      "0.5": 0.0312,
+      "1.0": 0.071,
+      "1.5": 0.1242,
+      "2.0": 0.188,
+      "3.0": 0.2971
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.018,
+      0.0151,
+      0.0126,
+      0.0086,
+      0.0071,
+      0.0055
+     ],
+     "deltaControlBand": [
+      0.0178,
+      0.0152,
+      0.0128,
+      0.0087,
+      0.007,
+      0.0042
+     ],
+     "controlBand": [
+      0.0212,
+      0.0154,
+      0.0106,
+      0.0069,
+      0.0041,
+      0.0041
+     ],
+     "bestSingleFeature": {
+      "index": 2136,
+      "label": "Repeated unresolved support tickets",
+      "curve": {
+       "0.0": 0.0063,
+       "0.5": 0.0191,
+       "1.0": 0.0351,
+       "1.5": 0.0713,
+       "2.0": 0.1135,
+       "3.0": 0.2349
+      }
+     }
+    },
+    {
+     "pair": "refund_vs_troubleshoot",
+     "direction": "a_into_b",
+     "targetTool": "billing_system",
+     "baselineP": 0.0,
+     "numFeatures": 7,
+     "curve": {
+      "0.0": 0.0,
+      "0.5": 0.0008,
+      "1.0": 0.0176,
+      "1.5": 0.0745,
+      "2.0": 0.1777,
+      "3.0": 0.3017
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001
+     ],
+     "deltaControlBand": [
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001
+     ],
+     "controlBand": [
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0001,
+      0.0,
+      0.0
+     ],
+     "bestSingleFeature": {
+      "index": 3072,
+      "label": "Service outage refund claims",
+      "curve": {
+       "0.0": 0.0,
+       "0.5": 0.0001,
+       "1.0": 0.0004,
+       "1.5": 0.0013,
+       "2.0": 0.0033,
+       "3.0": 0.0147
+      }
+     }
+    },
+    {
+     "pair": "refund_vs_troubleshoot",
+     "direction": "b_into_a",
+     "targetTool": "knowledge_base",
+     "baselineP": 0.1247,
+     "numFeatures": 11,
+     "curve": {
+      "0.0": 0.1104,
+      "0.5": 0.1434,
+      "1.0": 0.2185,
+      "1.5": 0.2592,
+      "2.0": 0.3263,
+      "3.0": 0.4762
+     },
+     "crossesAt": 3.0,
+     "setControlBand": [
+      0.0511,
+      0.0248,
+      0.0241,
+      0.0505,
+      0.0832,
+      0.1492
+     ],
+     "deltaControlBand": [
+      0.0523,
+      0.026,
+      0.009,
+      0.051,
+      0.0856,
+      0.1768
+     ],
+     "controlBand": [
+      0.0443,
+      0.0238,
+      0.0155,
+      0.0229,
+      0.0442,
+      0.0962
+     ],
+     "bestSingleFeature": {
+      "index": 2223,
+      "label": "API authentication and security setup",
+      "curve": {
+       "0.0": 0.1029,
+       "0.5": 0.1267,
+       "1.0": 0.1446,
+       "1.5": 0.1586,
+       "2.0": 0.1763,
+       "3.0": 0.1967
+      }
+     }
+    },
+    {
+     "pair": "new_vs_returning_customer",
+     "direction": "a_into_b",
+     "targetTool": "customer_history",
+     "baselineP": 0.1707,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.0439,
+      "0.5": 0.1721,
+      "1.0": 0.3644,
+      "1.5": 0.5511,
+      "2.0": 0.643,
+      "3.0": 0.6706
+     },
+     "crossesAt": 1.5,
+     "setControlBand": [
+      0.0911,
+      0.0582,
+      0.0539,
+      0.0349,
+      0.0512,
+      0.0674
+     ],
+     "deltaControlBand": [
+      0.1421,
+      0.0737,
+      0.0349,
+      0.0328,
+      0.1117,
+      0.1549
+     ],
+     "controlBand": [
+      0.1195,
+      0.0738,
+      0.0539,
+      0.017,
+      0.0185,
+      0.0448
+     ],
+     "bestSingleFeature": {
+      "index": 3238,
+      "label": "Complex multi-factor login failure",
+      "curve": {
+       "0.0": 0.0377,
+       "0.5": 0.1229,
+       "1.0": 0.258,
+       "1.5": 0.3693,
+       "2.0": 0.4943,
+       "3.0": 0.5593
+      }
+     }
+    },
+    {
+     "pair": "new_vs_returning_customer",
+     "direction": "b_into_a",
+     "targetTool": "ticket_lookup",
+     "baselineP": 0.1134,
+     "numFeatures": 5,
+     "curve": {
+      "0.0": 0.072,
+      "0.5": 0.171,
+      "1.0": 0.2781,
+      "1.5": 0.443,
+      "2.0": 0.536,
+      "3.0": 0.675
+     },
+     "crossesAt": 2.0,
+     "setControlBand": [
+      0.095,
+      0.0664,
+      0.034,
+      0.0022,
+      0.0197,
+      0.0265
+     ],
+     "deltaControlBand": [
+      0.1517,
+      0.0777,
+      0.0304,
+      0.0071,
+      0.0265,
+      0.0493
+     ],
+     "controlBand": [
+      0.0485,
+      0.0371,
+      0.0156,
+      0.0131,
+      0.0132,
+      0.0388
+     ],
+     "bestSingleFeature": {
+      "index": 2136,
+      "label": "Repeated unresolved support tickets",
+      "curve": {
+       "0.0": 0.1134,
+       "0.5": 0.1594,
+       "1.0": 0.1958,
+       "1.5": 0.2414,
+       "2.0": 0.2899,
+       "3.0": 0.4321
+      }
+     }
+    },
+    {
+     "pair": "single_issue_vs_complex_case",
+     "direction": "a_into_b",
+     "targetTool": "billing_system",
+     "baselineP": 0.2551,
+     "numFeatures": 6,
+     "curve": {
+      "0.0": 0.1239,
+      "0.5": 0.4158,
+      "1.0": 0.6306,
+      "1.5": 0.774,
+      "2.0": 0.8724,
+      "3.0": 0.9367
+     },
+     "crossesAt": 1.0,
+     "setControlBand": [
+      0.1627,
+      0.1381,
+      0.0924,
+      0.0439,
+      0.0422,
+      0.0828
+     ],
+     "deltaControlBand": [
+      0.1703,
+      0.1344,
+      0.1276,
+      0.0129,
+      0.0594,
+      0.1371
+     ],
+     "controlBand": [
+      0.2181,
+      0.1429,
+      0.0958,
+      0.0227,
+      0.0593,
+      0.1041
+     ],
+     "bestSingleFeature": {
+      "index": 10398,
+      "label": "Invoice management and billing inquiries",
+      "curve": {
+       "0.0": 0.2305,
+       "0.5": 0.3589,
+       "1.0": 0.4823,
+       "1.5": 0.5447,
+       "2.0": 0.6351,
+       "3.0": 0.7833
+      }
+     }
+    },
+    {
+     "pair": "single_issue_vs_complex_case",
+     "direction": "b_into_a",
+     "targetTool": "customer_history",
+     "baselineP": 0.2615,
+     "numFeatures": 10,
+     "curve": {
+      "0.0": 0.1993,
+      "0.5": 0.2894,
+      "1.0": 0.397,
+      "1.5": 0.4515,
+      "2.0": 0.4468,
+      "3.0": 0.4409
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.3643,
+      0.3161,
+      0.1288,
+      0.206,
+      0.1787,
+      0.0509
+     ],
+     "deltaControlBand": [
+      0.2281,
+      0.2057,
+      0.1753,
+      0.233,
+      0.1786,
+      0.1566
+     ],
+     "controlBand": [
+      0.1872,
+      0.1588,
+      0.1307,
+      0.1031,
+      0.1031,
+      0.0774
+     ],
+     "bestSingleFeature": {
+      "index": 3238,
+      "label": "Complex multi-factor login failure",
+      "curve": {
+       "0.0": 0.176,
+       "0.5": 0.2381,
+       "1.0": 0.3675,
+       "1.5": 0.4285,
+       "2.0": 0.5191,
+       "3.0": 0.4296
+      }
+     }
+    },
+    {
+     "pair": "urgent_vs_routine",
+     "direction": "a_into_b",
+     "targetTool": "customer_history",
+     "baselineP": 0.0065,
+     "numFeatures": 5,
+     "curve": {
+      "0.0": 0.0065,
+      "0.5": 0.0093,
+      "1.0": 0.0106,
+      "1.5": 0.0174,
+      "2.0": 0.025,
+      "3.0": 0.0455
+     },
+     "crossesAt": null,
+     "setControlBand": [
+      0.004,
+      0.0008,
+      0.0008,
+      0.0014,
+      0.0008,
+      0.0018
+     ],
+     "deltaControlBand": [
+      0.0063,
+      0.0062,
+      0.0036,
+      0.0024,
+      0.0015,
+      0.0006
+     ],
+     "controlBand": [
+      0.0048,
+      0.0035,
+      0.0024,
+      0.0024,
+      0.0024,
+      0.0025
+     ],
+     "bestSingleFeature": {
+      "index": 816,
+      "label": "User confusion over plan tier feature access",
+      "curve": {
+       "0.0": 0.0065,
+       "0.5": 0.0094,
+       "1.0": 0.0121,
+       "1.5": 0.0155,
+       "2.0": 0.0224,
+       "3.0": 0.0412
+      }
+     }
+    },
+    {
+     "pair": "urgent_vs_routine",
+     "direction": "b_into_a",
+     "targetTool": "knowledge_base",
+     "baselineP": 0.3254,
+     "numFeatures": 10,
+     "curve": {
+      "0.0": 0.1357,
+      "0.5": 0.388,
+      "1.0": 0.5494,
+      "1.5": 0.6958,
+      "2.0": 0.7918,
+      "3.0": 0.9441
+     },
+     "crossesAt": 1.0,
+     "setControlBand": [
+      0.0269,
+      0.0291,
+      0.0597,
+      0.0921,
+      0.1523,
+      0.2479
+     ],
+     "deltaControlBand": [
+      0.0269,
+      0.0024,
+      0.0555,
+      0.12,
+      0.1543,
+      0.2196
+     ],
+     "controlBand": [
+      0.0499,
+      0.028,
+      0.0555,
+      0.0854,
+      0.1173,
+      0.1807
+     ],
+     "bestSingleFeature": {
+      "index": 10603,
+      "label": "New user onboarding and initial setup",
+      "curve": {
+       "0.0": 0.2972,
+       "0.5": 0.4191,
+       "1.0": 0.5169,
+       "1.5": 0.5816,
+       "2.0": 0.6129,
+       "3.0": 0.699
+      }
+     }
+    }
+   ],
+   "generations": [
+    {
+     "pair": "billing_vs_technical",
+     "direction": "a_into_b",
+     "targetTool": "billing_system",
+     "numFeatures": 6,
+     "baseline": " customer_history tool to understand your account details and subscription, then check the billing_system to see what you were billed for. This will help me identify the feature you're looking for.",
+     "steered": " billing_system to look up your recent charges and then check the ticket_lookup to see if there are any related support cases. Let me start by understanding your billing situation.",
+     "control": " customer_history tool to understand your account details and subscription information, then check the billing_system to see what you were billed for.",
+     "controlSize": 47,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 46.9922,
+     "steeredDeltaMass": 46.6407,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "customer_history",
+     "steeredTool": "billing_system",
+     "controlTool": "customer_history",
+     "flipped": true,
+     "controlFollowed": false,
+     "decisionPosition": 212,
+     "steeredDecisionToken": " customer_history tool to understand your account details and subscription, then check the billing_system to see what you were billed for. This will help me identify the feature you're looking for.",
+     "controlDecisionToken": " customer_history tool to understand your account details and subscription, then check the billing_system to see what you were billed for. This will help me identify the feature you're looking for.",
+     "steeredDecisionTool": "customer_history",
+     "controlDecisionTool": "customer_history",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "billing_vs_technical",
+     "direction": "b_into_a",
+     "targetTool": "customer_history",
+     "numFeatures": 7,
+     "baseline": " billing_system tool to look up your recent invoices and billing history to understand what you were charged for.",
+     "steered": " billing_system tool to look up your recent charges and help identify what you were billed for. Let me start by checking your account information.",
+     "control": " billing_system tool to look up your recent invoices and billing history to understand what you were charged for.",
+     "controlSize": 40,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 29.9766,
+     "steeredDeltaMass": 36.0547,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "billing_system",
+     "steeredTool": "billing_system",
+     "controlTool": "billing_system",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 212,
+     "steeredDecisionToken": " billing_system tool to look up your recent invoices and billing history to understand what you were charged for.",
+     "controlDecisionToken": " billing_system tool to look up your recent invoices and billing history to understand what you were charged for.",
+     "steeredDecisionTool": "billing_system",
+     "controlDecisionTool": "billing_system",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "self_service_vs_agent_assist",
+     "direction": "a_into_b",
+     "targetTool": "knowledge_base",
+     "numFeatures": 14,
+     "baseline": " ticket_lookup tool to check if there are any existing tickets related to API key revocation for this customer.",
+     "steered": " ticket_lookup tool to check if there are any existing tickets or documentation about API key revocation. Let me search for relevant information first.",
+     "control": " ticket_lookup tool to check if there are any existing tickets or issues related to your API key access.",
+     "controlSize": 37,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 71.3438,
+     "steeredDeltaMass": 93.6249,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "ticket_lookup",
+     "steeredTool": "ticket_lookup",
+     "controlTool": "ticket_lookup",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 211,
+     "steeredDecisionToken": " ticket_lookup tool to check if there are any existing tickets related to API key revocation for this customer.",
+     "controlDecisionToken": " ticket_lookup tool to check if there are any existing tickets related to API key revocation for this customer.",
+     "steeredDecisionTool": "ticket_lookup",
+     "controlDecisionTool": "ticket_lookup",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "self_service_vs_agent_assist",
+     "direction": "b_into_a",
+     "targetTool": "ticket_lookup",
+     "numFeatures": 6,
+     "baseline": " knowledge base to find the proper procedure for revoking an API key. Let me search for relevant documentation.",
+     "steered": " knowledge base to find the proper steps for revoking an API key.",
+     "control": " knowledge base to find information about revoking API keys.",
+     "controlSize": 31,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 48.1875,
+     "steeredDeltaMass": 48.1016,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "knowledge_base",
+     "steeredTool": "knowledge_base",
+     "controlTool": "knowledge_base",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 207,
+     "steeredDecisionToken": " knowledge base to find information about revoking API keys.",
+     "controlDecisionToken": " knowledge base to find information about revoking API keys.",
+     "steeredDecisionTool": "knowledge_base",
+     "controlDecisionTool": "knowledge_base",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    },
+    {
+     "pair": "refund_vs_troubleshoot",
+     "direction": "a_into_b",
+     "targetTool": "billing_system",
+     "numFeatures": 7,
+     "baseline": " knowledge base to search for information about rate limit headers in API responses.",
+     "steered": " knowledge_base tool to search for information about rate limit headers in our API responses.",
+     "control": " knowledge base to search for information about rate limit headers in API responses.",
+     "controlSize": 30,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 60.7891,
+     "steeredDeltaMass": 58.5001,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "knowledge_base",
+     "steeredTool": "knowledge_base",
+     "controlTool": "knowledge_base",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 209,
+     "steeredDecisionToken": " knowledge base to search for information about rate limit headers in API responses.",
+     "controlDecisionToken": " knowledge base to search for information about rate limit headers in API responses.",
+     "steeredDecisionTool": "knowledge_base",
+     "controlDecisionTool": "knowledge_base",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "refund_vs_troubleshoot",
+     "direction": "b_into_a",
+     "targetTool": "knowledge_base",
+     "numFeatures": 11,
+     "baseline": " billing_system tool to look up your account and check for any billing-related issues or potential refund eligibility. Let me first get your customer information.",
+     "steered": " billing_system tool to look up your account and check for any related billing issues or refund eligibility. Let me first access your customer information.",
+     "control": " billing_system tool to look up your account and check for any billing-related issues or potential refund eligibility. Let me first verify your customer context.",
+     "controlSize": 38,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 51.2109,
+     "steeredDeltaMass": 57.742,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "billing_system",
+     "steeredTool": "billing_system",
+     "controlTool": "billing_system",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 211,
+     "steeredDecisionToken": " billing_system tool to look up your account and check for any billing-related issues or potential refund eligibility. Let me first get your customer information.",
+     "controlDecisionToken": " billing_system tool to look up your account and check for any billing-related issues or potential refund eligibility. Let me first get your customer information.",
+     "steeredDecisionTool": "billing_system",
+     "controlDecisionTool": "billing_system",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "new_vs_returning_customer",
+     "direction": "a_into_b",
+     "targetTool": "customer_history",
+     "numFeatures": 6,
+     "baseline": " ticket_lookup tool to check if there are any existing support tickets related to your folder access issue. This will help me understand the context and see if there's already a record of what happened.",
+     "steered": " ticket_lookup tool to check if there are any existing tickets or notes about your account access issues. Let me first look up your customer information to understand the context better.",
+     "control": " ticket_lookup tool to check if there are any existing support tickets or notes related to your folder access issue. This will help me understand the context and see if there's already a record of what happened.",
+     "controlSize": 32,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 23.5547,
+     "steeredDeltaMass": 21.9999,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "ticket_lookup",
+     "steeredTool": "ticket_lookup",
+     "controlTool": "ticket_lookup",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 210,
+     "steeredDecisionToken": " ticket_lookup tool to check if there are any existing support tickets related to your folder access issue. This will help me understand the context and see if there's already a record of what happened.",
+     "controlDecisionToken": " ticket_lookup tool to check if there are any existing support tickets related to your folder access issue. This will help me understand the context and see if there's already a record of what happened.",
+     "steeredDecisionTool": "ticket_lookup",
+     "controlDecisionTool": "ticket_lookup",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "new_vs_returning_customer",
+     "direction": "b_into_a",
+     "targetTool": "ticket_lookup",
+     "numFeatures": 5,
+     "baseline": " customer_history tool to understand your account context first, then I can help you with the folder access issue.",
+     "steered": " ticket_lookup tool to check if there are any existing tickets or issues related to folder access for this user.",
+     "control": " customer_history tool to understand your account context first, then I can help you with the folder access issue.",
+     "controlSize": 36,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 28.875,
+     "steeredDeltaMass": 28.6954,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "customer_history",
+     "steeredTool": "ticket_lookup",
+     "controlTool": "customer_history",
+     "flipped": true,
+     "controlFollowed": false,
+     "decisionPosition": 209,
+     "steeredDecisionToken": " customer_history tool to understand your account context first, then I can help you with the folder access issue.",
+     "controlDecisionToken": " customer_history tool to understand your account context first, then I can help you with the folder access issue.",
+     "steeredDecisionTool": "customer_history",
+     "controlDecisionTool": "customer_history",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "single_issue_vs_complex_case",
+     "direction": "a_into_b",
+     "targetTool": "billing_system",
+     "numFeatures": 6,
+     "baseline": " customer_history tool to understand your current subscription status and then check the billing system to investigate the charging issue. Let me start by looking up your customer profile.",
+     "steered": " billing_system to look up your recent charges and subscription details, and the customer_history to understand your current plan status and usage history. Let me start by checking your billing information.",
+     "control": " customer_history tool to understand your current subscription status and then check the billing system to investigate the charging issue.",
+     "controlSize": 50,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 34.6328,
+     "steeredDeltaMass": 38.3907,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "customer_history",
+     "steeredTool": "billing_system",
+     "controlTool": "customer_history",
+     "flipped": true,
+     "controlFollowed": false,
+     "decisionPosition": 229,
+     "steeredDecisionToken": " billing_system tool to investigate your billing issue and check your subscription status.",
+     "controlDecisionToken": " customer_history tool to understand your current subscription status and then check the billing system to investigate the charging issue. Let me start by looking up your customer profile.",
+     "steeredDecisionTool": "billing_system",
+     "controlDecisionTool": "customer_history",
+     "flippedDecisionToken": true,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    },
+    {
+     "pair": "single_issue_vs_complex_case",
+     "direction": "b_into_a",
+     "targetTool": "customer_history",
+     "numFeatures": 10,
+     "baseline": " billing_system tool to look up your recent charges and subscription changes. Let me check what's happening with your billing.",
+     "steered": " billing_system tool to look up your recent charges and subscription changes. Let me check what's happening with your billing.",
+     "control": " billing_system tool to look up your recent charges and subscription changes. Let me check what's happening with your billing.",
+     "controlSize": 22,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 27.2734,
+     "steeredDeltaMass": 21.2187,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "billing_system",
+     "steeredTool": "billing_system",
+     "controlTool": "billing_system",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 215,
+     "steeredDecisionToken": " billing_system tool to look up your recent charges and subscription changes. Let me check what's happening with your billing.",
+     "controlDecisionToken": " billing_system tool to look up your recent charges and subscription changes. Let me check what's happening with your billing.",
+     "steeredDecisionTool": "billing_system",
+     "controlDecisionTool": "billing_system",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "urgent_vs_routine",
+     "direction": "a_into_b",
+     "targetTool": "customer_history",
+     "numFeatures": 5,
+     "baseline": " knowledge base to search for information about SSO and plan requirements.",
+     "steered": " knowledge base to find information about SSO requirements for different plans.",
+     "control": " knowledge base to search for information about SSO and plan requirements.",
+     "controlSize": 17,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 17.9141,
+     "steeredDeltaMass": 17.4218,
+     "controlIdenticalToBaseline": true,
+     "baselineTool": "knowledge_base",
+     "steeredTool": "knowledge_base",
+     "controlTool": "knowledge_base",
+     "flipped": false,
+     "controlFollowed": false,
+     "decisionPosition": 209,
+     "steeredDecisionToken": " knowledge base to search for information about SSO and plan requirements.",
+     "controlDecisionToken": " knowledge base to find information about SSO requirements for different plans.",
+     "steeredDecisionTool": "knowledge_base",
+     "controlDecisionTool": "knowledge_base",
+     "flippedDecisionToken": false,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": true
+    },
+    {
+     "pair": "urgent_vs_routine",
+     "direction": "b_into_a",
+     "targetTool": "knowledge_base",
+     "numFeatures": 10,
+     "baseline": " customer_history tool to check your subscription details and current configuration, then I can look up the relevant SSO information in our knowledge base.",
+     "steered": " knowledge base to check our documentation about SSO and plan requirements.",
+     "control": " customer_history tool to check your subscription details and current configuration, then I can look up the relevant information about SSO requirements.",
+     "controlSize": 38,
+     "controlFamily": "deltaControls",
+     "controlDeltaMass": 37.7891,
+     "steeredDeltaMass": 38.1954,
+     "controlIdenticalToBaseline": false,
+     "baselineTool": "customer_history",
+     "steeredTool": "knowledge_base",
+     "controlTool": "customer_history",
+     "flipped": true,
+     "controlFollowed": false,
+     "decisionPosition": 215,
+     "steeredDecisionToken": " knowledge base to check if SSO requires manual approval based on your plan type.",
+     "controlDecisionToken": " customer_history tool to check your subscription details and current configuration, then I can look up the relevant SSO information in our knowledge base.",
+     "steeredDecisionTool": "knowledge_base",
+     "controlDecisionTool": "customer_history",
+     "flippedDecisionToken": true,
+     "controlFollowedDecisionToken": false,
+     "decisionTokenIdenticalToBaseline": false
+    }
+   ],
+   "probes": {
+    "paraphrases": {
+     "held": 17,
+     "total": 24,
+     "rows": [
+      {
+       "pair": "billing_vs_technical",
+       "side": "a",
+       "expected": "billing_system",
+       "got": "customer_history",
+       "held": false,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "billing_vs_technical",
+       "side": "a",
+       "expected": "billing_system",
+       "got": "billing_system",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "billing_vs_technical",
+       "side": "b",
+       "expected": "customer_history",
+       "got": "customer_history",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "billing_vs_technical",
+       "side": "b",
+       "expected": "customer_history",
+       "got": "customer_history",
+       "held": true,
+       "familiesFiring": 5,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "self_service_vs_agent_assist",
+       "side": "a",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "self_service_vs_agent_assist",
+       "side": "a",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "self_service_vs_agent_assist",
+       "side": "b",
+       "expected": "ticket_lookup",
+       "got": "customer_history",
+       "held": false,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "self_service_vs_agent_assist",
+       "side": "b",
+       "expected": "ticket_lookup",
+       "got": "ticket_lookup",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "refund_vs_troubleshoot",
+       "side": "a",
+       "expected": "billing_system",
+       "got": "billing_system",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "refund_vs_troubleshoot",
+       "side": "a",
+       "expected": "billing_system",
+       "got": "billing_system",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "refund_vs_troubleshoot",
+       "side": "b",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "refund_vs_troubleshoot",
+       "side": "b",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "new_vs_returning_customer",
+       "side": "a",
+       "expected": "customer_history",
+       "got": "customer_history",
+       "held": true,
+       "familiesFiring": 5,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "new_vs_returning_customer",
+       "side": "a",
+       "expected": "customer_history",
+       "got": "ticket_lookup",
+       "held": false,
+       "familiesFiring": 5,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "new_vs_returning_customer",
+       "side": "b",
+       "expected": "ticket_lookup",
+       "got": "knowledge_base",
+       "held": false,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "new_vs_returning_customer",
+       "side": "b",
+       "expected": "ticket_lookup",
+       "got": "ticket_lookup",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_issue_vs_complex_case",
+       "side": "a",
+       "expected": "billing_system",
+       "got": "billing_system",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_issue_vs_complex_case",
+       "side": "a",
+       "expected": "billing_system",
+       "got": "billing_system",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_issue_vs_complex_case",
+       "side": "b",
+       "expected": "customer_history",
+       "got": "customer_history",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "single_issue_vs_complex_case",
+       "side": "b",
+       "expected": "customer_history",
+       "got": "ticket_lookup",
+       "held": false,
+       "familiesFiring": 5,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "urgent_vs_routine",
+       "side": "a",
+       "expected": "customer_history",
+       "got": "knowledge_base",
+       "held": false,
+       "familiesFiring": 4,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "urgent_vs_routine",
+       "side": "a",
+       "expected": "customer_history",
+       "got": "knowledge_base",
+       "held": false,
+       "familiesFiring": 5,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "urgent_vs_routine",
+       "side": "b",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      },
+      {
+       "pair": "urgent_vs_routine",
+       "side": "b",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true,
+       "familiesFiring": 6,
+       "familiesTotal": 6
+      }
+     ]
+    },
+    "keywordControls": {
+     "held": 5,
+     "total": 5,
+     "rows": [
+      {
+       "pair": "refund_vs_troubleshoot",
+       "side": "a",
+       "cue": "refund",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true
+      },
+      {
+       "pair": "refund_vs_troubleshoot",
+       "side": "b",
+       "cue": "why",
+       "expected": "billing_system",
+       "got": "billing_system",
+       "held": true
+      },
+      {
+       "pair": "new_vs_returning_customer",
+       "side": "a",
+       "cue": "new",
+       "expected": "ticket_lookup",
+       "got": "ticket_lookup",
+       "held": true
+      },
+      {
+       "pair": "new_vs_returning_customer",
+       "side": "b",
+       "cue": "now",
+       "expected": "customer_history",
+       "got": "customer_history",
+       "held": true
+      },
+      {
+       "pair": "urgent_vs_routine",
+       "side": "a",
+       "cue": "today",
+       "expected": "knowledge_base",
+       "got": "knowledge_base",
+       "held": true
+      }
+     ]
+    }
+   },
+   "positionAblation": {
+    "summary": {
+     "request": {
+      "flips": 0,
+      "sides": 12,
+      "maxAbsDelta": 0.0292
+     },
+     "decision": {
+      "flips": 8,
+      "sides": 12,
+      "maxAbsDelta": 0.6347
+     },
+     "allButDecision": {
+      "flips": 0,
+      "sides": 12,
+      "maxAbsDelta": 0.2442
+     },
+     "all": {
+      "flips": 8,
+      "sides": 12,
+      "maxAbsDelta": 0.7436
+     }
+    },
+    "rows": [
+     {
+      "step": "billing_vs_technical_A",
+      "baselineP": 0.6819,
+      "request": {
+       "p": 0.708,
+       "deltaP": 0.0261,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.0472,
+       "deltaP": -0.6347,
+       "flipped": true,
+       "controlBand": 0.0986,
+       "setControlBand": 0.0996
+      },
+      "allButDecision": {
+       "p": 0.7217,
+       "deltaP": 0.0398,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.0308,
+       "deltaP": -0.6511,
+       "flipped": true,
+       "controlBand": 0.0696,
+       "setControlBand": 0.0895
+      }
+     },
+     {
+      "step": "billing_vs_technical_B",
+      "baselineP": 0.8212,
+      "request": {
+       "p": 0.8336,
+       "deltaP": 0.0124,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.2443,
+       "deltaP": -0.5769,
+       "flipped": true,
+       "controlBand": 0.0779,
+       "setControlBand": 0.093
+      },
+      "allButDecision": {
+       "p": 0.605,
+       "deltaP": -0.2162,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.0776,
+       "deltaP": -0.7436,
+       "flipped": true,
+       "controlBand": 0.1115,
+       "setControlBand": 0.1315
+      }
+     },
+     {
+      "step": "self_service_vs_agent_assist_A",
+      "baselineP": 0.938,
+      "request": {
+       "p": 0.9221,
+       "deltaP": -0.0159,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7893,
+       "deltaP": -0.1487,
+       "flipped": false,
+       "controlBand": 0.0726,
+       "setControlBand": 0.0878
+      },
+      "allButDecision": {
+       "p": 0.907,
+       "deltaP": -0.031,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.5935,
+       "deltaP": -0.3445,
+       "flipped": false,
+       "controlBand": 0.0695,
+       "setControlBand": 0.1041
+      }
+     },
+     {
+      "step": "self_service_vs_agent_assist_B",
+      "baselineP": 0.7727,
+      "request": {
+       "p": 0.7939,
+       "deltaP": 0.0212,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.6862,
+       "deltaP": -0.0865,
+       "flipped": false,
+       "controlBand": 0.0954,
+       "setControlBand": 0.0818
+      },
+      "allButDecision": {
+       "p": 0.8179,
+       "deltaP": 0.0452,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.6072,
+       "deltaP": -0.1655,
+       "flipped": false,
+       "controlBand": 0.0811,
+       "setControlBand": 0.063
+      }
+     },
+     {
+      "step": "refund_vs_troubleshoot_A",
+      "baselineP": 0.6326,
+      "request": {
+       "p": 0.6545,
+       "deltaP": 0.0219,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.1181,
+       "deltaP": -0.5145,
+       "flipped": true,
+       "controlBand": 0.0805,
+       "setControlBand": 0.0864
+      },
+      "allButDecision": {
+       "p": 0.5849,
+       "deltaP": -0.0477,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.07,
+       "deltaP": -0.5626,
+       "flipped": true,
+       "controlBand": 0.0783,
+       "setControlBand": 0.0697
+      }
+     },
+     {
+      "step": "refund_vs_troubleshoot_B",
+      "baselineP": 0.9081,
+      "request": {
+       "p": 0.9079,
+       "deltaP": -0.0002,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7582,
+       "deltaP": -0.1499,
+       "flipped": false,
+       "controlBand": 0.0365,
+       "setControlBand": 0.032
+      },
+      "allButDecision": {
+       "p": 0.9078,
+       "deltaP": -0.0003,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7151,
+       "deltaP": -0.193,
+       "flipped": false,
+       "controlBand": 0.0207,
+       "setControlBand": 0.0109
+      }
+     },
+     {
+      "step": "new_vs_returning_customer_A",
+      "baselineP": 0.7394,
+      "request": {
+       "p": 0.7395,
+       "deltaP": 0.0001,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.3126,
+       "deltaP": -0.4268,
+       "flipped": true,
+       "controlBand": 0.0411,
+       "setControlBand": 0.0919
+      },
+      "allButDecision": {
+       "p": 0.4952,
+       "deltaP": -0.2442,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.1393,
+       "deltaP": -0.6001,
+       "flipped": true,
+       "controlBand": 0.0522,
+       "setControlBand": 0.062
+      }
+     },
+     {
+      "step": "new_vs_returning_customer_B",
+      "baselineP": 0.765,
+      "request": {
+       "p": 0.7867,
+       "deltaP": 0.0217,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.2872,
+       "deltaP": -0.4778,
+       "flipped": true,
+       "controlBand": 0.1094,
+       "setControlBand": 0.1215
+      },
+      "allButDecision": {
+       "p": 0.6713,
+       "deltaP": -0.0937,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.2054,
+       "deltaP": -0.5596,
+       "flipped": true,
+       "controlBand": 0.107,
+       "setControlBand": 0.108
+      }
+     },
+     {
+      "step": "single_issue_vs_complex_case_A",
+      "baselineP": 0.7105,
+      "request": {
+       "p": 0.7105,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.1573,
+       "deltaP": -0.5532,
+       "flipped": true,
+       "controlBand": 0.0944,
+       "setControlBand": 0.0743
+      },
+      "allButDecision": {
+       "p": 0.6008,
+       "deltaP": -0.1097,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.0904,
+       "deltaP": -0.6201,
+       "flipped": true,
+       "controlBand": 0.152,
+       "setControlBand": 0.1623
+      }
+     },
+     {
+      "step": "single_issue_vs_complex_case_B",
+      "baselineP": 0.6937,
+      "request": {
+       "p": 0.6665,
+       "deltaP": -0.0272,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.4132,
+       "deltaP": -0.2805,
+       "flipped": true,
+       "controlBand": 0.0546,
+       "setControlBand": 0.1013
+      },
+      "allButDecision": {
+       "p": 0.5509,
+       "deltaP": -0.1428,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.2882,
+       "deltaP": -0.4055,
+       "flipped": true,
+       "controlBand": 0.0716,
+       "setControlBand": 0.1328
+      }
+     },
+     {
+      "step": "urgent_vs_routine_A",
+      "baselineP": 0.6077,
+      "request": {
+       "p": 0.6369,
+       "deltaP": 0.0292,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.4413,
+       "deltaP": -0.1664,
+       "flipped": true,
+       "controlBand": 0.0862,
+       "setControlBand": 0.0898
+      },
+      "allButDecision": {
+       "p": 0.4956,
+       "deltaP": -0.1121,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.3574,
+       "deltaP": -0.2503,
+       "flipped": true,
+       "controlBand": 0.0717,
+       "setControlBand": 0.1202
+      }
+     },
+     {
+      "step": "urgent_vs_routine_B",
+      "baselineP": 0.9573,
+      "request": {
+       "p": 0.9598,
+       "deltaP": 0.0025,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.8466,
+       "deltaP": -0.1107,
+       "flipped": false,
+       "controlBand": 0.0087,
+       "setControlBand": 0.0186
+      },
+      "allButDecision": {
+       "p": 0.9544,
+       "deltaP": -0.0029,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.8191,
+       "deltaP": -0.1382,
+       "flipped": false,
+       "controlBand": 0.0069,
+       "setControlBand": 0.0167
+      }
+     }
+    ]
+   },
+   "positionAblationEarly": {
+    "layer": 20,
+    "summary": {
+     "request": {
+      "flips": 0,
+      "sides": 12,
+      "maxAbsDelta": 0.1111
+     },
+     "decision": {
+      "flips": 0,
+      "sides": 12,
+      "maxAbsDelta": 0.1508
+     },
+     "allButDecision": {
+      "flips": 0,
+      "sides": 12,
+      "maxAbsDelta": 0.1076
+     },
+     "all": {
+      "flips": 0,
+      "sides": 12,
+      "maxAbsDelta": 0.1401
+     }
+    },
+    "rows": [
+     {
+      "step": "billing_vs_technical_A",
+      "baselineP": 0.6819,
+      "request": {
+       "p": 0.6819,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.669,
+       "deltaP": -0.0129,
+       "flipped": false,
+       "controlBand": 0.0353,
+       "setControlBand": 0.0261
+      },
+      "allButDecision": {
+       "p": 0.7084,
+       "deltaP": 0.0265,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7229,
+       "deltaP": 0.041,
+       "flipped": false,
+       "controlBand": 0.0571,
+       "setControlBand": 0.0564
+      }
+     },
+     {
+      "step": "billing_vs_technical_B",
+      "baselineP": 0.8212,
+      "request": {
+       "p": 0.7907,
+       "deltaP": -0.0305,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.774,
+       "deltaP": -0.0472,
+       "flipped": false,
+       "controlBand": 0.0626,
+       "setControlBand": 0.0245
+      },
+      "allButDecision": {
+       "p": 0.8165,
+       "deltaP": -0.0047,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7572,
+       "deltaP": -0.064,
+       "flipped": false,
+       "controlBand": 0.0899,
+       "setControlBand": 0.0484
+      }
+     },
+     {
+      "step": "self_service_vs_agent_assist_A",
+      "baselineP": 0.938,
+      "request": {
+       "p": 0.9125,
+       "deltaP": -0.0255,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.8912,
+       "deltaP": -0.0468,
+       "flipped": false,
+       "controlBand": 0.0162,
+       "setControlBand": 0.0077
+      },
+      "allButDecision": {
+       "p": 0.9324,
+       "deltaP": -0.0056,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.9037,
+       "deltaP": -0.0343,
+       "flipped": false,
+       "controlBand": 0.0255,
+       "setControlBand": 0.0069
+      }
+     },
+     {
+      "step": "self_service_vs_agent_assist_B",
+      "baselineP": 0.7727,
+      "request": {
+       "p": 0.8838,
+       "deltaP": 0.1111,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.8122,
+       "deltaP": 0.0395,
+       "flipped": false,
+       "controlBand": 0.043,
+       "setControlBand": 0.0396
+      },
+      "allButDecision": {
+       "p": 0.8803,
+       "deltaP": 0.1076,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.9031,
+       "deltaP": 0.1304,
+       "flipped": false,
+       "controlBand": 0.0426,
+       "setControlBand": 0.0019
+      }
+     },
+     {
+      "step": "refund_vs_troubleshoot_A",
+      "baselineP": 0.6326,
+      "request": {
+       "p": 0.5975,
+       "deltaP": -0.0351,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7175,
+       "deltaP": 0.0849,
+       "flipped": false,
+       "controlBand": 0.0308,
+       "setControlBand": 0.0285
+      },
+      "allButDecision": {
+       "p": 0.6326,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7356,
+       "deltaP": 0.103,
+       "flipped": false,
+       "controlBand": 0.0554,
+       "setControlBand": 0.0892
+      }
+     },
+     {
+      "step": "refund_vs_troubleshoot_B",
+      "baselineP": 0.9081,
+      "request": {
+       "p": 0.9178,
+       "deltaP": 0.0097,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.885,
+       "deltaP": -0.0231,
+       "flipped": false,
+       "controlBand": 0.0171,
+       "setControlBand": 0.0222
+      },
+      "allButDecision": {
+       "p": 0.9071,
+       "deltaP": -0.001,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.8838,
+       "deltaP": -0.0243,
+       "flipped": false,
+       "controlBand": 0.028,
+       "setControlBand": 0.0139
+      }
+     },
+     {
+      "step": "new_vs_returning_customer_A",
+      "baselineP": 0.7394,
+      "request": {
+       "p": 0.7389,
+       "deltaP": -0.0005,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.6886,
+       "deltaP": -0.0508,
+       "flipped": false,
+       "controlBand": 0.0397,
+       "setControlBand": 0.014
+      },
+      "allButDecision": {
+       "p": 0.7411,
+       "deltaP": 0.0017,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7166,
+       "deltaP": -0.0228,
+       "flipped": false,
+       "controlBand": 0.0508,
+       "setControlBand": 0.0116
+      }
+     },
+     {
+      "step": "new_vs_returning_customer_B",
+      "baselineP": 0.765,
+      "request": {
+       "p": 0.7967,
+       "deltaP": 0.0317,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7482,
+       "deltaP": -0.0168,
+       "flipped": false,
+       "controlBand": 0.0476,
+       "setControlBand": 0.0231
+      },
+      "allButDecision": {
+       "p": 0.6814,
+       "deltaP": -0.0836,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.6249,
+       "deltaP": -0.1401,
+       "flipped": false,
+       "controlBand": 0.0365,
+       "setControlBand": 0.0497
+      }
+     },
+     {
+      "step": "single_issue_vs_complex_case_A",
+      "baselineP": 0.7105,
+      "request": {
+       "p": 0.6842,
+       "deltaP": -0.0263,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.7105,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": 0.0514,
+       "setControlBand": 0.0239
+      },
+      "allButDecision": {
+       "p": 0.6843,
+       "deltaP": -0.0262,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.7106,
+       "deltaP": 0.0001,
+       "flipped": false,
+       "controlBand": 0.0755,
+       "setControlBand": 0.0816
+      }
+     },
+     {
+      "step": "single_issue_vs_complex_case_B",
+      "baselineP": 0.6937,
+      "request": {
+       "p": 0.6937,
+       "deltaP": 0.0,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.5429,
+       "deltaP": -0.1508,
+       "flipped": false,
+       "controlBand": 0.0554,
+       "setControlBand": 0.0273
+      },
+      "allButDecision": {
+       "p": 0.6214,
+       "deltaP": -0.0723,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.5881,
+       "deltaP": -0.1056,
+       "flipped": false,
+       "controlBand": 0.0956,
+       "setControlBand": 0.1323
+      }
+     },
+     {
+      "step": "urgent_vs_routine_A",
+      "baselineP": 0.6077,
+      "request": {
+       "p": 0.6319,
+       "deltaP": 0.0242,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.5327,
+       "deltaP": -0.075,
+       "flipped": false,
+       "controlBand": 0.05,
+       "setControlBand": 0.0528
+      },
+      "allButDecision": {
+       "p": 0.6019,
+       "deltaP": -0.0058,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.5862,
+       "deltaP": -0.0215,
+       "flipped": false,
+       "controlBand": 0.0546,
+       "setControlBand": 0.0773
+      }
+     },
+     {
+      "step": "urgent_vs_routine_B",
+      "baselineP": 0.9573,
+      "request": {
+       "p": 0.9605,
+       "deltaP": 0.0032,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "decision": {
+       "p": 0.954,
+       "deltaP": -0.0033,
+       "flipped": false,
+       "controlBand": 0.0048,
+       "setControlBand": 0.0047
+      },
+      "allButDecision": {
+       "p": 0.9619,
+       "deltaP": 0.0046,
+       "flipped": false,
+       "controlBand": null,
+       "setControlBand": null
+      },
+      "all": {
+       "p": 0.9572,
+       "deltaP": -0.0001,
+       "flipped": false,
+       "controlBand": 0.0068,
+       "setControlBand": 0.0097
+      }
+     }
+    ]
+   },
+   "parity": {
+    "meanCosine": 0.9982,
+    "minCosine": 0.9938,
+    "n": 12
+   }
+  },
+  "supply_chain_expanded": {
+   "primaryLayer": 43,
+   "numPairs": 32,
+   "sample": {
+    "n": 32,
+    "seed": 0,
+    "population": 1094,
+    "themeCap": 10
+   },
+   "pairsPassingGate": 1094,
+   "layers": {
+    "13": {
+     "layer": 13,
+     "ablationFlips": 0,
+     "ablationFlipsAnyTool": 0,
+     "ablationSides": 64,
+     "ablationBestDelta": 0.0911,
+     "ablationControlMedian": 0.027,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 1,
+     "crossPatchDirections": 64,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.0621,
+     "medianBaseActive": 8,
+     "medianEffectOverControl": 0.508,
+     "fractionExceedingControl": 0.202,
+     "medianEffectOverSetControl": 0.898,
+     "fractionExceedingSetControl": 0.391,
+     "setControlSides": 110,
+     "medianEffectOverContrastControl": 0.893,
+     "fractionExceedingContrastControl": 0.407,
+     "contrastControlSides": 64,
+     "contrastCeilingSides": 33,
+     "medianEffectOverDeltaControl": 0.493,
+     "fractionExceedingDeltaControl": 0.306,
+     "deltaControlDirections": 49,
+     "medianCueDeltaOverDonorMass": 0.153,
+     "medianCueMassOverHeaviestRowDraw": 1.56,
+     "sidesWhereRowDrawReachesCueMass": 40,
+     "massAuditSides": 126
+    },
+    "43": {
+     "layer": 43,
+     "ablationFlips": 40,
+     "ablationFlipsAnyTool": 40,
+     "ablationSides": 64,
+     "ablationBestDelta": 0.7751,
+     "ablationControlMedian": 0.1239,
+     "crossPatchFlips": 23,
+     "crossPatchFlipsAnyTool": 23,
+     "crossPatchDirections": 64,
+     "crossPatchCueDriven": 16,
+     "crossPatchBulkOnly": 7,
+     "crossPatchBestDelta": 0.6784,
+     "medianBaseActive": 22,
+     "medianEffectOverControl": 2.733,
+     "fractionExceedingControl": 0.82,
+     "medianEffectOverSetControl": 2.72,
+     "fractionExceedingSetControl": 0.782,
+     "setControlSides": 124,
+     "medianEffectOverContrastControl": 2.089,
+     "fractionExceedingContrastControl": 0.875,
+     "contrastControlSides": 64,
+     "contrastCeilingSides": 35,
+     "medianEffectOverDeltaControl": 3.163,
+     "fractionExceedingDeltaControl": 0.705,
+     "deltaControlDirections": 61,
+     "medianCueDeltaOverDonorMass": 0.327,
+     "medianCueMassOverHeaviestRowDraw": 1.32,
+     "sidesWhereRowDrawReachesCueMass": 16,
+     "massAuditSides": 128
+    }
+   },
+   "dictionary": {
+    "13": {
+     "meanL0": 14.4,
+     "explainedVariance": 0.604,
+     "constant": 3,
+     "varying": 250,
+     "constantFraction": 0.0119,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 2
+    },
+    "43": {
+     "meanL0": 28.8,
+     "explainedVariance": 0.7439,
+     "constant": 13,
+     "varying": 199,
+     "constantFraction": 0.0613,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 4
+    }
+   },
+   "parity": {
+    "meanCosine": 0.999,
+    "minCosine": 0.9971,
+    "n": 64
+   }
+  },
+  "customer_support_expanded": {
+   "primaryLayer": 34,
+   "numPairs": 32,
+   "sample": {
+    "n": 32,
+    "seed": 0,
+    "population": 1616,
+    "themeCap": 10
+   },
+   "pairsPassingGate": 1616,
+   "layers": {
+    "13": {
+     "layer": 13,
+     "ablationFlips": 1,
+     "ablationFlipsAnyTool": 1,
+     "ablationSides": 64,
+     "ablationBestDelta": 0.1807,
+     "ablationControlMedian": 0.0441,
+     "crossPatchFlips": 0,
+     "crossPatchFlipsAnyTool": 0,
+     "crossPatchDirections": 64,
+     "crossPatchCueDriven": 0,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.2019,
+     "medianBaseActive": 9,
+     "medianEffectOverControl": 0.45,
+     "fractionExceedingControl": 0.195,
+     "medianEffectOverSetControl": 0.709,
+     "fractionExceedingSetControl": 0.354,
+     "setControlSides": 113,
+     "medianEffectOverContrastControl": 0.914,
+     "fractionExceedingContrastControl": 0.453,
+     "contrastControlSides": 64,
+     "contrastCeilingSides": 41,
+     "medianEffectOverDeltaControl": 0.818,
+     "fractionExceedingDeltaControl": 0.286,
+     "deltaControlDirections": 49,
+     "medianCueDeltaOverDonorMass": 0.332,
+     "medianCueMassOverHeaviestRowDraw": 1.43,
+     "sidesWhereRowDrawReachesCueMass": 26,
+     "massAuditSides": 126
+    },
+    "34": {
+     "layer": 34,
+     "ablationFlips": 28,
+     "ablationFlipsAnyTool": 41,
+     "ablationSides": 64,
+     "ablationBestDelta": 0.6328,
+     "ablationControlMedian": 0.0573,
+     "crossPatchFlips": 18,
+     "crossPatchFlipsAnyTool": 22,
+     "crossPatchDirections": 64,
+     "crossPatchCueDriven": 13,
+     "crossPatchBulkOnly": 5,
+     "crossPatchBestDelta": 0.629,
+     "medianBaseActive": 48,
+     "medianEffectOverControl": 6.589,
+     "fractionExceedingControl": 0.945,
+     "medianEffectOverSetControl": 7.236,
+     "fractionExceedingSetControl": 0.945,
+     "setControlSides": 128,
+     "medianEffectOverContrastControl": 5.5,
+     "fractionExceedingContrastControl": 0.953,
+     "contrastControlSides": 64,
+     "contrastCeilingSides": 28,
+     "medianEffectOverDeltaControl": 9.933,
+     "fractionExceedingDeltaControl": 0.921,
+     "deltaControlDirections": 63,
+     "medianCueDeltaOverDonorMass": 0.738,
+     "medianCueMassOverHeaviestRowDraw": 2.18,
+     "sidesWhereRowDrawReachesCueMass": 4,
+     "massAuditSides": 128
+    }
+   },
+   "dictionary": {
+    "13": {
+     "meanL0": 16.7,
+     "explainedVariance": 0.6434,
+     "constant": 5,
+     "varying": 367,
+     "constantFraction": 0.0134,
+     "sideSpecificMin": 0,
+     "sideSpecificMedian": 5
+    },
+    "34": {
+     "meanL0": 69.5,
+     "explainedVariance": 0.6917,
+     "constant": 37,
+     "varying": 509,
+     "constantFraction": 0.0678,
+     "sideSpecificMin": 3,
+     "sideSpecificMedian": 16
+    }
+   },
+   "parity": {
+    "meanCosine": 0.9981,
+    "minCosine": 0.987,
+    "n": 64
+   }
+  },
+  "supply_chain_heldout": {
+   "primaryLayer": 43,
+   "numPairs": 8,
+   "heldOut": true,
+   "candidatesAuthored": 48,
+   "layers": {
+    "43": {
+     "layer": 43,
+     "ablationFlips": 4,
+     "ablationFlipsAnyTool": 6,
+     "ablationSides": 16,
+     "ablationBestDelta": 0.7161,
+     "ablationControlMedian": 0.0885,
+     "crossPatchFlips": 3,
+     "crossPatchFlipsAnyTool": 3,
+     "crossPatchDirections": 16,
+     "crossPatchCueDriven": 3,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.5781,
+     "medianBaseActive": 19,
+     "medianEffectOverControl": 4.896,
+     "fractionExceedingControl": 0.75,
+     "medianEffectOverSetControl": 4.597,
+     "fractionExceedingSetControl": 0.71,
+     "setControlSides": 31,
+     "medianEffectOverContrastControl": 4.73,
+     "fractionExceedingContrastControl": 0.812,
+     "contrastControlSides": 16,
+     "contrastCeilingSides": 12,
+     "medianEffectOverDeltaControl": 4.734,
+     "fractionExceedingDeltaControl": 0.714,
+     "deltaControlDirections": 14,
+     "medianCueDeltaOverDonorMass": 0.463,
+     "medianCueMassOverHeaviestRowDraw": 1.8,
+     "sidesWhereRowDrawReachesCueMass": 4,
+     "massAuditSides": 32
+    }
+   },
+   "dictionary": {
+    "43": {
+     "meanL0": 32.4,
+     "explainedVariance": 0.6394,
+     "constant": 16,
+     "varying": 93,
+     "constantFraction": 0.1468,
+     "sideSpecificMin": 3,
+     "sideSpecificMedian": 6
+    }
+   },
+   "parity": {
+    "meanCosine": 0.9987,
+    "minCosine": 0.9964,
+    "n": 16
+   }
+  },
+  "customer_support_heldout": {
+   "primaryLayer": 34,
+   "numPairs": 7,
+   "heldOut": true,
+   "candidatesAuthored": 48,
+   "layers": {
+    "34": {
+     "layer": 34,
+     "ablationFlips": 5,
+     "ablationFlipsAnyTool": 5,
+     "ablationSides": 14,
+     "ablationBestDelta": 0.4728,
+     "ablationControlMedian": 0.074,
+     "crossPatchFlips": 4,
+     "crossPatchFlipsAnyTool": 4,
+     "crossPatchDirections": 14,
+     "crossPatchCueDriven": 4,
+     "crossPatchBulkOnly": 0,
+     "crossPatchBestDelta": 0.4327,
+     "medianBaseActive": 41,
+     "medianEffectOverControl": 4.361,
+     "fractionExceedingControl": 0.893,
+     "medianEffectOverSetControl": 5.302,
+     "fractionExceedingSetControl": 0.964,
+     "setControlSides": 28,
+     "medianEffectOverContrastControl": 3.221,
+     "fractionExceedingContrastControl": 0.929,
+     "contrastControlSides": 14,
+     "contrastCeilingSides": 4,
+     "medianEffectOverDeltaControl": 5.437,
+     "fractionExceedingDeltaControl": 0.929,
+     "deltaControlDirections": 14,
+     "medianCueDeltaOverDonorMass": 0.802,
+     "medianCueMassOverHeaviestRowDraw": 1.92,
+     "sidesWhereRowDrawReachesCueMass": 2,
+     "massAuditSides": 28
+    }
+   },
+   "dictionary": {
+    "34": {
+     "meanL0": 88.4,
+     "explainedVariance": 0.54,
+     "constant": 37,
+     "varying": 311,
+     "constantFraction": 0.1063,
+     "sideSpecificMin": 5,
+     "sideSpecificMedian": 27
+    }
+   },
+   "parity": {
+    "meanCosine": 0.9981,
+    "minCosine": 0.9956,
+    "n": 14
+   }
+  }
+ },
+ "earlyLayerTotals": {
+  "layers": [
+   6,
+   13,
+   20
+  ],
+  "ablationSides": 102,
+  "crossPatchDirections": 102
+ },
+ "stats": {
+  "primaryLayers": {
+   "tool_selection": 43,
+   "supply_chain": 43,
+   "customer_support": 34,
+   "supply_chain_expanded": 43,
+   "customer_support_expanded": 34
+  },
+  "wilson": {
+   "tool_selection": {
+    "layer": 43,
+    "ablation": {
+     "k": 3,
+     "n": 14,
+     "rate": 0.2143,
+     "lo": 0.0757,
+     "hi": 0.4759
+    },
+    "crossPatch": {
+     "k": 5,
+     "n": 14,
+     "rate": 0.3571,
+     "lo": 0.1634,
+     "hi": 0.6124
+    }
+   },
+   "supply_chain": {
+    "layer": 43,
+    "ablation": {
+     "k": 7,
+     "n": 8,
+     "rate": 0.875,
+     "lo": 0.5291,
+     "hi": 0.9776
+    },
+    "crossPatch": {
+     "k": 3,
+     "n": 8,
+     "rate": 0.375,
+     "lo": 0.1368,
+     "hi": 0.6943
+    },
+    "keywordControls": {
+     "k": 4,
+     "n": 7,
+     "rate": 0.5714,
+     "lo": 0.2505,
+     "hi": 0.8418
+    },
+    "paraphrases": {
+     "k": 13,
+     "n": 16,
+     "rate": 0.8125,
+     "lo": 0.5699,
+     "hi": 0.9341
+    }
+   },
+   "customer_support": {
+    "layer": 34,
+    "ablation": {
+     "k": 6,
+     "n": 12,
+     "rate": 0.5,
+     "lo": 0.2538,
+     "hi": 0.7462
+    },
+    "crossPatch": {
+     "k": 4,
+     "n": 12,
+     "rate": 0.3333,
+     "lo": 0.1381,
+     "hi": 0.6094
+    },
+    "keywordControls": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "lo": 0.5655,
+     "hi": 1.0
+    },
+    "paraphrases": {
+     "k": 17,
+     "n": 24,
+     "rate": 0.7083,
+     "lo": 0.5083,
+     "hi": 0.8509
+    }
+   },
+   "pooled_demo": {
+    "ablation": {
+     "k": 16,
+     "n": 34,
+     "rate": 0.4706,
+     "lo": 0.3145,
+     "hi": 0.6326
+    },
+    "crossPatch": {
+     "k": 12,
+     "n": 34,
+     "rate": 0.3529,
+     "lo": 0.2149,
+     "hi": 0.5209
+    }
+   },
+   "supply_chain_expanded": {
+    "layer": 43,
+    "ablation": {
+     "k": 40,
+     "n": 64,
+     "rate": 0.625,
+     "lo": 0.5025,
+     "hi": 0.7333
+    },
+    "crossPatch": {
+     "k": 23,
+     "n": 64,
+     "rate": 0.3594,
+     "lo": 0.2529,
+     "hi": 0.4818
+    }
+   },
+   "customer_support_expanded": {
+    "layer": 34,
+    "ablation": {
+     "k": 28,
+     "n": 64,
+     "rate": 0.4375,
+     "lo": 0.3229,
+     "hi": 0.5591
+    },
+    "crossPatch": {
+     "k": 18,
+     "n": 64,
+     "rate": 0.2812,
+     "lo": 0.1859,
+     "hi": 0.4013
+    }
+   },
+   "pooled_expanded": {
+    "ablation": {
+     "k": 68,
+     "n": 128,
+     "rate": 0.5312,
+     "lo": 0.4452,
+     "hi": 0.6155
+    },
+    "crossPatch": {
+     "k": 41,
+     "n": 128,
+     "rate": 0.3203,
+     "lo": 0.2457,
+     "hi": 0.4054
+    }
+   },
+   "supply_chain_heldout": {
+    "layer": 43,
+    "ablation": {
+     "k": 4,
+     "n": 16,
+     "rate": 0.25,
+     "lo": 0.1018,
+     "hi": 0.495
+    },
+    "crossPatch": {
+     "k": 3,
+     "n": 16,
+     "rate": 0.1875,
+     "lo": 0.0659,
+     "hi": 0.4301
+    }
+   },
+   "customer_support_heldout": {
+    "layer": 34,
+    "ablation": {
+     "k": 5,
+     "n": 14,
+     "rate": 0.3571,
+     "lo": 0.1634,
+     "hi": 0.6124
+    },
+    "crossPatch": {
+     "k": 4,
+     "n": 14,
+     "rate": 0.2857,
+     "lo": 0.1172,
+     "hi": 0.5465
+    }
+   },
+   "pooled_heldout": {
+    "ablation": {
+     "k": 9,
+     "n": 30,
+     "rate": 0.3,
+     "lo": 0.1666,
+     "hi": 0.4788
+    },
+    "crossPatch": {
+     "k": 7,
+     "n": 30,
+     "rate": 0.2333,
+     "lo": 0.1179,
+     "hi": 0.4093
+    }
+   },
+   "decisionTokenPooled": {
+    "k": 15,
+    "n": 20,
+    "rate": 0.75,
+    "lo": 0.5313,
+    "hi": 0.8881
+   }
+  },
+  "clusterBootstrapExpanded": {
+   "unit": "scenario and contrast title",
+   "clusters": 10,
+   "draws": 100000,
+   "seed": 2026,
+   "ablation": {
+    "k": 68,
+    "n": 128,
+    "rate": 0.5312,
+    "lo": 0.402,
+    "hi": 0.6639
+   },
+   "crossPatch": {
+    "k": 41,
+    "n": 128,
+    "rate": 0.3203,
+    "lo": 0.1642,
+    "hi": 0.4851
+   }
+  },
+  "designWeighted": {
+   "populationSource": "gate_population.json",
+   "scenarios": {
+    "supply_chain_expanded": {
+     "layer": 43,
+     "population": 1094,
+     "strata": {
+      "demand_pull_vs_supply_push": {
+       "population": 1006,
+       "populationShare": 0.9196,
+       "ablation": [
+        12,
+        20
+       ],
+       "crossPatch": [
+        11,
+        20
+       ]
+      },
+      "local_vs_global_sourcing": {
+       "population": 52,
+       "populationShare": 0.0475,
+       "ablation": [
+        16,
+        20
+       ],
+       "crossPatch": [
+        9,
+        20
+       ]
+      },
+      "cost_vs_speed_optimization": {
+       "population": 33,
+       "populationShare": 0.0302,
+       "ablation": [
+        9,
+        20
+       ],
+       "crossPatch": [
+        0,
+        20
+       ]
+      },
+      "single_source_vs_multi_source": {
+       "population": 3,
+       "populationShare": 0.0027,
+       "ablation": [
+        3,
+        4
+       ],
+       "crossPatch": [
+        3,
+        4
+       ]
+      }
+     },
+     "ablation": {
+      "k": 40,
+      "n": 64,
+      "quota": 0.625,
+      "typeAveraged": 0.65,
+      "populationWeighted": 0.6054,
+      "populationWeightedSE": 0.1009,
+      "populationEffectiveN": 23.5,
+      "populationCovered": 1.0
+     },
+     "crossPatch": {
+      "k": 23,
+      "n": 64,
+      "quota": 0.3594,
+      "typeAveraged": 0.4375,
+      "populationWeighted": 0.5292,
+      "populationWeightedSE": 0.1024,
+      "populationEffectiveN": 23.7,
+      "populationCovered": 1.0
+     }
+    },
+    "customer_support_expanded": {
+     "layer": 34,
+     "population": 1616,
+     "strata": {
+      "billing_vs_technical": {
+       "population": 1565,
+       "populationShare": 0.9684,
+       "ablation": [
+        9,
+        20
+       ],
+       "crossPatch": [
+        8,
+        20
+       ]
+      },
+      "refund_vs_troubleshoot": {
+       "population": 38,
+       "populationShare": 0.0235,
+       "ablation": [
+        10,
+        20
+       ],
+       "crossPatch": [
+        1,
+        20
+       ]
+      },
+      "self_service_vs_agent_assist": {
+       "population": 8,
+       "populationShare": 0.005,
+       "ablation": [
+        2,
+        14
+       ],
+       "crossPatch": [
+        4,
+        14
+       ]
+      },
+      "urgent_vs_routine": {
+       "population": 3,
+       "populationShare": 0.0019,
+       "ablation": [
+        4,
+        6
+       ],
+       "crossPatch": [
+        3,
+        6
+       ]
+      },
+      "new_vs_returning_customer": {
+       "population": 1,
+       "populationShare": 0.0006,
+       "ablation": [
+        1,
+        2
+       ],
+       "crossPatch": [
+        0,
+        2
+       ]
+      },
+      "single_issue_vs_complex_case": {
+       "population": 1,
+       "populationShare": 0.0006,
+       "ablation": [
+        2,
+        2
+       ],
+       "crossPatch": [
+        2,
+        2
+       ]
+      }
+     },
+     "ablation": {
+      "k": 28,
+      "n": 64,
+      "quota": 0.4375,
+      "typeAveraged": 0.5433,
+      "populationWeighted": 0.4504,
+      "populationWeightedSE": 0.1078,
+      "populationEffectiveN": 21.3,
+      "populationCovered": 1.0
+     },
+     "crossPatch": {
+      "k": 18,
+      "n": 64,
+      "quota": 0.2812,
+      "typeAveraged": 0.3726,
+      "populationWeighted": 0.3915,
+      "populationWeightedSE": 0.1061,
+      "populationEffectiveN": 21.2,
+      "populationCovered": 1.0
+     }
+    }
+   },
+   "pooled": {
+    "ablation": {
+     "k": 68,
+     "n": 128,
+     "quota": 0.5312,
+     "populationWeightedMean": 0.5279
+    },
+    "crossPatch": {
+     "k": 41,
+     "n": 128,
+     "quota": 0.3203,
+     "populationWeightedMean": 0.4604
+    }
+   }
+  },
+  "paired": {
+   "ablation": {
+    "exceed": 31,
+    "n": 34,
+    "controlDraws": 612,
+    "pExchangeable": 5.648693318649478e-16,
+    "pSign": 3.8300640881061554e-07,
+    "perFamilyBand": true
+   },
+   "crossPatch": {
+    "exceed": 28,
+    "n": 34,
+    "controlDraws": 612,
+    "controlFlips": 0,
+    "pExchangeable": 3.564227905872297e-12,
+    "pSign": 9.756279177963734e-05,
+    "perFamilyBand": true
+   },
+   "setMatched": {
+    "ablation": {
+     "matchedSides": 31,
+     "matchedExceed": 30,
+     "pExchangeable": 2.0383000842727483e-17,
+     "pSign": 1.4901161193847656e-08,
+     "ceilingSides": 3,
+     "ceilingExceed": 3
+    },
+    "crossPatch": {
+     "matchedSides": 31,
+     "matchedExceed": 25,
+     "pExchangeable": 1.2592174069951667e-10,
+     "pSign": 0.0004389551468193531,
+     "ceilingSides": 3,
+     "ceilingExceed": 3
+    }
+   },
+   "deltaMatched": {
+    "crossPatch": {
+     "matchedSides": 23,
+     "matchedExceed": 16,
+     "pExchangeable": 8.792154176262557e-06,
+     "pSign": 0.04656982421875,
+     "ceilingSides": 11,
+     "ceilingExceed": 11
+    },
+    "medianCueDeltaOverDonorMass": 0.705,
+    "directions": 34
+   },
+   "contrastMatched": {
+    "ablation": {
+     "matchedSides": 24,
+     "matchedExceed": 21,
+     "pExchangeable": 2.0323298599578266e-10,
+     "pSign": 0.0001385807991027832,
+     "ceilingSides": 10,
+     "ceilingExceed": 10,
+     "poolEmptySides": 0
+    },
+    "sides": 34
+   },
+   "massAudit": {
+    "sides": 68,
+    "medianCueMassOverHeaviestRowDraw": 2.15,
+    "sidesWhereRowDrawReachesCueMass": 2
+   },
+   "rowLevel": {
+    "cueFamilyFlips": 5,
+    "cueFamilies": 204,
+    "controlFlips": 0,
+    "controlDraws": 612,
+    "fisherP": 0.0009409897237303118
+   }
+  },
+  "pairedExpanded": {
+   "ablation": {
+    "exceed": 119,
+    "n": 128,
+    "controlDraws": 2289,
+    "pExchangeable": 3.323216573969059e-60,
+    "pSign": 6.051629962835398e-26,
+    "perFamilyBand": true
+   },
+   "crossPatch": {
+    "exceed": 107,
+    "n": 128,
+    "controlDraws": 2289,
+    "controlFlips": 15,
+    "pExchangeable": 5.942851389350104e-44,
+    "pSign": 2.2378625125006303e-15,
+    "perFamilyBand": true
+   },
+   "setMatched": {
+    "ablation": {
+     "matchedSides": 113,
+     "matchedExceed": 103,
+     "pExchangeable": 3.5118949886390067e-50,
+     "pSign": 6.6070599909565806e-21,
+     "ceilingSides": 15,
+     "ceilingExceed": 15
+    },
+    "crossPatch": {
+     "matchedSides": 113,
+     "matchedExceed": 92,
+     "pExchangeable": 3.681423491812874e-36,
+     "pSign": 4.346674118101344e-12,
+     "ceilingSides": 15,
+     "ceilingExceed": 12
+    }
+   },
+   "deltaMatched": {
+    "crossPatch": {
+     "matchedSides": 60,
+     "matchedExceed": 38,
+     "pExchangeable": 4.1009140042094953e-10,
+     "pSign": 0.025946947964460718,
+     "ceilingSides": 68,
+     "ceilingExceed": 67
+    },
+    "medianCueDeltaOverDonorMass": 0.518,
+    "directions": 128
+   },
+   "contrastMatched": {
+    "ablation": {
+     "matchedSides": 63,
+     "matchedExceed": 57,
+     "pExchangeable": 6.029067438680028e-28,
+     "pSign": 8.197843554165474e-12,
+     "ceilingSides": 65,
+     "ceilingExceed": 60,
+     "poolEmptySides": 0
+    },
+    "sides": 128
+   },
+   "massAudit": {
+    "sides": 256,
+    "medianCueMassOverHeaviestRowDraw": 1.72,
+    "sidesWhereRowDrawReachesCueMass": 20
+   },
+   "rowLevel": {
+    "cueFamilyFlips": 23,
+    "cueFamilies": 763,
+    "controlFlips": 15,
+    "controlDraws": 2289,
+    "fisherP": 3.1554086123343245e-06
+   }
+  },
+  "outcomes": {
+   "ablation": {
+    "unchanged": 13,
+    "directed": 17,
+    "thirdTool": 4,
+    "n": 34
+   },
+   "crossPatchCue": {
+    "unchanged": 27,
+    "directed": 7,
+    "thirdTool": 0,
+    "n": 34
+   },
+   "crossPatchBulk": {
+    "unchanged": 22,
+    "directed": 12,
+    "thirdTool": 0,
+    "n": 34
+   },
+   "crossPatchControls": {
+    "unchanged": 816,
+    "directed": 0,
+    "thirdTool": 0,
+    "n": 816
+   },
+   "ablationControls": {
+    "unchanged": 816,
+    "directed": 0,
+    "thirdTool": 0,
+    "n": 816
+   },
+   "runnerUp": {
+    "pairedToolIsBaselineRunnerUp": 23,
+    "sides": 34,
+    "ablationFlips": 21,
+    "flipsLandingOnBaselineRunnerUp": 20,
+    "runnerUpYesFoundYes": 16,
+    "runnerUpYesFoundNo": 0,
+    "runnerUpNoFoundYes": 1,
+    "runnerUpNoFoundNo": 4
+   }
+  },
+  "outcomesExpanded": {
+   "ablation": {
+    "unchanged": 47,
+    "directed": 68,
+    "thirdTool": 13,
+    "n": 128
+   },
+   "crossPatchCue": {
+    "unchanged": 96,
+    "directed": 29,
+    "thirdTool": 3,
+    "n": 128
+   },
+   "crossPatchBulk": {
+    "unchanged": 83,
+    "directed": 41,
+    "thirdTool": 4,
+    "n": 128
+   },
+   "crossPatchControls": {
+    "unchanged": 3015,
+    "directed": 27,
+    "thirdTool": 15,
+    "n": 3057
+   },
+   "ablationControls": {
+    "unchanged": 3032,
+    "directed": 6,
+    "thirdTool": 19,
+    "n": 3057
+   },
+   "runnerUp": {
+    "pairedToolIsBaselineRunnerUp": 91,
+    "sides": 128,
+    "ablationFlips": 81,
+    "flipsLandingOnBaselineRunnerUp": 75,
+    "runnerUpYesFoundYes": 63,
+    "runnerUpYesFoundNo": 0,
+    "runnerUpNoFoundYes": 5,
+    "runnerUpNoFoundNo": 13
+   }
+  },
+  "recovery": {
+   "directions": 34,
+   "ceilingFlips": 30,
+   "cueFlips": 7,
+   "bulkFlips": 12,
+   "cueOverCeiling": 0.233,
+   "bulkOverCeiling": 0.4,
+   "differenceInMeansFlips": 0,
+   "differenceInMeansDirections": 0,
+   "randomDirectionFlips": 1,
+   "randomDirectionDraws": 102,
+   "differenceInMeansMatchedFlips": 0,
+   "differenceInMeansMatchedDirections": 0,
+   "randomMatchedFlips": 0,
+   "randomMatchedDraws": 0,
+   "perScenario": {
+    "tool_selection": {
+     "layer": 43,
+     "directions": 14,
+     "ceilingFlips": 13,
+     "cueFlips": 2,
+     "bulkFlips": 5,
+     "cueOverCeiling": 0.154,
+     "bulkOverCeiling": 0.385
+    },
+    "supply_chain": {
+     "layer": 43,
+     "directions": 8,
+     "ceilingFlips": 8,
+     "cueFlips": 3,
+     "bulkFlips": 3,
+     "cueOverCeiling": 0.375,
+     "bulkOverCeiling": 0.375
+    },
+    "customer_support": {
+     "layer": 34,
+     "directions": 12,
+     "ceilingFlips": 9,
+     "cueFlips": 2,
+     "bulkFlips": 4,
+     "cueOverCeiling": 0.222,
+     "bulkOverCeiling": 0.444
+    }
+   }
+  },
+  "recoveryExpanded": {
+   "directions": 128,
+   "ceilingFlips": 100,
+   "cueFlips": 29,
+   "bulkFlips": 41,
+   "cueOverCeiling": 0.29,
+   "bulkOverCeiling": 0.41,
+   "differenceInMeansFlips": 79,
+   "differenceInMeansDirections": 124,
+   "randomDirectionFlips": 2,
+   "randomDirectionDraws": 384,
+   "differenceInMeansMatchedFlips": 30,
+   "differenceInMeansMatchedDirections": 124,
+   "randomMatchedFlips": 0,
+   "randomMatchedDraws": 372,
+   "perScenario": {
+    "supply_chain_expanded": {
+     "layer": 43,
+     "directions": 64,
+     "ceilingFlips": 61,
+     "cueFlips": 16,
+     "bulkFlips": 23,
+     "cueOverCeiling": 0.262,
+     "bulkOverCeiling": 0.377
+    },
+    "customer_support_expanded": {
+     "layer": 34,
+     "directions": 64,
+     "ceilingFlips": 39,
+     "cueFlips": 13,
+     "bulkFlips": 18,
+     "cueOverCeiling": 0.333,
+     "bulkOverCeiling": 0.462
+    }
+   }
+  },
+  "recoveryHeldout": {
+   "directions": 30,
+   "ceilingFlips": 25,
+   "cueFlips": 7,
+   "bulkFlips": 7,
+   "cueOverCeiling": 0.28,
+   "bulkOverCeiling": 0.28,
+   "differenceInMeansFlips": 25,
+   "differenceInMeansDirections": 28,
+   "randomDirectionFlips": 0,
+   "randomDirectionDraws": 90,
+   "differenceInMeansMatchedFlips": 7,
+   "differenceInMeansMatchedDirections": 28,
+   "randomMatchedFlips": 0,
+   "randomMatchedDraws": 84,
+   "perScenario": {
+    "supply_chain_heldout": {
+     "layer": 43,
+     "directions": 16,
+     "ceilingFlips": 15,
+     "cueFlips": 3,
+     "bulkFlips": 3,
+     "cueOverCeiling": 0.2,
+     "bulkOverCeiling": 0.2
+    },
+    "customer_support_heldout": {
+     "layer": 34,
+     "directions": 14,
+     "ceilingFlips": 10,
+     "cueFlips": 4,
+     "bulkFlips": 4,
+     "cueOverCeiling": 0.4,
+     "bulkOverCeiling": 0.4
+    }
+   }
+  },
+  "depth": {
+   "earlyLayers": [
+    6,
+    13,
+    20
+   ],
+   "earlyFlips": 1,
+   "earlyN": 460,
+   "earlyUpper95": 0.0103,
+   "lateFlips": 137,
+   "lateN": 324,
+   "fisherP": 1.4590265316036573e-60,
+   "lateFlipsNonSelected": 38,
+   "lateNNonSelected": 324,
+   "fisherPNonSelected": 1.6577189476373557e-14
+  },
+  "layerSelection": {
+   "argmax": {
+    "tool_selection": {
+     "primary": 43,
+     "grid": {
+      "6": {
+       "ablationFlips": 0,
+       "ablationSides": 14,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 14,
+       "combinedFlips": 0
+      },
+      "13": {
+       "ablationFlips": 0,
+       "ablationSides": 14,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 14,
+       "combinedFlips": 0
+      },
+      "20": {
+       "ablationFlips": 0,
+       "ablationSides": 14,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 14,
+       "combinedFlips": 0
+      },
+      "27": {
+       "ablationFlips": 0,
+       "ablationSides": 14,
+       "crossPatchFlips": 1,
+       "crossPatchDirections": 14,
+       "combinedFlips": 1
+      },
+      "34": {
+       "ablationFlips": 0,
+       "ablationSides": 14,
+       "crossPatchFlips": 2,
+       "crossPatchDirections": 14,
+       "combinedFlips": 2
+      },
+      "43": {
+       "ablationFlips": 3,
+       "ablationSides": 14,
+       "crossPatchFlips": 5,
+       "crossPatchDirections": 14,
+       "combinedFlips": 8
+      }
+     },
+     "ablation": {
+      "layer": 43,
+      "flips": 3,
+      "runnerUpLayer": 6,
+      "runnerUpFlips": 0,
+      "margin": 3
+     },
+     "crossPatch": {
+      "layer": 43,
+      "flips": 5,
+      "runnerUpLayer": 34,
+      "runnerUpFlips": 2,
+      "margin": 3
+     },
+     "combined": {
+      "layer": 43,
+      "flips": 8,
+      "runnerUpLayer": 34,
+      "runnerUpFlips": 2,
+      "margin": 6
+     },
+     "primaryIsAblationArgmax": true,
+     "primaryIsCrossPatchArgmax": true
+    },
+    "supply_chain": {
+     "primary": 43,
+     "grid": {
+      "6": {
+       "ablationFlips": 0,
+       "ablationSides": 8,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 8,
+       "combinedFlips": 0
+      },
+      "13": {
+       "ablationFlips": 0,
+       "ablationSides": 8,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 8,
+       "combinedFlips": 0
+      },
+      "20": {
+       "ablationFlips": 0,
+       "ablationSides": 8,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 8,
+       "combinedFlips": 0
+      },
+      "27": {
+       "ablationFlips": 0,
+       "ablationSides": 8,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 8,
+       "combinedFlips": 0
+      },
+      "34": {
+       "ablationFlips": 1,
+       "ablationSides": 8,
+       "crossPatchFlips": 2,
+       "crossPatchDirections": 8,
+       "combinedFlips": 3
+      },
+      "43": {
+       "ablationFlips": 7,
+       "ablationSides": 8,
+       "crossPatchFlips": 3,
+       "crossPatchDirections": 8,
+       "combinedFlips": 10
+      }
+     },
+     "ablation": {
+      "layer": 43,
+      "flips": 7,
+      "runnerUpLayer": 34,
+      "runnerUpFlips": 1,
+      "margin": 6
+     },
+     "crossPatch": {
+      "layer": 43,
+      "flips": 3,
+      "runnerUpLayer": 34,
+      "runnerUpFlips": 2,
+      "margin": 1
+     },
+     "combined": {
+      "layer": 43,
+      "flips": 10,
+      "runnerUpLayer": 34,
+      "runnerUpFlips": 3,
+      "margin": 7
+     },
+     "primaryIsAblationArgmax": true,
+     "primaryIsCrossPatchArgmax": true
+    },
+    "customer_support": {
+     "primary": 34,
+     "grid": {
+      "6": {
+       "ablationFlips": 0,
+       "ablationSides": 12,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 12,
+       "combinedFlips": 0
+      },
+      "13": {
+       "ablationFlips": 0,
+       "ablationSides": 12,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 12,
+       "combinedFlips": 0
+      },
+      "20": {
+       "ablationFlips": 0,
+       "ablationSides": 12,
+       "crossPatchFlips": 0,
+       "crossPatchDirections": 12,
+       "combinedFlips": 0
+      },
+      "27": {
+       "ablationFlips": 1,
+       "ablationSides": 12,
+       "crossPatchFlips": 1,
+       "crossPatchDirections": 12,
+       "combinedFlips": 2
+      },
+      "34": {
+       "ablationFlips": 6,
+       "ablationSides": 12,
+       "crossPatchFlips": 4,
+       "crossPatchDirections": 12,
+       "combinedFlips": 10
+      },
+      "43": {
+       "ablationFlips": 1,
+       "ablationSides": 12,
+       "crossPatchFlips": 9,
+       "crossPatchDirections": 12,
+       "combinedFlips": 10
+      }
+     },
+     "ablation": {
+      "layer": 34,
+      "flips": 6,
+      "runnerUpLayer": 27,
+      "runnerUpFlips": 1,
+      "margin": 5
+     },
+     "crossPatch": {
+      "layer": 43,
+      "flips": 9,
+      "runnerUpLayer": 34,
+      "runnerUpFlips": 4,
+      "margin": 5
+     },
+     "combined": {
+      "layer": 34,
+      "flips": 10,
+      "runnerUpLayer": 43,
+      "runnerUpFlips": 10,
+      "margin": 0
+     },
+     "primaryIsAblationArgmax": true,
+     "primaryIsCrossPatchArgmax": false
+    }
+   },
+   "nonSelected": {
+    "layer": [
+     27
+    ],
+    "clusterBootstrap": {
+     "unit": "scenario and contrast title",
+     "clusters": 10,
+     "draws": 100000,
+     "seed": 2026,
+     "ablation": {
+      "k": 20,
+      "n": 128,
+      "rate": 0.1562,
+      "lo": 0.0889,
+      "hi": 0.2153
+     },
+     "crossPatch": {
+      "k": 15,
+      "n": 128,
+      "rate": 0.1172,
+      "lo": 0.037,
+      "hi": 0.2025
+     }
+    },
+    "perScenario": {
+     "supply_chain_l27": {
+      "ablation": {
+       "k": 11,
+       "n": 64,
+       "rate": 0.1719,
+       "lo": 0.0988,
+       "hi": 0.2821
+      },
+      "crossPatch": {
+       "k": 6,
+       "n": 64,
+       "rate": 0.0938,
+       "lo": 0.0437,
+       "hi": 0.1898
+      }
+     },
+     "customer_support_l27": {
+      "ablation": {
+       "k": 9,
+       "n": 64,
+       "rate": 0.1406,
+       "lo": 0.0758,
+       "hi": 0.2462
+      },
+      "crossPatch": {
+       "k": 9,
+       "n": 64,
+       "rate": 0.1406,
+       "lo": 0.0758,
+       "hi": 0.2462
+      }
+     }
+    }
+   },
+   "demoOverlap": {
+    "supply_chain_expanded": {
+     "demoPairs": 4,
+     "expandedPairs": 32,
+     "sharedRequests": 2,
+     "expandedPairsContainingADemoRequest": [
+      "single_source_vs_multi_source_0"
+     ],
+     "withOverlap": {
+      "ablation": {
+       "k": 40,
+       "n": 64,
+       "rate": 0.625,
+       "lo": 0.5025,
+       "hi": 0.7333
+      },
+      "crossPatch": {
+       "k": 23,
+       "n": 64,
+       "rate": 0.3594,
+       "lo": 0.2529,
+       "hi": 0.4818
+      }
+     },
+     "overlapRemoved": {
+      "ablation": {
+       "k": 38,
+       "n": 62,
+       "rate": 0.6129,
+       "lo": 0.4885,
+       "hi": 0.7242
+      },
+      "crossPatch": {
+       "k": 22,
+       "n": 62,
+       "rate": 0.3548,
+       "lo": 0.2474,
+       "hi": 0.4792
+      }
+     }
+    },
+    "customer_support_expanded": {
+     "demoPairs": 6,
+     "expandedPairs": 32,
+     "sharedRequests": 10,
+     "expandedPairsContainingADemoRequest": [
+      "new_vs_returning_customer",
+      "refund_vs_troubleshoot_2",
+      "self_service_vs_agent_assist_3",
+      "single_issue_vs_complex_case",
+      "urgent_vs_routine_2"
+     ],
+     "withOverlap": {
+      "ablation": {
+       "k": 28,
+       "n": 64,
+       "rate": 0.4375,
+       "lo": 0.3229,
+       "hi": 0.5591
+      },
+      "crossPatch": {
+       "k": 18,
+       "n": 64,
+       "rate": 0.2812,
+       "lo": 0.1859,
+       "hi": 0.4013
+      }
+     },
+     "overlapRemoved": {
+      "ablation": {
+       "k": 23,
+       "n": 54,
+       "rate": 0.4259,
+       "lo": 0.3033,
+       "hi": 0.5584
+      },
+      "crossPatch": {
+       "k": 15,
+       "n": 54,
+       "rate": 0.2778,
+       "lo": 0.1762,
+       "hi": 0.4089
+      }
+     }
+    }
+   }
+  },
+  "contrastByDepth": {
+   "early": {
+    "sides": 92,
+    "medianEffectOverBand": 0.94,
+    "exceeding": 37,
+    "fractionExceeding": 0.402,
+    "ceilingSides": 36,
+    "sidesWithArm": 102
+   },
+   "late": {
+    "sides": 96,
+    "medianEffectOverBand": 4.46,
+    "exceeding": 82,
+    "fractionExceeding": 0.854,
+    "ceilingSides": 28,
+    "sidesWithArm": 102
+   },
+   "fisherP": 6.770792591023445e-11
+  }
+ }
+}
