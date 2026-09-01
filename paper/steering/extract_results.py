@@ -817,7 +817,12 @@ def dictionary_health(scenario: str) -> dict[str, dict]:
     on some but not all.  A layer whose code is almost entirely constant has
     nothing left for a cue analysis to work with, however well it reconstructs.
     """
-    ev = _load(STEER / scenario / "output" / "capture" / "evaluation.json")
+    ev = _load(_scenario_dir(scenario) / "capture" / "evaluation.json")
+    if not ev:
+        # The capture is the one artefact too large to publish (478 MB across
+        # the grid), so a checkout reading the published subset has no
+        # dictionary block.  Every intervention claim survives without it.
+        return {}
     names = [p.get("step") if isinstance(p, dict) else p for p in ev["prompts"]]
     pair_idx = [i for i, n in enumerate(names) if str(n).endswith(("_A", "_B"))]
 
@@ -924,7 +929,7 @@ def generations(scenario: str, layer: int) -> list[dict]:
     tr = _load(_battery_dir(scenario, f"trace_layer{layer}") / "trace_results.json")
     if not tr:
         return []
-    ui = _load(STEER / scenario / "output" / "ui_data.json") or {}
+    ui = _load(_scenario_dir(scenario) / "ui_data.json") or {}
     tools = [t["id"] if isinstance(t, dict) else t for t in (ui.get("scenario") or {}).get("tools", [])]
     rows = []
     for pid, dirs in tr["generations"].items():
@@ -1040,7 +1045,7 @@ def probes(scenario: str) -> dict:
     the other side's tool.  A *paraphrase* restates this side's request without
     its cue words; it is correct when the model keeps this side's tool.
     """
-    ui = _load(STEER / scenario / "output" / "ui_data.json")
+    ui = _load(_scenario_dir(scenario) / "ui_data.json")
     if not ui:
         return {}
     para = []
@@ -1962,7 +1967,10 @@ def main() -> None:
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(report, indent=1) + "\n")
-    print(f"wrote {OUT.relative_to(ROOT)}")
+    try:
+        print(f"wrote {OUT.relative_to(ROOT)}")
+    except ValueError:  # OUT redirected outside the repo, e.g. by a test
+        print(f"wrote {OUT}")
 
 
 if __name__ == "__main__":

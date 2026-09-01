@@ -1,0 +1,489 @@
+{
+  "model": "/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp",
+  "layer": 34,
+  "scenario": "customer_support",
+  "draws": 3,
+  "seed": 0,
+  "directions": {
+    "billing_vs_technical": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_A",
+        "recipientStep": "billing_vs_technical_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0463,
+        "differenceNorm": 43.296,
+        "recipientNorm": 120.8268,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4641,
+          "deltaTarget": 0.4178,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 34.8817,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0459
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0476
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0476
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_B",
+        "recipientStep": "billing_vs_technical_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1955,
+        "differenceNorm": 43.296,
+        "recipientNorm": 122.6115,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.6439,
+          "deltaTarget": 0.4484,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 23.2682,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.162
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1287
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1791
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_A",
+        "recipientStep": "self_service_vs_agent_assist_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0097,
+        "differenceNorm": 74.9098,
+        "recipientNorm": 121.7748,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.7977,
+          "deltaTarget": 0.788,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 47.7287,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0034
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0077
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0176
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_B",
+        "recipientStep": "self_service_vs_agent_assist_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0063,
+        "differenceNorm": 74.9098,
+        "recipientNorm": 131.0718,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.5688,
+          "deltaTarget": 0.5625,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 32.2942,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0048
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0092
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0169
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_A",
+        "recipientStep": "refund_vs_troubleshoot_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0,
+        "differenceNorm": 69.2191,
+        "recipientNorm": 116.8849,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.0611,
+          "deltaTarget": 0.0611,
+          "flipped": false
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 38.7862,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0001
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_B",
+        "recipientStep": "refund_vs_troubleshoot_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1247,
+        "differenceNorm": 69.2191,
+        "recipientNorm": 122.1685,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8755,
+          "deltaTarget": 0.7508,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 34.896,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.1009
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1528
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.2191
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "new_vs_returning_customer": {
+      "a_into_b": {
+        "donorStep": "new_vs_returning_customer_A",
+        "recipientStep": "new_vs_returning_customer_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.1707,
+        "differenceNorm": 38.8472,
+        "recipientNorm": 122.2957,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.6067,
+          "deltaTarget": 0.436,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 14.1625,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1858
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1257
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1674
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "new_vs_returning_customer_B",
+        "recipientStep": "new_vs_returning_customer_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.1134,
+        "differenceNorm": 38.8472,
+        "recipientNorm": 119.2681,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.6064,
+          "deltaTarget": 0.493,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 19.3432,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.1473
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.164
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1286
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "single_issue_vs_complex_case": {
+      "a_into_b": {
+        "donorStep": "single_issue_vs_complex_case_A",
+        "recipientStep": "single_issue_vs_complex_case_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.2551,
+        "differenceNorm": 32.4143,
+        "recipientNorm": 120.1151,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.5648,
+          "deltaTarget": 0.3097,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 29.3069,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.1918
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.1889
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.2756
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "single_issue_vs_complex_case_B",
+        "recipientStep": "single_issue_vs_complex_case_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2615,
+        "differenceNorm": 32.4143,
+        "recipientNorm": 121.966,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4513,
+          "deltaTarget": 0.1898,
+          "flipped": false
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 12.7457,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2644
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1775
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.2853
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "urgent_vs_routine": {
+      "a_into_b": {
+        "donorStep": "urgent_vs_routine_A",
+        "recipientStep": "urgent_vs_routine_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0065,
+        "differenceNorm": 41.4179,
+        "recipientNorm": 123.5252,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.1914,
+          "deltaTarget": 0.1849,
+          "flipped": false
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 10.2062,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0073
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0073
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0057
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "urgent_vs_routine_B",
+        "recipientStep": "urgent_vs_routine_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.3254,
+        "differenceNorm": 41.4179,
+        "recipientNorm": 119.136,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8998,
+          "deltaTarget": 0.5744,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 24.1032,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.3127
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.5559
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.3219
+          }
+        ],
+        "randomFlips": 1
+      }
+    }
+  },
+  "summary": {
+    "ceilingFlips": 9,
+    "directions": 12,
+    "dimFlips": 0,
+    "dimDirections": 0,
+    "randomFlips": 1,
+    "randomDraws": 36,
+    "dimMatchedFlips": 0,
+    "dimMatchedDirections": 0,
+    "randomMatchedFlips": 0,
+    "randomMatchedDraws": 0
+  }
+}

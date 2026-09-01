@@ -1,53 +1,62 @@
 # Published run artifacts
 
-The ten battery outputs the workshop paper's numbers are computed from, copied
+Every canonical battery output the paper's numbers are computed from, copied
 out of `demo/steering/<scenario>/output/`, which `.gitignore` excludes because
 the full tree is 3.4 GB. These are the raw files, unmodified — same bytes, same
 schema, one `output/` path segment shorter so no ignore rule applies.
 
-| Scenario | Layer | Backs |
+45 files, 44 MB, across all thirteen scenarios:
+
+| Scenario group | Layers | Backs |
 |---|---|---|
-| `supply_chain_expanded` | 43 | the paired cue-vs-dense 2×2, the depth grid |
-| `customer_support_expanded` | 34 | the same |
-| `supply_chain_heldout` | 43 | the held-out nesting audit |
-| `customer_support_heldout` | 34 | the same |
-| `tool_selection` | 43 | the separate released split |
+| `supply_chain`, `customer_support`, `tool_selection` | 6, 13, 20, 27, 34, 43 | the depth grid, layer selection, the demo pages |
+| `*_expanded` | 13, 34/43 | the paired cue-vs-dense 2×2, the rate estimates |
+| `*_heldout` | 34/43 | the held-out nesting audit |
+| `*_l27` | 27 | the non-selected late-layer comparison |
+| `*_early` | 6, 20 | the early-layer arm of the depth contrast |
+| `*_seed1` | 34/43 | the second draw |
 
-Each holds a `steering_layer<L>/steering_results.json` (per-direction ablation
-and cross-patch outcomes, with every control draw) and a
-`ceiling_layer<L>/ceiling_results.json` (the full residual patch, the
-equal-norm difference-in-means arm and the random directions).
+Each battery directory holds a `steering_results.json` (per-direction ablation
+and cross-patch outcomes, with every control draw), and where the arm was run,
+a `ceiling_results.json` (full residual patch, equal-norm difference-in-means,
+random directions) or a `trace_results.json`. Pair manifests are already
+tracked at `demo/steering/<scenario>/pairs.json`.
 
-All ten come from the same configuration: NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16
+All come from the same configuration: NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16
 with the MTP head stripped, HF backend, JumpReLU threshold offset 1.12890625,
-and the layer's `sae_final.pt` from the released checkpoint (see
+and each layer's `sae_final.pt` from the released checkpoint (see
 `src/kiji_inspector/core/registry.py` for the Hugging Face repo).
 
 ## They are sufficient, not just present
 
-Every figure the workshop paper quotes for the paired comparison and the
-held-out probes can be recomputed from this directory alone, with none of the
-ignored run output:
+`KIJI_ARTIFACTS=1` makes the extractor read this directory instead of the run
+tree, so the claim is checkable:
 
 ```bash
-KIJI_ARTIFACTS=1 python -c "
-import importlib.util
-spec = importlib.util.spec_from_file_location('ex', 'paper/steering/extract_results.py')
-ex = importlib.util.module_from_spec(spec); spec.loader.exec_module(ex)
-print(ex.paired_cue_dense(ex.EXPANDED))
-print(ex.heldout_overlap({'heldout': ex.HELDOUT, 'toolSelection': {'tool_selection': 43}}))
-"
+KIJI_ARTIFACTS=1 python paper/steering/extract_results.py
 ```
 
-`tests/test_steering_workshop_claims.py` runs exactly that and asserts the
-result equals `paper/steering/results/steering_report.json`, so the claim is
-checked rather than asserted. It also hashes each file against the run it was
-copied from whenever the full tree is present, so a stale copy fails.
+That regenerates `paper/steering/results/steering_report.json` identically to
+the committed copy, with one documented exception below.
+`tests/test_steering_workshop_claims.py` runs it and asserts the equality, and
+separately hashes each published file against the run it was copied from
+whenever the full tree is present, so a stale copy fails rather than quietly
+publishing numbers the report was not built from.
 
 ## What is not here
 
-The depth grid's early layers, the layer-27 comparison, the second-draw sample,
-the dose and position sweeps, and the 2.8 GB gate sweep. The paper's dose,
-position-ablation, paraphrase and generation claims are demo-scenario results
-and are published in full — including the generated text — under `scenarios`
-in `paper/steering/results/steering_report.json`.
+**The activation captures.** `capture/evaluation.json` is 478 MB across the
+grid — 237 MB for `tool_selection` alone — so it stays out. It feeds only the
+dictionary-health block (mean L0, explained variance, constant fraction); with
+it absent that block is empty and every intervention claim still reproduces.
+The health figures themselves remain published in the committed report.
+
+**The gate sweep.** `demo/steering/sweep/output/` is 2.8 GB of candidate
+scoring. The gate populations derived from it are in
+`paper/steering/results/gate_population.json`.
+
+**Re-run variants.** Directories suffixed `_setctl`, `_ctl2`, `_ctl3` and the
+alternate `ceiling_layer43_matched` / `_v2` arms are working copies from
+batches that added a control family. The report reads the canonical directory
+unless `KIJI_SUFFIX` says otherwise, so publishing them would ship files no
+quoted number comes from.

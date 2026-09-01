@@ -170,8 +170,36 @@ def extractor():
     return module
 
 
-def test_published_artifacts_are_complete(extractor):
-    """Every battery the extractor reads for the workshop paper is published."""
+_CANONICAL = ("steering_results.json", "ceiling_results.json", "trace_results.json")
+
+
+def _live_artifacts() -> set[tuple[str, ...]]:
+    """The canonical battery outputs in the ignored run tree, if it is present.
+
+    Re-run variants (``_setctl``, ``_ctl2``, ``_ctl3``) and the alternate
+    ceiling arms are deliberately not published: the report reads the canonical
+    directory unless ``KIJI_SUFFIX`` says otherwise, so publishing the variants
+    would ship files no quoted number comes from.
+    """
+    root = _ROOT / "demo" / "steering"
+    live = set()
+    for path in root.glob("*/output/**/*.json"):
+        rel = path.relative_to(root)
+        scenario, _, *rest = rel.parts
+        if scenario == "sweep" or rest[-1] not in _CANONICAL + ("ui_data.json",):
+            continue
+        if any(part.endswith(("_setctl", "_ctl2", "_ctl3", "_matched", "_v2")) for part in rest):
+            continue
+        live.add((scenario, *rest))
+    return live
+
+
+def test_published_artifacts_cover_the_headline_batteries(extractor):
+    """The batteries behind the paired and held-out analyses, named explicitly.
+
+    Kept separate from the grid check below so it still means something on a
+    clone with no run tree to compare against.
+    """
     if not _ARTIFACTS.exists():
         pytest.skip("artifacts not in this checkout")
     expected = set()
@@ -183,7 +211,23 @@ def test_published_artifacts_are_complete(extractor):
     expected.add(_ARTIFACTS / "tool_selection" / f"ceiling_layer{layer}" / "ceiling_results.json")
     missing = sorted(str(p.relative_to(_ROOT)) for p in expected if not p.exists())
     assert not missing, f"published artifact set is short: {missing}"
-    assert len(list(_ARTIFACTS.rglob("*.json"))) == len(expected), "unreferenced artifact present"
+
+
+def test_published_artifacts_cover_the_whole_grid():
+    """Every canonical battery, not just the headline ones.
+
+    The depth and layer-selection claims read the early layers, layer 27 and
+    the second draw, so those have to be published too or the artifact only
+    reproduces part of the paper.
+    """
+    if not _ARTIFACTS.exists():
+        pytest.skip("artifacts not in this checkout")
+    live = _live_artifacts()
+    if not live:
+        pytest.skip("no run output present to compare against")
+    published = {p.relative_to(_ARTIFACTS).parts for p in _ARTIFACTS.rglob("*.json")}
+    assert not live - published, f"unpublished canonical batteries: {sorted(live - published)}"
+    assert not published - live, f"published files with no canonical run: {sorted(published - live)}"
 
 
 def test_artifacts_alone_regenerate_the_statistics(stats, extractor, monkeypatch):
@@ -215,8 +259,8 @@ def test_artifacts_match_the_runs_they_were_copied_from():
         pytest.skip("artifacts not in this checkout")
     checked = 0
     for published in sorted(_ARTIFACTS.rglob("*.json")):
-        scenario, battery, name = published.relative_to(_ARTIFACTS).parts
-        source = _ROOT / "demo" / "steering" / scenario / "output" / battery / name
+        scenario, *rest = published.relative_to(_ARTIFACTS).parts
+        source = _ROOT / "demo" / "steering" / scenario / "output" / Path(*rest)
         if not source.exists():  # the ignored tree is absent on a fresh clone
             continue
         checked += 1
@@ -225,3 +269,27 @@ def test_artifacts_match_the_runs_they_were_copied_from():
         ).digest(), f"{published.relative_to(_ROOT)} has drifted from its run"
     if not checked:
         pytest.skip("no run output present to compare against")
+
+
+def test_artifacts_regenerate_the_whole_report(extractor, monkeypatch, tmp_path):
+    """Not just the workshop blocks --- the entire report, byte for byte.
+
+    The published set turned out to be sufficient for every scenario block as
+    well, including the dose curves and the generated text, because those come
+    from the trace and UI artifacts rather than the 478 MB capture. That is a
+    stronger claim than the paper needs, so it is worth a test that will notice
+    if it stops being true.
+    """
+    if not _ARTIFACTS.exists() or not _REPORT.exists():
+        pytest.skip("artifacts or report not in this checkout")
+    monkeypatch.setenv("KIJI_ARTIFACTS", "1")
+    monkeypatch.setattr(extractor, "OUT", tmp_path / "regenerated.json")
+    extractor.main()
+    regenerated = json.loads((tmp_path / "regenerated.json").read_text())
+    committed = json.loads(_REPORT.read_text())
+    # the capture is the one artefact too large to publish, so its dictionary
+    # block is the single expected gap --- assert it is the *only* one
+    for report in (regenerated, committed):
+        for entry in report["scenarios"].values():
+            entry.pop("dictionary", None)
+    assert regenerated == committed
