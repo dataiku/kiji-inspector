@@ -104,12 +104,12 @@ Mamba-2, attention, and mixture-of-experts blocks with residual width 2,688
 \citep{nvidia2026nemotron35}.
 Released JumpReLU SAEs \citep{ref_rajamanoharan2024} cover layers
 $\{6,13,20,27,34,43\}$ at the residual entering each layer, have 10,752
-features, and target $L_0=75$. They were
-trained, without contrastive supervision, on decision-token activations from
-the same 2.0M-pair generated corpus used for the in-distribution evaluation;
-136 of the 150 unique requests in the demonstration and expanded sets occur in
-that corpus verbatim, and the 128 requests of the second sampled draw
-(Sect.~\ref{sec:limitations}) are drawn from the same sweep.
+features, and target $L_0=75$. They were trained, without contrastive
+supervision, on decision-token activations from the same generated corpus the
+in-distribution evaluation draws on: 1,574,523 pairs retained of 2,011,672
+generated. 136 of the 150 unique demonstration and expanded requests occur in
+it verbatim, and the second draw's 128 (Sect.~\ref{sec:limitations}) come from
+the same sweep.
 Each prompt lists six tools and ends with the prefill \texttt{I'll use the}.
 We read the next-token tool distribution through a prefix tree and intervene
 additively, preserving the residual and adding decoder deltas for an edited set
@@ -117,7 +117,7 @@ $S$: $x'=x+s\sum_{i\in S}(t_i-a_i(x))W_{\mathrm{dec},i}$, where $a_i$ is the
 current activation, $t_i$ the target (zero for ablation) and $s$ the
 dictionary's input scale. No reconstruction error enters the forward pass. Capture and intervention backends
 agree on every expanded baseline choice; mean residual cosine is 0.999 and
-0.998 by scenario, with minimum 0.987.
+0.998 by scenario, minimum 0.987.
 \footnote{Anonymized code, pair definitions, run artifacts, and regeneration
 scripts are available at
 \url{https://anonymous.4open.science/r/ml-inspector-0651/}.}
