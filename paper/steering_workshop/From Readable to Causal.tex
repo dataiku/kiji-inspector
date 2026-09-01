@@ -593,11 +593,19 @@ Customer support & 43 & 1,167 & 0.86 & 1,162 (0.97) & 1 \\
 
 \subsection{Compute resources}
 
-Reported captures and interventions used one 80\,GB NVIDIA H100: about two
-minutes per scenario for capture and three minutes for a one-layer battery of
-128 interventions plus matched controls, under two GPU-hours total. The
-preceding behavioral sweep and SAE training required substantially more compute
-and are excluded from that total.
+Every stage ran on one 80\,GB NVIDIA H100. Reported captures and interventions
+took about two minutes per scenario for capture and three minutes for a
+one-layer battery of 128 interventions plus matched controls, under two
+GPU-hours in total. Two prerequisite stages are excluded from that total. The
+behavioral sweep scored 727,669 supply-chain and 515,631 customer-support
+decision prompts to build the gate-passing population, at roughly 1.5
+GPU-hours per scenario. SAE training then read 3,149,046 decision-token
+activations captured at all six layers in one pass and stored as seven
+float32 shards per layer, and fitted the six dictionaries sequentially for
+3,800 steps each: 4.2 to 5.1 minutes per layer and about 27 minutes in total,
+which the per-step timestamps in each released \texttt{metrics.jsonl}
+reproduce. Capturing those activations, not fitting the dictionaries,
+dominates the prerequisite cost.
 
 \subsection{Weights and revisions}
 

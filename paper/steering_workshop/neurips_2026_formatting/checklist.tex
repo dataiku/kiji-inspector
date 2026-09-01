@@ -111,8 +111,8 @@
 
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
-    \item[] Answer: \answerNo{}
-    \item[] Justification: Appendix A.5 reports the 80\,GB H100, approximate capture and intervention runtimes, and the under-two-GPU-hour intervention total. It discloses that the preceding sweep and SAE training used substantially more compute, but does not yet provide worker and runtime estimates for those stages.
+    \item[] Answer: \answerYes{}
+    \item[] Justification: Appendix A.5 names the compute worker and memory for every stage (one 80\,GB NVIDIA H100), the per-scenario capture and per-battery intervention runtimes with the under-two-GPU-hour total for the reported interventions, the prompt counts and approximate runtime of the prerequisite behavioral sweep, and the corpus size, shard layout and per-layer runtimes of SAE training, which the per-step timestamps in the released training metrics reproduce. It also states which prerequisite stage dominates the compute excluded from the reported total.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not include experiments.
