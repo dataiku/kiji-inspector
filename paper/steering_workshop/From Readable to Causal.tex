@@ -99,7 +99,7 @@ where and how the intervention acts.
 \label{sec:method}
 
 \paragraph{Model and decision.}
-We evaluate NVIDIA Nemotron-3.5-Nano-30B-A3B in BF16, a 52-layer hybrid of
+We evaluate NVIDIA Nemotron-3.5-Lightning-30B-A3B in BF16, a 52-layer hybrid of
 Mamba-2, attention, and mixture-of-experts blocks with residual width 2,688
 \citep{nvidia2026nemotron35}.
 Released JumpReLU SAEs \citep{ref_rajamanoharan2024} cover layers
@@ -601,33 +601,28 @@ and are excluded from that total.
 
 \subsection{Weights and revisions}
 
-Hugging Face resolves \texttt{main} unless a revision is given, so naming a
-repository does not identify the weights a rerun will load. All results here
-use our released SAE repository, anonymized for review at
+Hugging Face resolves \texttt{main} unless a revision is given, and upstream
+has since moved past the weights we used, so only a commit identifies them.
+All results here use our released SAE repository, anonymized for review at
 \url{https://anonymous-hf.com/a/iwucfbry1321/}, at commit \texttt{2380c95c},
 and base checkpoint
-\texttt{nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16} at commit
-\texttt{d468880b}. That base checkpoint is what the dictionaries were fitted
-on, notwithstanding the \texttt{Lightning} build the SAE repository is named
-for; the SAE model card records it under the pre-release name
-\texttt{ga\_nvidia\_nemotron\_3\_5\_nano\_bf16\_07292026\_vv0.1} at code revision
-\texttt{65ae86b}. The distinction is not hypothetical: upstream \texttt{main}
-has since moved past the base commit we used. The SAE loader now sends its
-pinned revision by default; the base checkpoint is passed as a local
+\texttt{nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16} at commit
+\texttt{d468880b}, which the SAE model card cites under its pre-release name
+\texttt{ga\_nvidia\_nemotron\_3\_5\_nano\_bf16\_07292026\_vv0.1}. The SAE loader
+sends its pinned revision by default; the base checkpoint is passed as a local
 directory, so it is pinned by fetching that revision explicitly
-(\texttt{hf download \ldots{} --revision d468880b}) before stripping the
-draft stack. We run the base checkpoint with its multi-token
-prediction draft stack removed, which rewrites only the config and the shard
-index and hardlinks every weight shard, so the shards carry upstream's own
-checksums. SHA-256 for all six SAE checkpoints and all 27 base-checkpoint
-files are released with the run artifacts. The auxiliary models are
-\texttt{Qwen/Qwen3-VL-235B-A22B-Instruct-FP8} for pair generation,
-\texttt{Qwen/Qwen3.6-35B-A3B} for feature labeling, and
-\texttt{google/gemma-4-31B-it} for label validation.
+(\texttt{hf download \ldots{} --revision d468880b}) before the multi-token
+prediction draft stack is stripped. Stripping rewrites only the config and the
+shard index and hardlinks every weight shard, so the shards carry upstream's
+own checksums; SHA-256 for all six SAE checkpoints and all 27 base-checkpoint
+files ship with the run artifacts. Auxiliary models are
+\texttt{Qwen/Qwen3-VL-235B-A22B-Instruct-FP8} (pair generation),
+\texttt{Qwen/Qwen3.6-35B-A3B} (feature labeling) and
+\texttt{google/gemma-4-31B-it} (label validation).
 
 \subsection{Licenses}
 
-The NVIDIA Nemotron-3.5-Nano-30B-A3B-BF16 checkpoint uses the OpenMDW License
+The NVIDIA Nemotron-3.5-Lightning-30B-A3B-BF16 checkpoint uses the OpenMDW License
 Agreement 1.1; the three auxiliary Qwen and Gemma models named above use
 Apache-2.0.
 The released SAE checkpoints, labels, reports, code, pair definitions, run
