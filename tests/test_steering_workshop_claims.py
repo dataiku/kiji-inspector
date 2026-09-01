@@ -380,3 +380,36 @@ def test_artifact_mode_refuses_to_clobber_the_committed_report(extractor, monkey
     monkeypatch.setenv("KIJI_ARTIFACTS", "1")
     with pytest.raises(SystemExit):
         extractor.main(["--out", str(_REPORT)])
+
+
+def test_equal_scenario_weight_sensitivity(stats):
+    """Stratifying the draws does not fix each scenario's share of directions.
+
+    Clusters are unequal in size, so a resample that draws four supply-chain
+    clusters can still carry more or fewer directions than the design gave it.
+    Averaging the two scenario differences with equal weights fixes that, and
+    the cue-minus-dense upper endpoint moves materially when it does --- which
+    is why the paper reports both rather than picking one silently.
+    """
+    p = stats["pairedCueDense"]
+    equal = p["equalScenarioWeights"]
+    assert (equal["lo"], equal["hi"]) == (-6.71, 10.53)
+    assert equal["hi"] > p["stratified"]["hi"], "the sensitivity is the point"
+    assert equal["lo"] < 0 < equal["hi"], "the sign of the difference stays undetermined"
+
+    flips = stats["clusterBootstrapExpanded"]["equalScenarioWeights"]
+    assert (flips["ablation"]["lo"], flips["ablation"]["hi"]) == (0.425, 0.6526)
+    assert (flips["crossPatch"]["lo"], flips["crossPatch"]["hi"]) == (0.1667, 0.4861)
+
+
+def test_cluster_sizes_are_unequal(extractor):
+    """The premise of the test above; if it ever fails, the caveat can go."""
+    sizes = {}
+    for scenario, layer in extractor.EXPANDED.items():
+        counts = {}
+        for row in extractor._paired_arms(scenario, layer):
+            counts[row["cluster"]] = counts.get(row["cluster"], 0) + 1
+        sizes[scenario] = sorted(counts.values())
+    assert any(len(set(v)) > 1 for v in sizes.values()), (
+        f"clusters are now equal-sized, so draw-stratification does fix pair counts: {sizes}"
+    )

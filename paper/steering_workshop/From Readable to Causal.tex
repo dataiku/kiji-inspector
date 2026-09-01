@@ -163,11 +163,12 @@ clamp.
 
 Expanded pairs are near-duplicates within a contrast and both directions are
 dependent, so we report exact dependent counts. We resample whole
-scenario-by-contrast clusters, retaining every observation in a drawn cluster,
-stratified within scenario so the design's fixed 32 pairs per scenario is
-preserved, and enumerate the resampling distribution exactly rather than
-sampling it, weighting each count vector by its multiplicity (Appendix). With
-so few clusters these percentile brackets are
+scenario-by-contrast clusters, retaining every observation in a drawn cluster
+and drawing within scenario, and enumerate the resampling distribution exactly
+rather than sampling it, weighting each count vector by its multiplicity
+(Appendix). Clusters are unequal in size, so this fixes how many clusters each
+scenario contributes, not how many pairs. With so few clusters these percentile
+brackets are
 uncalibrated and likely to understate uncertainty, not nominal 95\%
 intervals. We do not attach tests that treat intervention rows as independent.
 
@@ -472,9 +473,13 @@ equivalently enumerating every ordered draw; with $35^2=1{,}225$ vectors here
 the endpoints carry no Monte-Carlo error: the cue-minus-dense
 difference is $-1.6$ percentage points with 2.5--97.5 percentile endpoints of
 $[-7.03,+7.63]$. Enumerating the 6,435 vectors that draw all eight clusters
-together instead gives $[-7.55,+7.14]$. With four clusters per scenario these
-are uncalibrated sensitivity brackets likely to understate uncertainty, like
-those in Sect.~\ref{sec:method}, not calibrated intervals or equivalence
+together instead gives $[-7.55,+7.14]$. Because clusters are unequal in size,
+drawing four per scenario does not fix how many directions each scenario
+contributes; averaging the two scenario differences with equal weights, which
+does, gives $[-6.71,+10.53]$ --- the upper endpoint is sensitive to that
+choice, the sign of the point estimate is not. With four clusters per scenario
+these are uncalibrated sensitivity brackets likely to understate uncertainty,
+like those in Sect.~\ref{sec:method}, not calibrated intervals or equivalence
 tests.}
 \label{tab:discordance}
 \centering

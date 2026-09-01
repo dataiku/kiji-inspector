@@ -44,7 +44,11 @@ The report also carries blocks the demo READMEs do not:
   - `wilson`, `clusterBootstrapExpanded` — headline proportions, the latter resampling whole
     contrast-type clusters rather than sides. Stratified within scenario, because the design fixed
     32 pairs per scenario and pooling the ten clusters lets a resample vary that mix; `pooled`
-    keeps the unstratified version as a check (it widens ablation to 0.40–0.66). Enumerated
+    keeps the unstratified version as a check (it widens ablation to 0.40–0.66). Clusters are
+    unequal in size, so stratifying the draws fixes how many *clusters* each scenario contributes,
+    not how many pairs — `equalScenarioWeights` averages the two scenario rates instead, which
+    does fix it, and is reported as a sensitivity rather than the headline because the point
+    estimate is the pooled rate. Enumerated
     exactly — 35 count vectors for one scenario's four clusters, 462 for the other's six — so the
     endpoints carry no seed dependence. With ten clusters a percentile bracket still under-covers,
     so the paper treats these as uncalibrated ranges and the counts as the result.

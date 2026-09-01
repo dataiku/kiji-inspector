@@ -4785,6 +4785,16 @@
      "lo": 0.1641,
      "hi": 0.4841
     }
+   },
+   "equalScenarioWeights": {
+    "ablation": {
+     "lo": 0.425,
+     "hi": 0.6526
+    },
+    "crossPatch": {
+     "lo": 0.1667,
+     "hi": 0.4861
+    }
    }
   },
   "designWeighted": {
@@ -5593,6 +5603,16 @@
        "lo": 0.037,
        "hi": 0.2019
       }
+     },
+     "equalScenarioWeights": {
+      "ablation": {
+       "lo": 0.0833,
+       "hi": 0.2107
+      },
+      "crossPatch": {
+       "lo": 0.0375,
+       "hi": 0.1997
+      }
      }
     },
     "perScenario": {
@@ -5768,6 +5788,12 @@
     "orderedDraws": 65536,
     "lo": -7.03,
     "hi": 7.63
+   },
+   "equalScenarioWeights": {
+    "vectors": 1225,
+    "orderedDraws": 65536,
+    "lo": -6.71,
+    "hi": 10.53
    },
    "pooled": {
     "vectors": 6435,

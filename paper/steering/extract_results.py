@@ -534,8 +534,35 @@ def clustered_flip_intervals(scenarios: dict[str, int]) -> dict:
             }
         return out
 
-    stratified = brackets([g for _, g in sorted(strata.items())])
+    def equal_weight_brackets(groups: list[list[str]]) -> dict:
+        """Each scenario's own rate, averaged with fixed equal weights.
+
+        Stratifying the *draws* still lets the number of sides move, because
+        clusters are unequal in size, so a scenario's contribution to a pooled
+        rate varies between resamples.  Averaging per-scenario rates fixes that
+        contribution outright.  It answers a different question --- the mean of
+        two scenario rates rather than the rate over all sides --- so it is a
+        sensitivity, not the headline, whose point estimate is the pooled one.
+        """
+        per = [_stratum_atoms([tuple(clusters[k][f] for f in order) for k in g]) for g in groups]
+        out = {}
+        for arm, (num, den) in arms.items():
+            vals = []
+            for w_a, a in per[0]:
+                for w_b, b in per[1]:
+                    if not a[den] or not b[den]:
+                        continue
+                    vals.append((w_a * w_b, (a[num] / a[den] + b[num] / b[den]) / 2))
+            out[arm] = {
+                "lo": round(_weighted_percentile(vals, 0.025), 4),
+                "hi": round(_weighted_percentile(vals, 0.975), 4),
+            }
+        return out
+
+    groups = [g for _, g in sorted(strata.items())]
+    stratified = brackets(groups)
     pooled = brackets([sorted(clusters)])
+    equal_weight = equal_weight_brackets(groups) if len(groups) == 2 else None
     totals = {
         arm: (
             sum(c[order[num]] for c in clusters.values()),
@@ -560,6 +587,7 @@ def clustered_flip_intervals(scenarios: dict[str, int]) -> dict:
             for arm in arms
         },
         "pooled": pooled,
+        **({"equalScenarioWeights": equal_weight} if equal_weight else {}),
     }
 
 
@@ -1363,6 +1391,23 @@ def _paired_arms(scenario: str, layer: int):
             }
 
 
+def equal_weight_difference(groups: list[list[tuple[int, ...]]]) -> dict:
+    """Cue-minus-dense in points, averaging scenarios rather than pooling them."""
+    per = [_stratum_atoms(g) for g in groups]
+    vals = []
+    for w_a, a in per[0]:
+        for w_b, b in per[1]:
+            vals.append(
+                (w_a * w_b, ((a[0] - a[1]) / a[2] + (b[0] - b[1]) / b[2]) / 2 * 100)
+            )
+    return {
+        "vectors": len(vals),
+        "orderedDraws": sum(w for w, _ in vals),
+        "lo": round(_weighted_percentile(vals, 0.025), 2),
+        "hi": round(_weighted_percentile(vals, 0.975), 2),
+    }
+
+
 def paired_cue_dense(scenarios: dict[str, int]) -> dict | None:
     """Cue clamp against an equal-norm dense direction, direction by direction.
 
@@ -1434,6 +1479,13 @@ def paired_cue_dense(scenarios: dict[str, int]) -> dict | None:
         "differencePp": round((cue_flips - dense_flips) / directions * 100, 2),
         # the reported bracket: each scenario resamples its own clusters
         "stratified": brackets([g for _, g in sorted(strata.items())]),
+        # clusters are unequal, so stratifying the draws does not fix how many
+        # directions each scenario contributes.  This does, by averaging the two
+        # scenario differences instead of pooling them, and the upper endpoint
+        # is sensitive to the choice.
+        "equalScenarioWeights": equal_weight_difference(
+            [[tuple(per_cluster[k]) for k in sorted(g)] for _, g in sorted(strata.items())]
+        ),
         # and the same enumeration ignoring the scenario split, as a check that
         # the conclusion is not an artefact of how the strata were drawn
         "pooled": brackets([sorted(per_cluster)]),

@@ -76,18 +76,26 @@ def _blobs_by_inode(cache: Path, repo: str) -> dict[int, str]:
 
 
 def _checked_revision(cache: Path, repo: str, expected: str | None) -> str:
-    """The revision in the cache, cross-checked against the pinned one."""
-    ref = _cache_dir(cache, repo) / "refs" / "main"
-    seen = ref.read_text().strip() if ref.is_file() else None
-    if expected and seen and expected != seen:
-        raise SystemExit(
-            f"{repo}: registry pins {expected} but the cache holds {seen}.\n"
-            "Re-download at the pinned revision, or update the pin deliberately."
-        )
-    resolved = expected or seen
-    if not resolved:
-        raise SystemExit(f"{repo}: no pinned revision and none in the cache.")
-    return resolved
+    """Resolve the revision to record, insisting its snapshot is present.
+
+    Validating against ``refs/main`` would be wrong: ``main`` is exactly the
+    moving target the pins exist to defend against, and it has already moved
+    past the base checkpoint used here.  A cache that has since fetched a newer
+    ``main`` still holds the pinned snapshot, and that snapshot is what the
+    record describes, so check ``snapshots/<pin>`` directly.
+    """
+    root = _cache_dir(cache, repo)
+    if expected:
+        if not (root / "snapshots" / expected).is_dir():
+            raise SystemExit(
+                f"{repo}: pinned revision {expected} is not in the cache.\n"
+                f"Fetch it with --revision {expected} before recording provenance."
+            )
+        return expected
+    ref = root / "refs" / "main"
+    if not ref.is_file():
+        raise SystemExit(f"{repo}: no pinned revision and no cached ref to fall back on.")
+    return ref.read_text().strip()
 
 
 def sae_files(cache: Path) -> dict:
@@ -95,16 +103,26 @@ def sae_files(cache: Path) -> dict:
     snapshot = _cache_dir(cache, SAE_REPO) / "snapshots" / revision
     by_inode = _blobs_by_inode(cache, SAE_REPO)
     files = {}
+    missing = []
     for layer in LAYERS:
         rel = f"layer_{layer}/sae_checkpoints/sae_final.pt"
         path = snapshot / rel
         if not path.exists():
+            # a partial cache would otherwise produce a record that looks
+            # complete while silently omitting a layer the paper reports on
+            missing.append(rel)
             continue
         resolved = path.resolve()
         files[rel] = {
             "sha256": by_inode.get(resolved.stat().st_ino) or _sha256(resolved),
             "bytes": resolved.stat().st_size,
         }
+    if missing:
+        raise SystemExit(
+            f"{SAE_REPO} at {revision}: missing checkpoints for "
+            + ", ".join(missing)
+            + "\nFetch the whole snapshot; a partial record would omit a reported layer."
+        )
     return {"repo": SAE_REPO, "revision": revision, "files": files}
 
 
