@@ -1114,11 +1114,19 @@ def contrast_band_by_depth() -> dict | None:
     depend on where each baseline happens to sit.  This is the same contrast
     measured as effect size against the strictest control available --- a random
     set matched on how much it differs across the pair --- and it needs no
-    argmax to cross.  Ceiling sides are excluded: their band is the whole pool
-    rather than a matched draw.
+    argmax to cross.
+
+    A *ceiling* draw is the whole eligible pool rather than a matched sample, so
+    its band is not a match and its ratio flatters the cue set (late ceiling
+    sides exceed on every one).  The headline fields are therefore the genuinely
+    matched sides only; ceiling sides are reported beside them under ``ceiling``
+    rather than pooled in, and sides whose band is zero --- where no draw moved
+    anything, so the ratio is undefined --- are counted in ``zeroBandSides``.
     """
-    buckets: dict[str, list[float]] = {"early": [], "late": []}
-    ceilings = {"early": [0, 0], "late": [0, 0]}
+    matched: dict[str, list[float]] = {"early": [], "late": []}
+    ceiling: dict[str, list[float]] = {"early": [], "late": []}
+    zero_band = {"early": 0, "late": 0}
+    with_arm = {"early": 0, "late": 0}
     for scenario in SCENARIOS:
         for layer in LAYERS:
             res = _load(
@@ -1131,25 +1139,32 @@ def contrast_band_by_depth() -> dict | None:
                 for v in sides.values():
                     if not isinstance(v, dict) or v.get("contrastControls") is None:
                         continue
-                    ceilings[key][1] += 1
-                    ceilings[key][0] += not v.get("contrastControlMassMatched")
+                    with_arm[key] += 1
                     band = v.get("contrastControlThreshold")
-                    if band:
-                        buckets[key].append(
-                            abs((v.get("allRows") or {}).get("deltaTarget") or 0.0) / float(band)
-                        )
-    if not buckets["early"] or not buckets["late"]:
+                    if not band:
+                        zero_band[key] += 1
+                        continue
+                    ratio = abs((v.get("allRows") or {}).get("deltaTarget") or 0.0) / float(band)
+                    bucket = matched if v.get("contrastControlMassMatched") else ceiling
+                    bucket[key].append(ratio)
+    if not matched["early"] or not matched["late"]:
         return None
     out = {}
-    for key, values in buckets.items():
+    for key, values in matched.items():
         exceed = sum(r > 1 for r in values)
+        pool = ceiling[key]
         out[key] = {
             "sides": len(values),
             "medianEffectOverBand": round(st.median(values), 2),
             "exceeding": exceed,
             "fractionExceeding": round(exceed / len(values), 3),
-            "ceilingSides": ceilings[key][0],
-            "sidesWithArm": ceilings[key][1],
+            "ceiling": {
+                "sides": len(pool),
+                "exceeding": sum(r > 1 for r in pool),
+                "medianEffectOverBand": round(st.median(pool), 2) if pool else None,
+            },
+            "zeroBandSides": zero_band[key],
+            "sidesWithArm": with_arm[key],
         }
     out["fisherP"] = _fisher_one_sided(
         out["late"]["exceeding"], out["late"]["sides"] - out["late"]["exceeding"],

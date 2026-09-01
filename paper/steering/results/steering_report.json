@@ -5685,22 +5685,32 @@
   },
   "contrastByDepth": {
    "early": {
-    "sides": 92,
-    "medianEffectOverBand": 0.94,
-    "exceeding": 37,
-    "fractionExceeding": 0.402,
-    "ceilingSides": 36,
+    "sides": 59,
+    "medianEffectOverBand": 0.81,
+    "exceeding": 21,
+    "fractionExceeding": 0.356,
+    "ceiling": {
+     "sides": 33,
+     "exceeding": 16,
+     "medianEffectOverBand": 1.0
+    },
+    "zeroBandSides": 10,
     "sidesWithArm": 102
    },
    "late": {
-    "sides": 96,
-    "medianEffectOverBand": 4.46,
-    "exceeding": 82,
-    "fractionExceeding": 0.854,
-    "ceilingSides": 28,
+    "sides": 68,
+    "medianEffectOverBand": 2.81,
+    "exceeding": 54,
+    "fractionExceeding": 0.794,
+    "ceiling": {
+     "sides": 28,
+     "exceeding": 28,
+     "medianEffectOverBand": 8.77
+    },
+    "zeroBandSides": 6,
     "sidesWithArm": 102
    },
-   "fisherP": 6.770792591023445e-11
+   "fisherP": 4.905175736561281e-07
   }
  }
 }
