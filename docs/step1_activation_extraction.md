@@ -41,6 +41,34 @@ Cast to float16, append to shard buffer
 Flush to shard_XXXXXX.npy when buffer reaches shard_size
 ```
 
+## Which pairs are extracted
+
+`download_pairs.py` writes every row of the source dataset unchanged, but the
+pipeline drops pairs whose two sides call the *same* tool before extracting
+(`pipeline.py`, "Excluded N pairs where anchor_tool == contrast_tool"). Such a
+pair has no tool contrast to explain, so it contributes nothing a contrastive
+analysis can use.
+
+For the published `575-lab/kiji-inspector-pairs` corpus that is the whole
+reduction, and it accounts for the pair count on the SAE model cards:
+
+| | pairs |
+|---|---|
+| `575-lab/kiji-inspector-pairs` rows | 2,011,672 |
+| dropped, `anchor_tool == contrast_tool` | 437,149 |
+| **extracted** | **1,574,523** → 3,149,046 prompts |
+
+The drop rate is very uneven by scenario -- 213,319 of supply chain's 398,338
+against 2,358 of customer support's 398,837 -- so a per-scenario pair count
+taken from the dataset overstates what was trained on, by more than half in the
+worst case.
+
+Note this is a different filter from the one `build_sweep_candidates.py`
+applies when choosing steering candidates, which deduplicates by
+`(scenario, anchor, contrast)` instead and lands near 1.85M. The two numbers
+answer different questions and neither is a subset of the other by
+construction.
+
 ## The Decision Token
 
 The prompt is formatted to end with `"I'll use the "`:
