@@ -12,6 +12,7 @@ Run from the repository root::
 
 from __future__ import annotations
 
+import argparse
 import itertools
 import json
 import math
@@ -19,6 +20,7 @@ import os
 import random
 import re
 import statistics as st
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -810,6 +812,48 @@ def layer_selection_audit() -> dict:
     return {"argmax": argmax, "nonSelected": non_selected, "demoOverlap": demo_overlap}
 
 
+def _health_inputs(scenario: str) -> tuple[list[str], list[dict]] | None:
+    """What the health screen reads, from the capture or the published subset.
+
+    The full capture carries every activation and is far too large to publish
+    (478 MB across the grid).  ``health_inputs.json`` holds the same screen's
+    inputs at a thousandth of the size --- positive-activation feature ids, L0
+    over the pair prompts, and per-prompt explained variance --- so the screen
+    reproduces from the repository alone.  Either source yields the same
+    numbers; the compact one is preferred when both are present because it is
+    what a reader outside this machine will have.
+    """
+    root = _scenario_dir(scenario) / "capture"
+    compact = _load(root / "health_inputs.json")
+    if compact:
+        return compact["pairPrompts"], [
+            {
+                "layer": blk["layer"],
+                "l0": blk["l0"],
+                "explainedVariance": blk["explainedVariance"],
+                "active": [set(ids) for ids in blk["activeFeatures"]],
+            }
+            for blk in compact["layers"]
+        ]
+    ev = _load(root / "evaluation.json")
+    if not ev:
+        return None
+    names = [p.get("step") if isinstance(p, dict) else p for p in ev["prompts"]]
+    pair_idx = [i for i, n in enumerate(names) if str(n).endswith(("_A", "_B"))]
+    return [names[i] for i in pair_idx], [
+        {
+            "layer": blk["layer"],
+            "l0": [blk["l0"][i] for i in pair_idx],
+            "explainedVariance": blk["explained_variance"],
+            "active": [
+                {f["index"] for f in blk["active_features"][i] if f["activation"] > 0}
+                for i in pair_idx
+            ],
+        }
+        for blk in ev["layers"]
+    ]
+
+
 def dictionary_health(scenario: str) -> dict[str, dict]:
     """Per-layer L0, explained variance, and how much of the code varies.
 
@@ -817,21 +861,14 @@ def dictionary_health(scenario: str) -> dict[str, dict]:
     on some but not all.  A layer whose code is almost entirely constant has
     nothing left for a cue analysis to work with, however well it reconstructs.
     """
-    ev = _load(_scenario_dir(scenario) / "capture" / "evaluation.json")
-    if not ev:
-        # The capture is the one artefact too large to publish (478 MB across
-        # the grid), so a checkout reading the published subset has no
-        # dictionary block.  Every intervention claim survives without it.
+    inputs = _health_inputs(scenario)
+    if not inputs:
         return {}
-    names = [p.get("step") if isinstance(p, dict) else p for p in ev["prompts"]]
-    pair_idx = [i for i, n in enumerate(names) if str(n).endswith(("_A", "_B"))]
+    names, blocks = inputs
 
     out = {}
-    for blk in ev["layers"]:
-        active = blk["active_features"]
-        by_step = {
-            names[i]: {f["index"] for f in active[i] if f["activation"] > 0} for i in pair_idx
-        }
+    for blk in blocks:
+        by_step = dict(zip(names, blk["active"]))
         sets = list(by_step.values())
         const = set.intersection(*sets)
         union = set.union(*sets)
@@ -848,8 +885,8 @@ def dictionary_health(scenario: str) -> dict[str, dict]:
                 side_specific.append(len(by_step[other] - by_step[step]))
 
         out[str(blk["layer"])] = {
-            "meanL0": round(st.mean(blk["l0"][i] for i in pair_idx), 1),
-            "explainedVariance": round(st.mean(blk["explained_variance"]), 4),
+            "meanL0": round(st.mean(blk["l0"]), 1),
+            "explainedVariance": round(st.mean(blk["explainedVariance"]), 4),
             "constant": len(const),
             "varying": len(union - const),
             # the share of the code that never varies across these prompts.
@@ -1889,7 +1926,34 @@ def build_stats(report: dict) -> dict:
     }
 
 
-def main() -> None:
+def _resolve_out(argv=None) -> Path:
+    """Where to write, refusing to clobber the committed report from artifacts.
+
+    Reading the published subset produces a report the canonical one is not
+    supposed to equal --- it is built from a deliberately smaller input set ---
+    so writing it over ``results/steering_report.json`` corrupts the checkout
+    and fails the claim tests.  Artifact mode therefore writes beside the
+    system temp directory unless ``--out`` says otherwise, and refuses the
+    canonical path outright.
+    """
+    ap = argparse.ArgumentParser(description="Collect the steering paper's numbers.")
+    ap.add_argument("--out", type=Path, default=None, help=f"output path (default {OUT})")
+    args = ap.parse_args(argv)
+    artifacts = bool(os.environ.get("KIJI_ARTIFACTS"))
+    if args.out is None:
+        if not artifacts:
+            return OUT
+        return Path(tempfile.gettempdir()) / "steering_report.artifacts.json"
+    if artifacts and args.out.resolve() == OUT.resolve():
+        raise SystemExit(
+            "Refusing to overwrite the committed report from KIJI_ARTIFACTS mode.\n"
+            "Pass a different --out, or unset KIJI_ARTIFACTS to rebuild from the run tree."
+        )
+    return args.out
+
+
+def main(argv=None) -> None:
+    out = _resolve_out(argv)
     report: dict = {"scenarios": {}}
     for scenario, demo_layer in SCENARIOS.items():
         pairs = _load(STEER / scenario / "pairs.json") or {}
@@ -1965,12 +2029,12 @@ def main() -> None:
 
     report["stats"] = build_stats(report)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(report, indent=1) + "\n")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=1) + "\n")
     try:
-        print(f"wrote {OUT.relative_to(ROOT)}")
-    except ValueError:  # OUT redirected outside the repo, e.g. by a test
-        print(f"wrote {OUT}")
+        print(f"wrote {out.relative_to(ROOT)}")
+    except ValueError:  # written outside the repo, e.g. artifact mode's default
+        print(f"wrote {out}")
 
 
 if __name__ == "__main__":

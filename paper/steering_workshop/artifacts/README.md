@@ -34,10 +34,14 @@ tree, so the claim is checkable:
 
 ```bash
 KIJI_ARTIFACTS=1 python paper/steering/extract_results.py
+# wrote /tmp/steering_report.artifacts.json
 ```
 
-That regenerates `paper/steering/results/steering_report.json` identically to
-the committed copy, with one documented exception below.
+It regenerates the whole of `paper/steering/results/steering_report.json`,
+byte for byte, from the published files alone. Artifact mode writes to a temp
+path rather than the committed report — that report is built from the full run
+tree and overwriting it from a smaller input set would corrupt the checkout —
+and refuses `--out` pointing at it. Pass `--out` to put the result elsewhere.
 `tests/test_steering_workshop_claims.py` runs it and asserts the equality, and
 separately hashes each published file against the run it was copied from
 whenever the full tree is present, so a stale copy fails rather than quietly
@@ -72,13 +76,28 @@ python paper/steering_workshop/provenance.py \
     --hf-cache ~/.cache/huggingface/hub
 ```
 
+## Dictionary health
+
+The health screen — mean L0, explained variance, and how much of the code never
+varies across the prompts — is a prerequisite for the paper's reading, not a
+detail: a layer whose code is almost entirely constant has nothing for a cue
+analysis to work with, however well it reconstructs. So it has to be
+recomputable here, not taken on trust.
+
+The captures it reads are 478 MB across the grid and stay out (below), but the
+screen needs very little of them. `<scenario>/capture/health_inputs.json`
+carries exactly what it reads — per pair prompt, the positive-activation
+feature ids and L0, plus per-prompt explained variance — in 0.9 MB for all
+thirteen scenarios, against 500 MB of captures. Feature ids only, no
+activations, so no capture can be reconstructed from them. Regenerate with
+`python paper/steering_workshop/health_inputs.py`.
+
 ## What is not here
 
 **The activation captures.** `capture/evaluation.json` is 478 MB across the
-grid — 237 MB for `tool_selection` alone — so it stays out. It feeds only the
-dictionary-health block (mean L0, explained variance, constant fraction); with
-it absent that block is empty and every intervention claim still reproduces.
-The health figures themselves remain published in the committed report.
+grid — 237 MB for `tool_selection` alone — so it stays out; `health_inputs.json`
+stands in for the one analysis that reads it. Nothing else in the report
+touches the captures.
 
 **The gate sweep.** `demo/steering/sweep/output/` is 2.8 GB of candidate
 scoring. The gate populations derived from it are in

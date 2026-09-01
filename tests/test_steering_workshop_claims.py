@@ -229,7 +229,8 @@ def test_published_artifacts_cover_the_whole_grid():
     published = {
         p.relative_to(_ARTIFACTS).parts
         for p in _ARTIFACTS.rglob("*.json")
-        if p.name != "provenance.json"  # a record about the set, not a member of it
+        # records *about* the set, not battery outputs that belong to it
+        if p.name not in ("provenance.json", "health_inputs.json")
     }
     assert not live - published, f"unpublished canonical batteries: {sorted(live - published)}"
     assert not published - live, f"published files with no canonical run: {sorted(published - live)}"
@@ -288,16 +289,10 @@ def test_artifacts_regenerate_the_whole_report(extractor, monkeypatch, tmp_path)
     if not _ARTIFACTS.exists() or not _REPORT.exists():
         pytest.skip("artifacts or report not in this checkout")
     monkeypatch.setenv("KIJI_ARTIFACTS", "1")
-    monkeypatch.setattr(extractor, "OUT", tmp_path / "regenerated.json")
-    extractor.main()
-    regenerated = json.loads((tmp_path / "regenerated.json").read_text())
-    committed = json.loads(_REPORT.read_text())
-    # the capture is the one artefact too large to publish, so its dictionary
-    # block is the single expected gap --- assert it is the *only* one
-    for report in (regenerated, committed):
-        for entry in report["scenarios"].values():
-            entry.pop("dictionary", None)
-    assert regenerated == committed
+    extractor.main(["--out", str(tmp_path / "regenerated.json")])
+    assert json.loads((tmp_path / "regenerated.json").read_text()) == json.loads(
+        _REPORT.read_text()
+    )
 
 
 @pytest.fixture(scope="module")
@@ -344,3 +339,44 @@ def test_stripped_checkpoint_is_upstream_apart_from_two_files(provenance):
     assert weights, "no shards recorded"
     assert all(f["source"] == "upstream" for f in weights)
     assert all(len(f["sha256"]) == 64 for f in base["files"].values())
+
+
+def test_health_inputs_reproduce_the_dictionary_screen(stats, extractor, monkeypatch):
+    """The health screen is a prerequisite for the paper's reading, not a detail.
+
+    A layer whose code is almost entirely constant has nothing for a cue
+    analysis to work with, so "is this dictionary usable" has to be checkable
+    from the artifacts rather than trusted from the report. The captures are
+    too large to publish; ``health_inputs.json`` carries the screen's own
+    inputs at a thousandth of the size and must give the same answers.
+    """
+    if not _ARTIFACTS.exists():
+        pytest.skip("artifacts not in this checkout")
+    committed = json.loads(_REPORT.read_text())["scenarios"]
+    monkeypatch.setenv("KIJI_ARTIFACTS", "1")
+    checked = 0
+    for scenario, entry in committed.items():
+        if not entry.get("dictionary"):
+            continue
+        checked += 1
+        assert extractor.dictionary_health(scenario) == entry["dictionary"], scenario
+    assert checked, "no dictionary blocks to check"
+
+
+def test_health_inputs_carry_no_activations(extractor):
+    """Feature ids only --- the file must not be a compressed capture."""
+    if not _ARTIFACTS.exists():
+        pytest.skip("artifacts not in this checkout")
+    for path in sorted(_ARTIFACTS.rglob("health_inputs.json")):
+        blocks = json.loads(path.read_text())["layers"]
+        assert blocks, path
+        for blk in blocks:
+            for ids in blk["activeFeatures"]:
+                assert all(isinstance(i, int) for i in ids), path
+
+
+def test_artifact_mode_refuses_to_clobber_the_committed_report(extractor, monkeypatch):
+    """Reading the published subset must never overwrite the canonical report."""
+    monkeypatch.setenv("KIJI_ARTIFACTS", "1")
+    with pytest.raises(SystemExit):
+        extractor.main(["--out", str(_REPORT)])

@@ -12,6 +12,8 @@ steering study. It lives on branch steering-workshop-five-page in the separate
   the paper is reproducible without the ignored 3.4 GB run tree; see its README.
 - provenance.py regenerates artifacts/provenance.json: the pinned model
   revisions and per-file checksums behind those runs.
+- health_inputs.py regenerates the compact dictionary-health inputs, so the
+  health screen reproduces without the 478 MB activation captures.
 - build.sh compiles the PDF with local TeX or Docker.
 
 Before submission, replace the placeholder in workshoptitle and verify whether
