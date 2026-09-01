@@ -43,6 +43,31 @@ separately hashes each published file against the run it was copied from
 whenever the full tree is present, so a stale copy fails rather than quietly
 publishing numbers the report was not built from.
 
+## Which weights
+
+`provenance.json` records the exact revisions and checksums behind these runs:
+the SAE repository at commit `2380c95c`, the base checkpoint
+`nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16` at `d468880b`, SHA-256 for all
+six SAE checkpoints and all 27 files of the stripped base checkpoint.
+
+`hf_hub_download` resolves `main` unless told otherwise, so naming a repository
+does not identify what a rerun loads. That is not a hypothetical risk here:
+upstream `main` for the base model has moved past the commit these results were
+produced against. `src/kiji_inspector/core/registry.py` now pins every
+registered repo and the loader sends the pin by default; pass
+`revision="main"` to opt back into the head.
+
+The stripped base checkpoint is a thin derivation: `strip_mtp` rewrites only
+`config.json` and `model.safetensors.index.json` and hardlinks every weight
+shard, so the shards carry upstream's own checksums and the record says which
+two files are ours. Regenerate with:
+
+```bash
+python paper/steering_workshop/provenance.py \
+    --model-dir ~/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp \
+    --hf-cache ~/.cache/huggingface/hub
+```
+
 ## What is not here
 
 **The activation captures.** `capture/evaluation.json` is 478 MB across the

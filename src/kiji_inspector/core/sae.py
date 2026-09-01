@@ -7,7 +7,7 @@ from typing import Optional
 
 from huggingface_hub import hf_hub_download
 
-from kiji_inspector.core.registry import resolve_repo_id
+from kiji_inspector.core.registry import resolve_repo_id, resolve_revision
 from kiji_inspector.core.sae_core import JumpReLUSAE
 
 
@@ -37,6 +37,7 @@ class SAE(JumpReLUSAE):
         repo_id: Optional[str] = None,
         cache_dir: Optional[str] = None,
         token: Optional[str] = None,
+        revision: Optional[str] = None,
     ) -> tuple["SAE", Optional[dict]]:
         """Download and load a single-layer SAE from HuggingFace.
 
@@ -54,6 +55,11 @@ class SAE(JumpReLUSAE):
                 registry. Use this for repos not in the registry.
             cache_dir: Override the default HF cache directory.
             token: HuggingFace token for private repos.
+            revision: Commit, branch or tag to download. Defaults to
+                the pinned commit for this repo in the registry, so a
+                rerun loads the same weights the published results
+                were produced against. Pass ``"main"`` to track the
+                repo head instead.
 
         Returns:
             sae: Loaded SAE model (eval mode, on device).
@@ -70,6 +76,8 @@ class SAE(JumpReLUSAE):
             if base_model is None:
                 raise ValueError("Provide either base_model or repo_id.")
             repo_id = resolve_repo_id(base_model)
+        if revision is None:
+            revision = resolve_revision(repo_id)
 
         subfolder = f"layer_{layer}"
 
@@ -79,6 +87,7 @@ class SAE(JumpReLUSAE):
                 return hf_hub_download(
                     repo_id=repo_id,
                     filename=remote_path,
+                    revision=revision,
                     cache_dir=cache_dir,
                     token=token,
                 )

@@ -593,6 +593,22 @@ minutes per scenario for capture and three minutes for a one-layer battery of
 preceding behavioral sweep and SAE training required substantially more compute
 and are excluded from that total.
 
+\subsection{Weights and revisions}
+
+Hugging Face resolves \texttt{main} unless a revision is given, so naming a
+repository does not identify the weights a rerun will load. All results here
+use SAE repository
+\texttt{575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16} at
+commit \texttt{2380c95c}, and base checkpoint
+\texttt{nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16} at commit
+\texttt{d468880b}. The distinction is not hypothetical: upstream
+\texttt{main} has since moved past the base commit we used. The loader now
+pins these by default. We run the base checkpoint with its multi-token
+prediction draft stack removed, which rewrites only the config and the shard
+index and hardlinks every weight shard, so the shards carry upstream's own
+checksums. SHA-256 for all six SAE checkpoints and all 27 base-checkpoint
+files are released with the run artifacts.
+
 \subsection{Licenses}
 
 The NVIDIA Nemotron-3.5-Nano-30B-A3B-BF16 checkpoint uses the OpenMDW License

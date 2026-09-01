@@ -34,6 +34,7 @@ _REPORT = _ROOT / "paper" / "steering" / "results" / "steering_report.json"
 _TEX = _ROOT / "paper" / "steering_workshop" / "From Readable to Causal.tex"
 _ARTIFACTS = _ROOT / "paper" / "steering_workshop" / "artifacts"
 _EXTRACTOR = _ROOT / "paper" / "steering" / "extract_results.py"
+_PROVENANCE = _ARTIFACTS / "provenance.json"
 
 
 @pytest.fixture(scope="module")
@@ -225,7 +226,11 @@ def test_published_artifacts_cover_the_whole_grid():
     live = _live_artifacts()
     if not live:
         pytest.skip("no run output present to compare against")
-    published = {p.relative_to(_ARTIFACTS).parts for p in _ARTIFACTS.rglob("*.json")}
+    published = {
+        p.relative_to(_ARTIFACTS).parts
+        for p in _ARTIFACTS.rglob("*.json")
+        if p.name != "provenance.json"  # a record about the set, not a member of it
+    }
     assert not live - published, f"unpublished canonical batteries: {sorted(live - published)}"
     assert not published - live, f"published files with no canonical run: {sorted(published - live)}"
 
@@ -293,3 +298,49 @@ def test_artifacts_regenerate_the_whole_report(extractor, monkeypatch, tmp_path)
         for entry in report["scenarios"].values():
             entry.pop("dictionary", None)
     assert regenerated == committed
+
+
+@pytest.fixture(scope="module")
+def provenance() -> dict:
+    if not _PROVENANCE.exists():
+        pytest.skip("provenance record not in this checkout")
+    return json.loads(_PROVENANCE.read_text())
+
+
+def test_provenance_agrees_with_the_loader(provenance):
+    """The recorded revisions must be the ones the loader will fetch."""
+    from kiji_inspector.core.registry import BASE_MODEL_REVISIONS, MODEL_REVISIONS
+
+    sae = provenance["sae"]
+    assert MODEL_REVISIONS[sae["repo"]] == sae["revision"]
+    base = provenance["baseModel"]
+    assert BASE_MODEL_REVISIONS[base["repo"]] == base["revision"]
+
+
+def test_provenance_covers_every_layer_the_paper_reads(provenance, extractor):
+    """A checksum for each SAE the results were produced with."""
+    recorded = provenance["sae"]["files"]
+    for layer in extractor.LAYERS:
+        key = f"layer_{layer}/sae_checkpoints/sae_final.pt"
+        assert key in recorded, f"no checksum for the layer {layer} SAE"
+        assert len(recorded[key]["sha256"]) == 64
+        assert recorded[key]["bytes"] > 0
+
+
+def test_stripped_checkpoint_is_upstream_apart_from_two_files(provenance):
+    """The derivation has to be auditable, not just named.
+
+    ``strip_mtp`` hardlinks the shards it keeps, so their bytes are upstream's
+    and carry upstream's checksums. Only the config and the shard index are
+    rewritten. If that ever stops being true, the stripped checkpoint is no
+    longer a thin derivation of a pinned public model and the provenance claim
+    weakens.
+    """
+    base = provenance["baseModel"]
+    rewritten = {n for n, f in base["files"].items() if f["source"] == "strip_mtp"}
+    assert rewritten == {"config.json", "model.safetensors.index.json"}
+    assert rewritten == set(base["derivation"]["rewritten"])
+    weights = [f for n, f in base["files"].items() if n.endswith(".safetensors")]
+    assert weights, "no shards recorded"
+    assert all(f["source"] == "upstream" for f in weights)
+    assert all(len(f["sha256"]) == 64 for f in base["files"].values())

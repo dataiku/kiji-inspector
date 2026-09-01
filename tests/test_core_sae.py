@@ -31,7 +31,7 @@ def _write_checkpoint(tmp_path, d_model=4, d_sae=3):
 def _fake_download_factory(checkpoint_path, descriptions_path=None, downloads=None):
     """Return a fake hf_hub_download that serves local files."""
 
-    def fake_download(repo_id, filename, cache_dir=None, token=None):
+    def fake_download(repo_id, filename, cache_dir=None, token=None, revision=None):
         if downloads is not None:
             downloads.append((repo_id, filename))
         if filename.endswith("sae_checkpoints/sae_final.pt"):

@@ -1,6 +1,12 @@
 import pytest
 
-from kiji_inspector.core.registry import MODEL_REGISTRY, resolve_repo_id
+from kiji_inspector.core.registry import (
+    BASE_MODEL_REVISIONS,
+    MODEL_REGISTRY,
+    MODEL_REVISIONS,
+    resolve_repo_id,
+    resolve_revision,
+)
 
 
 class TestResolveRepoId:
@@ -46,3 +52,70 @@ class TestModelRegistry:
         for key, value in MODEL_REGISTRY.items():
             assert "/" in key, f"base_model key missing '/': {key}"
             assert "/" in value, f"repo_id value missing '/': {value}"
+
+
+class TestRevisionPinning:
+    """``main`` moves; published results must not.
+
+    ``hf_hub_download`` resolves ``main`` unless given a revision, so without
+    these pins a rerun can silently load different weights than the paper was
+    written from -- and the base model proves it happens: the runs used
+    ``d468880b`` and upstream has since moved past it.
+    """
+
+    def test_every_registered_repo_is_pinned(self):
+        unpinned = sorted(set(MODEL_REGISTRY.values()) - set(MODEL_REVISIONS))
+        assert not unpinned, f"registered but unpinned, so they track main: {unpinned}"
+
+    def test_pins_are_full_commit_hashes(self):
+        for repo, revision in {**MODEL_REVISIONS, **BASE_MODEL_REVISIONS}.items():
+            assert len(revision) == 40, f"{repo}: not a full commit hash"
+            assert set(revision) <= set("0123456789abcdef"), f"{repo}: not hex"
+
+    def test_no_pin_for_an_unregistered_repo(self):
+        stale = sorted(set(MODEL_REVISIONS) - set(MODEL_REGISTRY.values()))
+        assert not stale, f"pinned but no longer registered: {stale}"
+
+    def test_resolve_revision_returns_the_pin(self):
+        repo = resolve_repo_id("nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16")
+        assert resolve_revision(repo) == "2380c95cbeddeb8a7aca17a122bc18df5ae62aaa"
+
+    def test_unknown_repo_falls_back_to_main(self):
+        assert resolve_revision("someone/not-ours") is None
+
+
+class TestLoaderUsesThePin:
+    def test_download_is_given_the_pinned_revision(self, monkeypatch):
+        """The pin is worth nothing if it never reaches ``hf_hub_download``."""
+        import kiji_inspector.core.sae as sae_module
+
+        seen = {}
+
+        def fake_download(**kwargs):
+            seen.update(kwargs)
+            raise RuntimeError("stop here; the call is what we are checking")
+
+        monkeypatch.setattr(sae_module, "hf_hub_download", fake_download)
+        with pytest.raises(FileNotFoundError):
+            sae_module.SAE.from_pretrained(
+                base_model="nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16", layer=43
+            )
+        assert seen["revision"] == "2380c95cbeddeb8a7aca17a122bc18df5ae62aaa"
+
+    def test_explicit_revision_wins(self, monkeypatch):
+        import kiji_inspector.core.sae as sae_module
+
+        seen = {}
+
+        def fake_download(**kwargs):
+            seen.update(kwargs)
+            raise RuntimeError("stop here")
+
+        monkeypatch.setattr(sae_module, "hf_hub_download", fake_download)
+        with pytest.raises(FileNotFoundError):
+            sae_module.SAE.from_pretrained(
+                base_model="nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16",
+                layer=43,
+                revision="main",
+            )
+        assert seen["revision"] == "main"

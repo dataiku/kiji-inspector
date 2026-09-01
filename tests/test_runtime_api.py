@@ -64,7 +64,7 @@ def test_sae_from_pretrained_downloads_and_loads(monkeypatch, tmp_path):
 
     downloads = []
 
-    def fake_download(repo_id, filename, cache_dir=None, token=None):
+    def fake_download(repo_id, filename, cache_dir=None, token=None, revision=None):
         downloads.append((repo_id, filename, cache_dir, token))
         if filename.endswith("sae_checkpoints/sae_final.pt"):
             return str(checkpoint_path)

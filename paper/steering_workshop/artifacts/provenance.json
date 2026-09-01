@@ -1,0 +1,182 @@
+{
+ "note": "Weights behind the published results. Revisions are pinned in src/kiji_inspector/core/registry.py and loaded by default.",
+ "sae": {
+  "repo": "575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
+  "revision": "2380c95cbeddeb8a7aca17a122bc18df5ae62aaa",
+  "files": {
+   "layer_6/sae_checkpoints/sae_final.pt": {
+    "sha256": "5b95b494b966e503fff060eb2f12fed0abfa76823e1676e8f384db3e49f53788",
+    "bytes": 115681007
+   },
+   "layer_13/sae_checkpoints/sae_final.pt": {
+    "sha256": "8114f654ae784ce0626418396ea0f49410ad02441c2cb3e8f9a63217fdf1e59a",
+    "bytes": 115681007
+   },
+   "layer_20/sae_checkpoints/sae_final.pt": {
+    "sha256": "94052a0edfc7574da42b8573f35c9fe1c2befdacf27b7ee16908993848572e50",
+    "bytes": 115681007
+   },
+   "layer_27/sae_checkpoints/sae_final.pt": {
+    "sha256": "ff6b43c76a96e825d5ac08cc1e7043f64aa1cbb51f2474c407399fd0e20c53df",
+    "bytes": 115681007
+   },
+   "layer_34/sae_checkpoints/sae_final.pt": {
+    "sha256": "238fd628bffdf197d1c912fc90be1e278d06ff2bc72288510c6db1131600ebdd",
+    "bytes": 115681007
+   },
+   "layer_43/sae_checkpoints/sae_final.pt": {
+    "sha256": "ccd07830a048df3db9505bdded10f181b0dbf8b811c756b79907cdcbad36956b",
+    "bytes": 115681007
+   }
+  }
+ },
+ "baseModel": {
+  "repo": "nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16",
+  "revision": "d468880b6ad3c6e0d21377ce7242adaea4cc884d",
+  "derivation": {
+   "tool": "kiji_inspector.utils.strip_mtp",
+   "what": "removes the multi-token-prediction draft stack; kept shards are hardlinked from the download, so their bytes are upstream's",
+   "rewritten": [
+    "config.json",
+    "model.safetensors.index.json"
+   ]
+  },
+  "files": {
+   "LICENSE": {
+    "sha256": "d7c8a9e5d1896d0a9588319cc7b1433e64645ad6d9e55632c30b78d8c038c23b",
+    "bytes": 2693,
+    "source": "upstream"
+   },
+   "accuracy_plot.png": {
+    "sha256": "feecce07c67ac1ba7bf57f9d3b31bb819211b8da60f547287bdfce4376091ec4",
+    "bytes": 140266,
+    "source": "upstream"
+   },
+   "agentic_coding_benchmarks.png": {
+    "sha256": "06cf5486ae94ecd7cc6f91ae3b4bae21c7435253a294cb89f54f7ec42eda8847",
+    "bytes": 219966,
+    "source": "upstream"
+   },
+   "bias.md": {
+    "sha256": "c5cedf15a6a2d14d73d3aedb1514462c5f55ed3539e6e0e7e08a75e0f99d694e",
+    "bytes": 3263,
+    "source": "upstream"
+   },
+   "chat_template.jinja": {
+    "sha256": "58933db77d3099b4f78c55a38347a72e1ea05b97d6bd8f38775303dc0194e0a9",
+    "bytes": 9867,
+    "source": "upstream"
+   },
+   "config.json": {
+    "sha256": "c963e24e76f4933ea39afc959acf2aff86e14b8154f4036012beece0395a6766",
+    "bytes": 2291,
+    "source": "strip_mtp"
+   },
+   "explainability.md": {
+    "sha256": "0633d9f3519170f88ea7e3f0447d58b9674260216b8454d8a80e8f42abef2d5e",
+    "bytes": 2699,
+    "source": "upstream"
+   },
+   "generation_config.json": {
+    "sha256": "0ed94823ae737b507aef6af01e837041b7aa2fb0306793a310cd201d89a31ff4",
+    "bytes": 210,
+    "source": "upstream"
+   },
+   "model-00001-of-00014.safetensors": {
+    "sha256": "7a3e74d24969eac6657cb9b6422091fd062b7d30fd4bc90ecee6c3d7f692626a",
+    "bytes": 4991210024,
+    "source": "upstream"
+   },
+   "model-00002-of-00014.safetensors": {
+    "sha256": "a80c3846e959f6dda34aa031cbb668b766643691ac7e5c9f43f62e6fb1221059",
+    "bytes": 4992601016,
+    "source": "upstream"
+   },
+   "model-00003-of-00014.safetensors": {
+    "sha256": "996bf3a46668e14075cb82259390267c2b1f71446caeb3a5f1f9e0bd7a079ae7",
+    "bytes": 4992601368,
+    "source": "upstream"
+   },
+   "model-00004-of-00014.safetensors": {
+    "sha256": "cce1d79e7ff2e2b746b9d97166156aa1dcec796116675cc7fd1aa70a8d73ccb2",
+    "bytes": 4995692800,
+    "source": "upstream"
+   },
+   "model-00005-of-00014.safetensors": {
+    "sha256": "9338f59d3fd5f074288c71a9559452d5b5c581da00e9ccb9fe7aa2ce9b04d2ad",
+    "bytes": 4980553832,
+    "source": "upstream"
+   },
+   "model-00006-of-00014.safetensors": {
+    "sha256": "e947fa4097c68263ba3d097fceb32a300a22cebd9d909fb5198af7d18a4022fe",
+    "bytes": 4989423536,
+    "source": "upstream"
+   },
+   "model-00007-of-00014.safetensors": {
+    "sha256": "c7362630bf4256275ca58354ed8f31506cec67ffab30573e753703fd5ae48795",
+    "bytes": 4992601488,
+    "source": "upstream"
+   },
+   "model-00008-of-00014.safetensors": {
+    "sha256": "1b33a5a6b5505b25b57c90ddda19e9cd1598176468917df0c56116fa6f6072cb",
+    "bytes": 4992601520,
+    "source": "upstream"
+   },
+   "model-00009-of-00014.safetensors": {
+    "sha256": "fcc9b48caff427beaf1f87b78cf4ab42bc2a3c43b3c487bccb013ba22d7468b2",
+    "bytes": 4995692800,
+    "source": "upstream"
+   },
+   "model-00010-of-00014.safetensors": {
+    "sha256": "d1924fd54d1b77a15aff8df591a317e8a82a58e46d6f5742fa21e90e0be3cfa6",
+    "bytes": 4992601520,
+    "source": "upstream"
+   },
+   "model-00011-of-00014.safetensors": {
+    "sha256": "e9d0b83bcf04bd4d5758b94e6495a3f1595d121d82faffaa27ce6a884e2c8757",
+    "bytes": 4995692800,
+    "source": "upstream"
+   },
+   "model-00012-of-00014.safetensors": {
+    "sha256": "fce184f112cb0b97024cadc60f993f6f660e365d04e21c240fb3c75747bd3a01",
+    "bytes": 4995692816,
+    "source": "upstream"
+   },
+   "model-00013-of-00014.safetensors": {
+    "sha256": "f427d037d2a3e4d44323325aa38571e3551e8ad702f469c3dacc4e59ea2e50d1",
+    "bytes": 3249723504,
+    "source": "upstream"
+   },
+   "model.safetensors.index.json": {
+    "sha256": "c4ea3e0c5084656fad2a4c9644e7f1a3de134f6e12f0c09be6187d2e9b2b54a8",
+    "bytes": 588309,
+    "source": "strip_mtp"
+   },
+   "privacy.md": {
+    "sha256": "8d7bcc6314e4f68809385c62bcfcb543023b9ed6e5eb0de6e263683510713ece",
+    "bytes": 828,
+    "source": "upstream"
+   },
+   "safety.md": {
+    "sha256": "60f74211be1d81624807ca626462778610960cf20adc989140118da37d80a86b",
+    "bytes": 2145,
+    "source": "upstream"
+   },
+   "special_tokens_map.json": {
+    "sha256": "e9435fefd6d838fd9fcbbc44b97a8e3ff322be7f6dfb7e4fd2468586574bb52b",
+    "bytes": 563,
+    "source": "upstream"
+   },
+   "tokenizer.json": {
+    "sha256": "623c34567aebb18582765289fbe23d901c62704d6518d71866e0e58db892b5b7",
+    "bytes": 17077484,
+    "source": "upstream"
+   },
+   "tokenizer_config.json": {
+    "sha256": "10f93eabcb9b1602fbb991d6308e787ce1df28ee9cd7a1c6d1e8c3f338b957bc",
+    "bytes": 177209,
+    "source": "upstream"
+   }
+  }
+ }
+}
