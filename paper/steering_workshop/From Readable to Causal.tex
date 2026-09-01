@@ -599,9 +599,10 @@ one-layer battery of 128 interventions plus matched controls, under two
 GPU-hours in total. Two prerequisite stages are excluded from that total. The
 behavioral sweep scored 727,669 supply-chain and 515,631 customer-support
 decision prompts to build the gate-passing population, at roughly 1.5
-GPU-hours per scenario. SAE training then read 3,149,046 decision-token
-activations captured at all six layers in one pass and stored as seven
-float32 shards per layer, and fitted the six dictionaries sequentially for
+GPU-hours per scenario. SAE training then read the two
+decision-token activations of each retained pair, 3,149,046 per layer,
+captured at all six layers in one pass and stored as seven float32 shards per
+layer, and fitted the six dictionaries sequentially for
 3,800 steps each: 4.2 to 5.1 minutes per layer and about 27 minutes in total,
 which the per-step timestamps in each released \texttt{metrics.jsonl}
 reproduce. Capturing those activations, not fitting the dictionaries,
