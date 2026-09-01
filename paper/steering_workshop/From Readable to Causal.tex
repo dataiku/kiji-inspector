@@ -607,8 +607,7 @@ All results here use our released SAE repository, anonymized for review at
 \url{https://anonymous-hf.com/a/iwucfbry1321/}, at commit \texttt{2380c95c},
 and base checkpoint
 \texttt{nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16} at commit
-\texttt{d468880b}, which the SAE model card cites under its pre-release name
-\texttt{ga\_nvidia\_nemotron\_3\_5\_nano\_bf16\_07292026\_vv0.1}. The SAE loader
+\texttt{d468880b}. The SAE loader
 sends its pinned revision by default; the base checkpoint is passed as a local
 directory, so it is pinned by fetching that revision explicitly
 (\texttt{hf download \ldots{} --revision d468880b}) before the multi-token
