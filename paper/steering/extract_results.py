@@ -12,6 +12,7 @@ Run from the repository root::
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
 import os
@@ -124,6 +125,82 @@ def _percentile(values: list[float], q: float) -> float:
     if lo == hi:
         return ordered[lo]
     return ordered[lo] * (hi - pos) + ordered[hi] * (pos - lo)
+
+
+def _multinomial(counts: list[int]) -> int:
+    """How many ordered draws collapse onto one cluster-count vector."""
+    total = math.factorial(sum(counts))
+    for c in counts:
+        total //= math.factorial(c)
+    return total
+
+
+def _weighted_percentile(atoms: list[tuple[int, float]], q: float) -> float:
+    """Percentile of a discrete distribution given as ``(weight, value)``."""
+    ordered = sorted(atoms, key=lambda t: t[1])
+    total = sum(w for w, _ in ordered)
+    seen = 0
+    for weight, value in ordered:
+        seen += weight
+        if seen >= q * total:
+            return value
+    return ordered[-1][1]
+
+
+def _stratum_atoms(clusters: list[tuple[int, ...]]) -> list[tuple[int, tuple[int, ...]]]:
+    """Every way to draw ``len(clusters)`` clusters from ``clusters``, with weights.
+
+    Order does not matter to a sum, so the distinct outcomes are the
+    count vectors and each carries the number of ordered draws that produce
+    it.  Four clusters give ``C(7, 4) = 35`` vectors over ``4**4 = 256``
+    ordered draws.
+    """
+    m = len(clusters)
+    width = len(clusters[0])
+    atoms = []
+    for combo in itertools.combinations_with_replacement(range(m), m):
+        counts = [combo.count(i) for i in range(m)]
+        totals = tuple(
+            sum(counts[i] * clusters[i][j] for i in range(m)) for j in range(width)
+        )
+        atoms.append((_multinomial(counts), totals))
+    return atoms
+
+
+def _enumerate_resamples(
+    strata: list[list[tuple[int, ...]]]
+) -> list[tuple[int, tuple[int, ...]]]:
+    """Exact whole-cluster bootstrap distribution over one or more strata.
+
+    Each stratum is resampled to its own size with replacement, so a single
+    stratum is the pooled bootstrap and one stratum per scenario is the
+    stratified one.  Enumerating the count vectors and weighting each by its
+    multiplicity *is* the ordinary bootstrap's sampling distribution, so the
+    percentile endpoints carry no Monte-Carlo error --- worth having where the
+    cluster count is small enough that a sampled endpoint wobbles between
+    adjacent atoms.
+    """
+    atoms: list[tuple[int, tuple[int, ...] | None]] = [(1, None)]
+    for clusters in strata:
+        atoms = [
+            (w_a * w_b, b if a is None else tuple(x + y for x, y in zip(a, b)))
+            for w_a, a in atoms
+            for w_b, b in _stratum_atoms(clusters)
+        ]
+    return atoms
+
+
+def _ratio_bracket(strata: list[list[tuple[int, int]]], num: int = 0, den: int = 1) -> dict:
+    """2.5--97.5 percentile endpoints of a ratio under the exact resampling."""
+    atoms = _enumerate_resamples(strata)
+    ratios = [(w, v[num] / v[den]) for w, v in atoms if v[den]]
+    return {
+        "vectors": len(atoms),
+        "orderedDraws": sum(w for w, _ in atoms),
+        "zeroDenominatorVectors": len(atoms) - len(ratios),
+        "lo": round(_weighted_percentile(ratios, 0.025), 4),
+        "hi": round(_weighted_percentile(ratios, 0.975), 4),
+    }
 
 
 def _argmax(dist: dict | None) -> str | None:
@@ -1173,6 +1250,175 @@ def contrast_band_by_depth() -> dict | None:
     return out
 
 
+def _paired_arms(scenario: str, layer: int):
+    """Per-direction (cluster, cue redirect, dense redirect, reference redirect).
+
+    Yields one record per direction that both the battery and the ceiling run
+    enumerate.  A *redirect* here carries the full directed-flip requirement:
+    the baseline must not already be the target, so a direction the model
+    already gets "right" cannot be scored as a success for any arm.
+    """
+    res = _load(_battery_dir(scenario, f"steering_layer{layer}") / "steering_results.json")
+    ceil = _load(STEER / scenario / "output" / f"ceiling_layer{layer}" / "ceiling_results.json")
+    pairs = _load(STEER / scenario / "pairs.json") or {}
+    if not res or not ceil:
+        return
+    titles = {p["id"]: p.get("title") for p in pairs.get("pairs", [])}
+    for pair_id, dirs in ceil["directions"].items():
+        for key, rec in dirs.items():
+            patch = (res.get("crossPatch") or {}).get(pair_id, {}).get(key)
+            if not patch:
+                continue
+            target = rec["targetTool"]
+            live = rec.get("baselineChoice") != target
+            dense = rec.get("differenceInMeansMatched")
+            yield {
+                "cluster": f"{scenario}:{titles.get(pair_id)}",
+                "pair": pair_id,
+                "axis": titles.get(pair_id),
+                "cue": bool(live and (patch.get("allRows") or {}).get("choice") == target),
+                "dense": bool(live and dense and dense.get("choice") == target),
+                "reference": bool(live and rec["ceiling"].get("choice") == target),
+                "denseDefined": dense is not None,
+            }
+
+
+def paired_cue_dense(scenarios: dict[str, int]) -> dict | None:
+    """Cue clamp against an equal-norm dense direction, direction by direction.
+
+    Both arms act on the same recipient at the same token at the same norm, so
+    the comparison is paired: the two marginal counts are computed over the
+    same directions and share every concordant one.  Only the discordant cells
+    say which arm is stronger, so the whole 2x2 is reported rather than the
+    margins alone.
+
+    Uncertainty is an exact enumeration rather than a sampled bootstrap.  With
+    four clusters per scenario there are only ``35**2 = 1,225`` distinct
+    cluster-count vectors, few enough that a 100,000-draw Monte-Carlo endpoint
+    lands on either side of a boundary atom depending on the seed --- the
+    97.5th percentile here sits at cumulative weight 0.9752.  Enumerating
+    removes that wobble.  With so few clusters the brackets remain uncalibrated
+    sensitivity ranges, not confidence intervals, and the paper says so.
+    """
+    per_cluster: dict[str, list[int]] = {}
+    cells = {"bothRedirect": 0, "cueOnly": 0, "denseOnly": 0, "neither": 0}
+    strata: dict[str, list[str]] = {}
+    directions = dense_undefined = 0
+    for scenario, layer in scenarios.items():
+        for row in _paired_arms(scenario, layer):
+            if not row["denseDefined"]:
+                dense_undefined += 1
+                continue
+            directions += 1
+            entry = per_cluster.setdefault(row["cluster"], [0, 0, 0])
+            entry[0] += row["cue"]
+            entry[1] += row["dense"]
+            entry[2] += 1
+            strata.setdefault(scenario, [])
+            if row["cluster"] not in strata[scenario]:
+                strata[scenario].append(row["cluster"])
+            key = (
+                "bothRedirect" if row["cue"] and row["dense"]
+                else "cueOnly" if row["cue"]
+                else "denseOnly" if row["dense"]
+                else "neither"
+            )
+            cells[key] += 1
+    if not directions:
+        return None
+
+    def brackets(groups: list[list[str]]) -> dict:
+        atoms = _enumerate_resamples(
+            [[tuple(per_cluster[k]) for k in sorted(g)] for g in groups]
+        )
+        diffs = [(w, (v[0] - v[1]) / v[2] * 100) for w, v in atoms]
+        return {
+            "vectors": len(atoms),
+            "orderedDraws": sum(w for w, _ in atoms),
+            "lo": round(_weighted_percentile(diffs, 0.025), 2),
+            "hi": round(_weighted_percentile(diffs, 0.975), 2),
+        }
+
+    cue_flips = cells["bothRedirect"] + cells["cueOnly"]
+    dense_flips = cells["bothRedirect"] + cells["denseOnly"]
+    return {
+        "unit": "scenario and contrast title",
+        "directions": directions,
+        "denseUndefinedDirections": dense_undefined,
+        "clusters": len(per_cluster),
+        "clustersPerScenario": {s: len(g) for s, g in sorted(strata.items())},
+        **cells,
+        "discordant": cells["cueOnly"] + cells["denseOnly"],
+        "cueRedirects": cue_flips,
+        "denseRedirects": dense_flips,
+        "differencePp": round((cue_flips - dense_flips) / directions * 100, 2),
+        # the reported bracket: each scenario resamples its own clusters
+        "stratified": brackets([g for _, g in sorted(strata.items())]),
+        # and the same enumeration ignoring the scenario split, as a check that
+        # the conclusion is not an artefact of how the strata were drawn
+        "pooled": brackets([sorted(per_cluster)]),
+    }
+
+
+def heldout_overlap(splits: dict[str, dict[str, int]]) -> dict:
+    """Are the cue redirects a subset of what the full residual patch reaches?
+
+    A flip ratio says how many reference redirects the cue set also finds; it
+    does not say they are the *same* directions, nor that they come from more
+    than one contrast.  Both would let a ratio read as breadth when it is one
+    lucky axis, so the nesting and the spread across axes and pairs are
+    recorded next to the ratio.
+
+    These probes are curated, not sampled, so the brackets are exact
+    sensitivity ranges over whole-axis resampling and the paper quotes no
+    nominal interval for them.
+    """
+    out: dict[str, dict] = {}
+    for name, scenarios in splits.items():
+        per_cluster: dict[str, list[int]] = {}
+        strata: dict[str, list[str]] = {}
+        directions = reference = cue = nested = 0
+        axes: set[str | None] = set()
+        cue_axes: set[str | None] = set()
+        pairs: set[str] = set()
+        cue_pairs: set[str] = set()
+        for scenario, layer in scenarios.items():
+            for row in _paired_arms(scenario, layer):
+                directions += 1
+                reference += row["reference"]
+                cue += row["cue"]
+                nested += row["cue"] and row["reference"]
+                axes.add(row["cluster"])
+                pairs.add(f"{scenario}:{row['pair']}")
+                entry = per_cluster.setdefault(row["cluster"], [0, 0])
+                entry[0] += row["cue"]
+                entry[1] += row["reference"]
+                strata.setdefault(scenario, [])
+                if row["cluster"] not in strata[scenario]:
+                    strata[scenario].append(row["cluster"])
+                if row["cue"]:
+                    cue_axes.add(row["cluster"])
+                    cue_pairs.add(f"{scenario}:{row['pair']}")
+        if not directions:
+            continue
+        groups = [[tuple(per_cluster[k]) for k in sorted(g)] for _, g in sorted(strata.items())]
+        out[name] = {
+            "scenarios": dict(sorted(scenarios.items())),
+            "directions": directions,
+            "referenceRedirects": reference,
+            "cueRedirects": cue,
+            "cueRedirectsInsideReference": nested,
+            "axes": len(axes),
+            "axesWithCueRedirect": len(cue_axes),
+            "pairs": len(pairs),
+            "pairsWithCueRedirect": len(cue_pairs),
+            "flipRatio": round(cue / reference, 3) if reference else None,
+            "bracketPooled": _ratio_bracket([[tuple(per_cluster[k]) for k in sorted(per_cluster)]]),
+            **({"bracketStratified": _ratio_bracket(groups)} if len(groups) > 1 else {}),
+        }
+    return out
+
+
 def outcome_partition(scenarios: dict[str, int]) -> dict:
     """Where the argmax actually goes, not just whether it moved.
 
@@ -1607,6 +1853,15 @@ def build_stats(report: dict) -> dict:
         },
         "layerSelection": layer_selection_audit(),
         "contrastByDepth": contrast_band_by_depth(),
+        # the paired cue-versus-dense comparison the workshop paper leads with,
+        # and the nesting audit behind its held-out probes
+        "pairedCueDense": paired_cue_dense({k: v for k, v in EXPANDED.items() if k in scen}),
+        "heldoutOverlap": heldout_overlap(
+            {
+                "heldout": {k: v for k, v in HELDOUT.items() if k in scen},
+                "toolSelection": {"tool_selection": PRIMARY["tool_selection"]},
+            }
+        ),
     }
 
 

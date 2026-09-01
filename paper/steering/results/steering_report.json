@@ -5711,6 +5711,88 @@
     "sidesWithArm": 102
    },
    "fisherP": 4.905175736561281e-07
+  },
+  "pairedCueDense": {
+   "unit": "scenario and contrast title",
+   "directions": 124,
+   "denseUndefinedDirections": 4,
+   "clusters": 8,
+   "clustersPerScenario": {
+    "customer_support_expanded": 4,
+    "supply_chain_expanded": 4
+   },
+   "bothRedirect": 22,
+   "cueOnly": 6,
+   "denseOnly": 8,
+   "neither": 88,
+   "discordant": 14,
+   "cueRedirects": 28,
+   "denseRedirects": 30,
+   "differencePp": -1.61,
+   "stratified": {
+    "vectors": 1225,
+    "orderedDraws": 65536,
+    "lo": -7.03,
+    "hi": 7.63
+   },
+   "pooled": {
+    "vectors": 6435,
+    "orderedDraws": 16777216,
+    "lo": -7.55,
+    "hi": 7.14
+   }
+  },
+  "heldoutOverlap": {
+   "heldout": {
+    "scenarios": {
+     "customer_support_heldout": 34,
+     "supply_chain_heldout": 43
+    },
+    "directions": 30,
+    "referenceRedirects": 25,
+    "cueRedirects": 7,
+    "cueRedirectsInsideReference": 7,
+    "axes": 6,
+    "axesWithCueRedirect": 5,
+    "pairs": 15,
+    "pairsWithCueRedirect": 7,
+    "flipRatio": 0.28,
+    "bracketPooled": {
+     "vectors": 462,
+     "orderedDraws": 46656,
+     "zeroDenominatorVectors": 0,
+     "lo": 0.1481,
+     "hi": 0.4375
+    },
+    "bracketStratified": {
+     "vectors": 100,
+     "orderedDraws": 729,
+     "zeroDenominatorVectors": 0,
+     "lo": 0.16,
+     "hi": 0.4375
+    }
+   },
+   "toolSelection": {
+    "scenarios": {
+     "tool_selection": 43
+    },
+    "directions": 14,
+    "referenceRedirects": 13,
+    "cueRedirects": 2,
+    "cueRedirectsInsideReference": 2,
+    "axes": 7,
+    "axesWithCueRedirect": 2,
+    "pairs": 7,
+    "pairsWithCueRedirect": 2,
+    "flipRatio": 0.154,
+    "bracketPooled": {
+     "vectors": 1716,
+     "orderedDraws": 823543,
+     "zeroDenominatorVectors": 0,
+     "lo": 0.0,
+     "hi": 0.3846
+    }
+   }
   }
  }
 }

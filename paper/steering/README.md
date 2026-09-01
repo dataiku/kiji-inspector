@@ -61,8 +61,16 @@ The report also carries blocks the demo READMEs do not:
     layer-27 rerun that gives a non-selected comparison.
   - `depth` — the early-vs-late Fisher test with the exact upper bound on the early-layer flip rate,
     computed twice: once against the selected layers and once against layer 27.
+  - `pairedCueDense` — the full cue × equal-norm-dense 2×2 over the expanded directions where the
+    dense direction is defined, with exact bootstrap brackets. Enumerated rather than sampled: eight
+    clusters give only 1,225 stratified count vectors, and the 97.5th percentile sits at cumulative
+    weight 0.9752, so a Monte-Carlo endpoint lands either side of a boundary atom depending on the
+    seed. Each count vector is weighted by the number of ordered draws producing it.
+  - `heldoutOverlap` — whether the cue redirects are a *subset* of the directions the full residual
+    patch reaches, and how many axes and pairs they come from, so a flip ratio carried by one axis
+    cannot read as breadth. Reported for the held-out pair and for the separate tool-selection split.
 
-Four definitions are worth knowing when reading it:
+Five definitions are worth knowing when reading it:
 
 - A **directed flip** is an argmax change that lands on the donor's tool (for ablation, the other
   side's tool). The looser any-tool count is kept alongside as `*FlipsAnyTool`; the two disagree in
@@ -75,6 +83,9 @@ Four definitions are worth knowing when reading it:
   bounds what any decomposition read at that token could do.
 - A **recovery fraction** is a flip count over that ceiling. It is the form the paper reports its
   headline in, because a flip rate on its own has no denominator.
+- A **redirect** is a directed flip with the baseline requirement made explicit: the recipient must
+  not already choose the target, so a direction the model gets right unaided cannot be scored as a
+  success for any arm. `pairedCueDense` and `heldoutOverlap` apply it to every arm they compare.
 
 ## Regenerating from a partial re-run
 
