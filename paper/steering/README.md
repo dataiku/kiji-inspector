@@ -1,24 +1,19 @@
-# Steering paper
+# Steering results toolchain
 
-LaTeX source for the causal-steering follow-up to [`../`](../)
-("Opening the Black Box"), formatted as a NeurIPS 2026 submission — the style file and
-checklist live in `neurips_2026_formatting/`, which `build.sh` puts on `TEXINPUTS` along with
-`..`, so `\bibliography{references,steering_refs}` picks up the shared bibliography plus the
-entries added here.
+Regeneration code for the causal-steering numbers. The full-length paper this was written
+for has been removed; the five-page workshop paper in
+[`../steering_workshop/`](../steering_workshop/) is what quotes these results now, and it
+reads the report this directory produces.
 
 | File | What |
 |---|---|
-| `Steering Agent Tool Selection.tex` | The paper. |
-| `neurips_2026_formatting/` | `neurips_2026.sty` and the filled-in `checklist.tex`. |
-| `steering_refs.bib` | New references only; shared ones stay in `../references.bib`. |
 | `extract_results.py` | Reads `demo/steering/*/output/` → `results/steering_report.json`. |
 | `gate_population.py` | Streams the sweep corpora to rebuild the per-contrast-type gate populations → `results/gate_population.json`. Hard-fails if the total stops matching `pairs.json`. |
 | `generate_charts.py` | Reads that JSON → `images/*.png`. |
-| `build.sh` | Runs the extractor and charts, then compiles. |
 
 ## No number is hand-copied
 
-Every figure quoted in the paper comes from `results/steering_report.json`, which
+Every figure quoted by the workshop paper comes from `results/steering_report.json`, which
 `extract_results.py` regenerates from the run artefacts under
 [`../../demo/steering/`](../../demo/steering/). If a run is repeated, re-run the extractor and the
 numbers in the report move with it. The report holds, per scenario:
@@ -109,25 +104,3 @@ KIJI_SUFFIX=_setctl python3 paper/steering/extract_results.py
 A suffixed directory that exists but holds no JSON yet is treated as still-running and skipped, so a
 report generated mid-batch is complete rather than silently missing a battery. Once the re-run is
 verified, promote it over the canonical directory and drop the variable.
-
-## Build
-
-```bash
-./build.sh            # extract → charts → pdflatex ×3 (color)
-./build.sh bw         # same, B&W figures
-```
-
-`build.sh` uses a local `pdflatex` if there is one and otherwise falls back to the
-`texlive/texlive` Docker image (override with `TEX_IMAGE=`), so no TeX installation is required —
-only Docker. If neither is present it still refreshes the results and figures, then stops with a
-note. Chart generation uses `uv run --no-project --with matplotlib`, so there is no project
-dependency either.
-
-After the three passes it greps the log for errors, overfull boxes and undefined
-references/citations before deleting it, and exits non-zero on a LaTeX error. A clean run prints
-only the `✓` line.
-
-Charts are authored at roughly the print text width with font sizes set once via
-`rcParams`. Authoring them wider and letting `\includegraphics[width=\textwidth]` shrink them is
-what makes axis labels come out at 4 pt — if you change a `figsize`, check the rendered PDF, not
-the PNG.
