@@ -603,12 +603,13 @@ and are excluded from that total.
 
 Hugging Face resolves \texttt{main} unless a revision is given, so naming a
 repository does not identify the weights a rerun will load. All results here
-use SAE repository
-\texttt{575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16} at
-commit \texttt{2380c95c}, and base checkpoint
+use our released SAE repository, anonymized for review at
+\url{https://anonymous-hf.com/a/iwucfbry1321/}, at commit \texttt{2380c95c},
+and base checkpoint
 \texttt{nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16} at commit
-\texttt{d468880b} --- the same weights the dictionaries were fitted on, which
-the SAE model card records under the pre-release name
+\texttt{d468880b}. That base checkpoint is what the dictionaries were fitted
+on, notwithstanding the \texttt{Lightning} build the SAE repository is named
+for; the SAE model card records it under the pre-release name
 \texttt{ga\_nvidia\_nemotron\_3\_5\_nano\_bf16\_07292026\_vv0.1} at code revision
 \texttt{65ae86b}. The distinction is not hypothetical: upstream \texttt{main}
 has since moved past the base commit we used. The SAE loader now sends its
