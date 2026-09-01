@@ -48,7 +48,12 @@ publishing numbers the report was not built from.
 `provenance.json` records the exact revisions and checksums behind these runs:
 the SAE repository at commit `2380c95c`, the base checkpoint
 `nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16` at `d468880b`, SHA-256 for all
-six SAE checkpoints and all 27 files of the stripped base checkpoint.
+six SAE checkpoints and all 27 files of the stripped base checkpoint. That base
+commit is what the *interventions* ran against, verified by inode against the
+Hugging Face cache. The dictionaries were fitted earlier, on the pre-release GA
+build `ga_nvidia_nemotron_3_5_nano_bf16_07292026_vv0.1` under code revision
+`65ae86b`, per the SAE model card; whether that build is bit-identical to the
+public release is not something these artifacts establish.
 
 `hf_hub_download` resolves `main` unless told otherwise, so naming a repository
 does not identify what a rerun loads. That is not a hypothetical risk here:
