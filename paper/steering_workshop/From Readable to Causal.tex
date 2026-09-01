@@ -106,8 +106,8 @@ Released JumpReLU SAEs \citep{ref_rajamanoharan2024} cover layers
 $\{6,13,20,27,34,43\}$ at the residual entering each layer, have 10,752
 features, and target $L_0=75$. They were trained, without contrastive
 supervision, on decision-token activations from the same generated corpus the
-in-distribution evaluation draws on: the 1,574,523 of 2,011,672 generated
-pairs whose two sides call different tools. 136 of the 150 unique demonstration and expanded requests occur in
+in-distribution evaluation draws on: the 1,574,523 of 2,011,672
+Qwen3-VL-generated pairs whose two sides call different tools. 136 of the 150 unique demonstration and expanded requests occur in
 it verbatim, and the second draw's 128 (Sect.~\ref{sec:limitations}) come from
 the same sweep.
 Each prompt lists six tools and ends with the prefill \texttt{I'll use the}.
@@ -620,12 +620,16 @@ draft stack. We run the base checkpoint with its multi-token
 prediction draft stack removed, which rewrites only the config and the shard
 index and hardlinks every weight shard, so the shards carry upstream's own
 checksums. SHA-256 for all six SAE checkpoints and all 27 base-checkpoint
-files are released with the run artifacts.
+files are released with the run artifacts. The auxiliary models are
+\texttt{Qwen/Qwen3-VL-235B-A22B-Instruct-FP8} for pair generation,
+\texttt{Qwen/Qwen3.6-35B-A3B} for feature labeling, and
+\texttt{google/gemma-4-31B-it} for label validation.
 
 \subsection{Licenses}
 
 The NVIDIA Nemotron-3.5-Nano-30B-A3B-BF16 checkpoint uses the OpenMDW License
-Agreement 1.1; Qwen's Qwen3-VL-235B-A22B-Instruct-FP8 uses Apache-2.0.
+Agreement 1.1; the three auxiliary Qwen and Gemma models named above use
+Apache-2.0.
 The released SAE checkpoints, labels, reports, code, pair definitions, run
 artifacts and regeneration scripts use Apache-2.0.
 PyTorch uses BSD-3-Clause (its binaries include separately licensed
@@ -633,9 +637,9 @@ components); Hugging Face Transformers and vLLM use Apache-2.0.
 
 \subsection{Feature labels}
 
-The SAE release generated labels with Qwen3-VL-235B-A22B-Instruct-FP8 from
-maximally activating examples and evaluated them with an A/B fuzzing judge on
-token-highlighted texts. It reports mean combined scores of 0.92 over 2,493
+The SAE release generated labels with Qwen3.6-35B-A3B from maximally
+activating examples and evaluated them with an A/B fuzzing judge from a
+different model family on token-highlighted texts. It reports mean combined scores of 0.92 over 2,493
 features at layer 34 and 0.95 over 3,380 at layer 43. Causal effects come from
 activations, but labels determine family merging, so errors can alter
 composition and counts. Sensitivity to annotations and the 0.6 merge threshold
