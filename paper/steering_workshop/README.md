@@ -16,8 +16,9 @@ steering study. It lives on branch steering-workshop-five-page in the separate
   health screen reproduces without the 478 MB activation captures.
 - build.sh compiles the PDF with local TeX or Docker.
 
-Before submission, replace the placeholder in workshoptitle and verify whether
-the target workshop uses dblblindworkshop or sglblindworkshop.
+Targets the NeurIPS 2026 Workshop on Interpretability for Discovery.
+Still unverified before submission: whether that workshop uses
+dblblindworkshop or sglblindworkshop. The source currently sets the former.
 
 Build with:
 
