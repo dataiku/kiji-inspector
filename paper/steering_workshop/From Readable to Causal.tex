@@ -162,11 +162,12 @@ both at the full donor--recipient norm and at the smaller norm of the cue
 clamp.
 
 Expanded pairs are near-duplicates within a contrast and both directions are
-dependent, so we report exact dependent counts. A 100,000-draw bootstrap
-resamples the ten scenario-by-contrast clusters with replacement, retaining
-every observation in each drawn cluster. The paired cue--dense comparison instead uses
-exact multinomially-weighted enumeration, scenario-stratified over its eight
-clusters (Appendix). With so few clusters these percentile brackets are
+dependent, so we report exact dependent counts. We resample whole
+scenario-by-contrast clusters, retaining every observation in a drawn cluster,
+stratified within scenario so the design's fixed 32 pairs per scenario is
+preserved, and enumerate the resampling distribution exactly rather than
+sampling it, weighting each count vector by its multiplicity (Appendix). With
+so few clusters these percentile brackets are
 uncalibrated and likely to understate uncertainty, not nominal 95\%
 intervals. We do not attach tests that treat intervention rows as independent.
 
@@ -373,7 +374,7 @@ logs, and pre/post-block interventions.
 
 Internal uncertainty is substantial: the expanded pairs span ten clusters and
 contain near-duplicates, and the bootstrap brackets for selected-layer ablation
-and bulk cross-patch, 0.40--0.66 and 0.16--0.49, likely under-cover. The contrast quota changes the estimand, and selecting primary
+and bulk cross-patch, 0.42--0.66 and 0.16--0.48, likely under-cover. The contrast quota changes the estimand, and selecting primary
 layers on the demonstration grid inflates their counts. The second draw preserves the depth
 ordering but varies materially (Appendix), so we do not pool it.
 
@@ -605,8 +606,11 @@ commit \texttt{2380c95c}, and base checkpoint
 the SAE model card records under the pre-release name
 \texttt{ga\_nvidia\_nemotron\_3\_5\_nano\_bf16\_07292026\_vv0.1} at code revision
 \texttt{65ae86b}. The distinction is not hypothetical: upstream \texttt{main}
-has since moved past the base commit we used. The loader now pins these by
-default. We run the base checkpoint with its multi-token
+has since moved past the base commit we used. The SAE loader now sends its
+pinned revision by default; the base checkpoint is passed as a local
+directory, so it is pinned by fetching that revision explicitly
+(\texttt{hf download \ldots{} --revision d468880b}) before stripping the
+draft stack. We run the base checkpoint with its multi-token
 prediction draft stack removed, which rewrites only the config and the shard
 index and hardlinks every weight shard, so the shards carry upstream's own
 checksums. SHA-256 for all six SAE checkpoints and all 27 base-checkpoint

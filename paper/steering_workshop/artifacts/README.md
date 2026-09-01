@@ -62,8 +62,11 @@ SAE model card records under their pre-release name
 does not identify what a rerun loads. That is not a hypothetical risk here:
 upstream `main` for the base model has moved past the commit these results were
 produced against. `src/kiji_inspector/core/registry.py` now pins every
-registered repo and the loader sends the pin by default; pass
-`revision="main"` to opt back into the head.
+registered repo and the SAE loader sends the pin by default; pass
+`revision="main"` to opt back into the head. The base checkpoint is supplied as
+a local directory rather than fetched by the loader, so its pin is applied by
+downloading that revision explicitly — see
+[docs/index.md](../../../docs/index.md#checkpoints-with-an-mtp-draft-stack).
 
 The stripped base checkpoint is a thin derivation: `strip_mtp` rewrites only
 `config.json` and `model.safetensors.index.json` and hardlinks every weight

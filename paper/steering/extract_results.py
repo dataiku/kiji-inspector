@@ -463,17 +463,28 @@ def layer_battery(
     }
 
 
-def clustered_flip_intervals(
-    scenarios: dict[str, int], draws: int = 100_000, seed: int = 2026
-) -> dict:
-    """Percentile intervals from a contrast-type cluster bootstrap.
+def clustered_flip_intervals(scenarios: dict[str, int]) -> dict:
+    """Percentile brackets from an exact whole-cluster resampling.
 
     A cluster is the canonical pair title in pairs.json. Resampling whole
     clusters preserves dependence between the two directions of a pair and
     among near-duplicate pairs of the same contrast type. Scenario names are
-    included in cluster IDs so similarly named contrasts remain distinct.
+    included in cluster IDs so similarly named contrasts stay distinct.
+
+    Resampling is stratified by scenario, and enumerated rather than sampled.
+    Stratifying matters because the design fixed 32 pairs per scenario: pooling
+    the ten clusters lets a resample draw eight supply-chain clusters and two
+    customer-support ones, varying a scenario mix the study held constant, and
+    that shows up as extra spread the design does not have. Enumerating removes
+    the seed dependence --- 35 count vectors for one scenario's four clusters
+    and 462 for the other's six, 16,170 together, each weighted by the ordered
+    draws that produce it.
+
+    ``pooled`` keeps the unstratified version as a check that the conclusion
+    does not rest on how the strata were drawn.
     """
     clusters: dict[str, dict[str, int]] = {}
+    strata: dict[str, list[str]] = {}
     for scenario, layer in scenarios.items():
         pairs = _load(STEER / scenario / "pairs.json") or {}
         res = _load(
@@ -483,9 +494,12 @@ def clustered_flip_intervals(
             continue
         titles = {p["id"]: p["title"] for p in pairs.get("pairs", [])}
         for pair_id, title in titles.items():
+            key = f"{scenario}:{title}"
             cluster = clusters.setdefault(
-                f"{scenario}:{title}", {"ab_k": 0, "ab_n": 0, "cp_k": 0, "cp_n": 0}
+                key, {"ab_k": 0, "ab_n": 0, "cp_k": 0, "cp_n": 0}
             )
+            if key not in strata.setdefault(scenario, []):
+                strata[scenario].append(key)
             for v in (res.get("attribution", {}).get(pair_id) or {}).values():
                 if not v:
                     continue
@@ -504,43 +518,48 @@ def clustered_flip_intervals(
                     _flip(v.get("allRows"), target) or _flip(v.get("allBase"), target)
                 )
 
-    ids = sorted(clusters)
-    rng = random.Random(seed)
-    sampled = {"ablation": [], "crossPatch": []}
-    for _ in range(draws):
-        chosen = [clusters[rng.choice(ids)] for _ in ids]
-        sampled["ablation"].append(
-            sum(c["ab_k"] for c in chosen) / sum(c["ab_n"] for c in chosen)
-        )
-        sampled["crossPatch"].append(
-            sum(c["cp_k"] for c in chosen) / sum(c["cp_n"] for c in chosen)
-        )
+    order = ("ab_k", "ab_n", "cp_k", "cp_n")
+    arms = {"ablation": (0, 1), "crossPatch": (2, 3)}
 
+    def brackets(groups: list[list[str]]) -> dict:
+        atoms = _enumerate_resamples(
+            [[tuple(clusters[k][f] for f in order) for k in g] for g in groups]
+        )
+        out = {"vectors": len(atoms), "orderedDraws": sum(w for w, _ in atoms)}
+        for arm, (num, den) in arms.items():
+            vals = [(w, v[num] / v[den]) for w, v in atoms if v[den]]
+            out[arm] = {
+                "lo": round(_weighted_percentile(vals, 0.025), 4),
+                "hi": round(_weighted_percentile(vals, 0.975), 4),
+            }
+        return out
+
+    stratified = brackets([g for _, g in sorted(strata.items())])
+    pooled = brackets([sorted(clusters)])
     totals = {
-        "ablation": (
-            sum(c["ab_k"] for c in clusters.values()),
-            sum(c["ab_n"] for c in clusters.values()),
-        ),
-        "crossPatch": (
-            sum(c["cp_k"] for c in clusters.values()),
-            sum(c["cp_n"] for c in clusters.values()),
-        ),
+        arm: (
+            sum(c[order[num]] for c in clusters.values()),
+            sum(c[order[den]] for c in clusters.values()),
+        )
+        for arm, (num, den) in arms.items()
     }
     return {
         "unit": "scenario and contrast title",
-        "clusters": len(ids),
-        "draws": draws,
-        "seed": seed,
+        "method": "exact multinomially-weighted enumeration, scenario-stratified",
+        "clusters": len(clusters),
+        "clustersPerScenario": {s: len(g) for s, g in sorted(strata.items())},
+        "vectors": stratified["vectors"],
+        "orderedDraws": stratified["orderedDraws"],
         **{
-            key: {
-                "k": totals[key][0],
-                "n": totals[key][1],
-                "rate": round(totals[key][0] / totals[key][1], 4),
-                "lo": round(_percentile(sampled[key], 0.025), 4),
-                "hi": round(_percentile(sampled[key], 0.975), 4),
+            arm: {
+                "k": totals[arm][0],
+                "n": totals[arm][1],
+                "rate": round(totals[arm][0] / totals[arm][1], 4),
+                **stratified[arm],
             }
-            for key in sampled
+            for arm in arms
         },
+        "pooled": pooled,
     }
 
 

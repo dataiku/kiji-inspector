@@ -85,11 +85,25 @@ published run reads a stripped variant of the checkpoint. The `-no-mtp` paths
 in the demo READMEs and sweep scripts refer to that directory; nothing creates
 it for you.
 
+The base checkpoint is passed to the pipeline as a local directory, so nothing
+in the loader pins its revision the way `registry.py` pins the SAE repos — fetch
+the revision explicitly, then strip:
+
 ```bash
+hf download nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16 \
+  --revision d468880b6ad3c6e0d21377ce7242adaea4cc884d \
+  --local-dir ~/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16
+
 uv run python -m kiji_inspector.utils.strip_mtp \
   ~/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16 \
   ~/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp
 ```
+
+`d468880b` is the revision the published results were produced against, and is
+recorded in `BASE_MODEL_REVISIONS` alongside the SAE pins. Per-file SHA-256 for
+the stripped result are in
+`paper/steering_workshop/artifacts/provenance.json`, so a fetch at the wrong
+revision is detectable rather than silent.
 
 It removes the 270 `mtp.*` tensors (6,513 → 6,243), drops the one shard that
 held only those, and rewrites `config.json` (`num_nextn_predict_layers` to 0,

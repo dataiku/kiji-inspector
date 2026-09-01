@@ -36,8 +36,10 @@ MODEL_REVISIONS: dict[str, str] = {
 }
 
 # The base checkpoints the SAEs were trained on, pinned for the same reason.
-# Not used by the loader --- these are weights the user supplies --- but the
-# provenance record and the paper both cite them, so they live beside the rest.
+# Not applied by the loader: the base checkpoint is passed to the pipeline as a
+# local directory, so this pin is honoured by fetching that revision before
+# stripping (see docs/index.md), not by any code path here. The provenance
+# record and the paper both cite it, so it lives beside the rest.
 BASE_MODEL_REVISIONS: dict[str, str] = {
     "nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16": "d468880b6ad3c6e0d21377ce7242adaea4cc884d",
 }

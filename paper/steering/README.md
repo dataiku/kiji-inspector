@@ -41,9 +41,13 @@ The report also carries blocks the demo READMEs do not:
   through `stats.layerSelection` and the prose, since they exist to bound the primary numbers
   rather than to stand on their own.
 - `stats` — every interval and test the paper quotes. All closed-form, no libraries:
-  - `wilson`, `clusterBootstrapExpanded` — headline proportions, the latter resampling contrast
-    types rather than sides. With ten clusters a percentile bootstrap under-covers, so the paper
-    treats those brackets as a floor on the uncertainty and the counts as the result.
+  - `wilson`, `clusterBootstrapExpanded` — headline proportions, the latter resampling whole
+    contrast-type clusters rather than sides. Stratified within scenario, because the design fixed
+    32 pairs per scenario and pooling the ten clusters lets a resample vary that mix; `pooled`
+    keeps the unstratified version as a check (it widens ablation to 0.40–0.66). Enumerated
+    exactly — 35 count vectors for one scenario's four clusters, 462 for the other's six — so the
+    endpoints carry no seed dependence. With ten clusters a percentile bracket still under-covers,
+    so the paper treats these as uncalibrated ranges and the counts as the result.
   - `paired` / `pairedExpanded` — exceedance against each control family (`setMatched`,
     `deltaMatched`, `contrastMatched`), each split into genuinely matched sides and *ceiling* sides
     where the pool could not reach the target; `massAudit` records how much heavier a cue set is

@@ -4752,22 +4752,39 @@
   },
   "clusterBootstrapExpanded": {
    "unit": "scenario and contrast title",
+   "method": "exact multinomially-weighted enumeration, scenario-stratified",
    "clusters": 10,
-   "draws": 100000,
-   "seed": 2026,
+   "clustersPerScenario": {
+    "customer_support_expanded": 6,
+    "supply_chain_expanded": 4
+   },
+   "vectors": 16170,
+   "orderedDraws": 11943936,
    "ablation": {
     "k": 68,
     "n": 128,
     "rate": 0.5312,
-    "lo": 0.402,
-    "hi": 0.6639
+    "lo": 0.4216,
+    "hi": 0.6562
    },
    "crossPatch": {
     "k": 41,
     "n": 128,
     "rate": 0.3203,
-    "lo": 0.1642,
-    "hi": 0.4851
+    "lo": 0.1641,
+    "hi": 0.4821
+   },
+   "pooled": {
+    "vectors": 92378,
+    "orderedDraws": 10000000000,
+    "ablation": {
+     "lo": 0.403,
+     "hi": 0.6641
+    },
+    "crossPatch": {
+     "lo": 0.1641,
+     "hi": 0.4841
+    }
    }
   },
   "designWeighted": {
@@ -5543,22 +5560,39 @@
     ],
     "clusterBootstrap": {
      "unit": "scenario and contrast title",
+     "method": "exact multinomially-weighted enumeration, scenario-stratified",
      "clusters": 10,
-     "draws": 100000,
-     "seed": 2026,
+     "clustersPerScenario": {
+      "customer_support_l27": 6,
+      "supply_chain_l27": 4
+     },
+     "vectors": 16170,
+     "orderedDraws": 11943936,
      "ablation": {
       "k": 20,
       "n": 128,
       "rate": 0.1562,
-      "lo": 0.0889,
-      "hi": 0.2153
+      "lo": 0.0887,
+      "hi": 0.2143
      },
      "crossPatch": {
       "k": 15,
       "n": 128,
       "rate": 0.1172,
-      "lo": 0.037,
-      "hi": 0.2025
+      "lo": 0.0375,
+      "hi": 0.2
+     },
+     "pooled": {
+      "vectors": 92378,
+      "orderedDraws": 10000000000,
+      "ablation": {
+       "lo": 0.0893,
+       "hi": 0.2153
+      },
+      "crossPatch": {
+       "lo": 0.037,
+       "hi": 0.2019
+      }
      }
     },
     "perScenario": {
