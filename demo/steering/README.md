@@ -137,7 +137,7 @@ Each demo's README carries its own commands. The shared shape:
 DOCKER="docker run --rm --gpus all -v $PWD:/workspace -v /path/to/models:/models:ro \
   -v ${HF_CACHE:-$HOME/.cache/huggingface}:/root/.cache/huggingface -e HF_HOME=/root/.cache/huggingface \
   -e PYTHONPATH=/workspace/src:/workspace/demo/tool_selection -w /workspace 575lab/kiji-inspector:dev"
-MODEL=/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp
+MODEL=/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp   # built by strip_mtp; see docs/index.md
 
 $DOCKER python demo/tool_selection/capture_decisions.py --model-name $MODEL --scenario <name>
 $DOCKER bash -c 'pip install -q "kernels>=0.15.2,<0.16" && \

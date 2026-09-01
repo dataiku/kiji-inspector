@@ -152,6 +152,11 @@ Note: `SAE.from_pretrained(base_model=...)` resolves SAE repos through an
 exact-match registry of hub IDs, so it won't match a local path — pass
 `repo_id` directly instead.
 
+Note: checkpoints that ship a multi-token-prediction draft stack (Nemotron-3.5
+does) are run from a stripped variant — the `-no-mtp` directories the demo
+READMEs reference. Build one with `python -m kiji_inspector.utils.strip_mtp
+SRC DST`; see [docs/index.md](docs/index.md#checkpoints-with-an-mtp-draft-stack).
+
 ---
 
 ## 📓 Examples

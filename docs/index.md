@@ -76,6 +76,34 @@ Nemotron-3-Nano is a Mixture-of-Experts model (30B total parameters, 3B active p
 
 Qwen3.6-35B-A3B is a hybrid GatedDeltaNet/attention Mixture-of-Experts model (35B total parameters, 3B active per token) with 40 layers and a hidden dimension of 2048 (nested under `text_config`); layer count and `d_sae` are auto-detected by the pipeline. Trained SAEs for this model (layers 12/20/28/36) are published at [`575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B`](https://huggingface.co/575-lab/kiji-inspector-Qwen-Qwen3.6-35B-A3B) and resolve through the model registry via `SAE.from_pretrained(base_model="Qwen/Qwen3.6-35B-A3B", layer=...)`.
 
+### Checkpoints with an MTP draft stack
+
+Nemotron-3.5-Nano ships an auxiliary multi-token-prediction draft stack
+(`num_nextn_predict_layers: 1`, weights under the `mtp.` prefix). The pipeline
+never uses it and the extractor supplies its own `speculative_config`, so every
+published run reads a stripped variant of the checkpoint. The `-no-mtp` paths
+in the demo READMEs and sweep scripts refer to that directory; nothing creates
+it for you.
+
+```bash
+uv run python -m kiji_inspector.utils.strip_mtp \
+  ~/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16 \
+  ~/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp
+```
+
+It removes the 270 `mtp.*` tensors (6,513 → 6,243), drops the one shard that
+held only those, and rewrites `config.json` (`num_nextn_predict_layers` to 0,
+dropping `mtp_hybrid_override_pattern` and `mtp_layers_block_type`) and
+`model.safetensors.index.json`. Every kept shard is hardlinked, so the variant
+costs almost no extra disk — and, because the bytes are unchanged, carries
+upstream's own checksums. Only checkpoints whose MTP tensors live in their own
+shards are supported; a mixed shard is rejected rather than rewritten.
+
+This is a checkpoint-compatibility precaution, not a correctness requirement:
+the stripped stack is inert either way. It is what the published results were
+produced against, recorded per file in
+`paper/steering_workshop/artifacts/provenance.json`.
+
 ## Quick Start
 
 ```bash
