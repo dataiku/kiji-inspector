@@ -25,6 +25,11 @@ ROOT = Path(__file__).resolve().parents[2]
 STEER = ROOT / "demo" / "steering"
 OUT = Path(__file__).resolve().parent / "results" / "steering_report.json"
 GATE_POP = Path(__file__).resolve().parent / "results" / "gate_population.json"
+# The ten batteries the workshop paper reads, copied out of the ignored
+# ``output/`` trees so its numbers can be regenerated from the repository alone.
+# ``KIJI_ARTIFACTS=1`` reads those in place of the full runs, which is what
+# proves the published subset is sufficient rather than merely present.
+ARTIFACTS = Path(__file__).resolve().parents[1] / "steering_workshop" / "artifacts"
 
 LAYERS = [6, 13, 20, 27, 34, 43]
 # scenario -> layer the demo is read at (None = layer study only, no page)
@@ -56,8 +61,24 @@ EARLY = [6, 13, 20]
 SUFFIX = os.environ.get("KIJI_SUFFIX", "")
 
 
+def _scenario_dir(scenario: str) -> Path:
+    """Where this scenario's battery directories live.
+
+    Read at call time, not import time, so a test can point the extractor at
+    the published artifacts without reimporting the module.
+    """
+    if os.environ.get("KIJI_ARTIFACTS"):
+        return ARTIFACTS / scenario
+    return STEER / scenario / "output"
+
+
+def _ceiling_path(scenario: str, layer: int) -> Path:
+    """The full-residual-patch run for one scenario and layer."""
+    return _scenario_dir(scenario) / f"ceiling_layer{layer}" / "ceiling_results.json"
+
+
 def _battery_dir(scenario: str, name: str) -> Path:
-    base = STEER / scenario / "output"
+    base = _scenario_dir(scenario)
     alt = base / f"{name}{SUFFIX}"
     # A re-run directory that exists but holds no results yet is a battery
     # still on the GPU; fall back rather than silently drop it from the report.
@@ -1116,9 +1137,7 @@ def sparse_recovery(scenarios: dict[str, int]) -> dict | None:
     random_matched_flips = random_matched_draws = 0
     per_scenario: dict[str, dict] = {}
     for scenario, layer in scenarios.items():
-        ceil = _load(
-            STEER / scenario / "output" / f"ceiling_layer{layer}" / "ceiling_results.json"
-        )
+        ceil = _load(_ceiling_path(scenario, layer))
         res = _load(_battery_dir(scenario, f"steering_layer{layer}") / "steering_results.json")
         if not ceil or not res:
             continue
@@ -1259,7 +1278,7 @@ def _paired_arms(scenario: str, layer: int):
     already gets "right" cannot be scored as a success for any arm.
     """
     res = _load(_battery_dir(scenario, f"steering_layer{layer}") / "steering_results.json")
-    ceil = _load(STEER / scenario / "output" / f"ceiling_layer{layer}" / "ceiling_results.json")
+    ceil = _load(_ceiling_path(scenario, layer))
     pairs = _load(STEER / scenario / "pairs.json") or {}
     if not res or not ceil:
         return

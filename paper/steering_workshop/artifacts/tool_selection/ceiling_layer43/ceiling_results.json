@@ -1,0 +1,567 @@
+{
+  "model": "/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp",
+  "layer": 43,
+  "scenario": "tool_selection",
+  "draws": 3,
+  "seed": 0,
+  "directions": {
+    "internal_vs_external": {
+      "a_into_b": {
+        "donorStep": "internal_vs_external_A",
+        "recipientStep": "internal_vs_external_B",
+        "targetTool": "internal_search",
+        "baselineChoice": "web_search",
+        "baselineTarget": 0.0004,
+        "differenceNorm": 145.5694,
+        "recipientNorm": 273.2811,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.9972,
+          "deltaTarget": 0.9968,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 95.3655,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "web_search",
+            "pTarget": 0.0001
+          },
+          {
+            "draw": 1,
+            "choice": "web_search",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 2,
+            "choice": "web_search",
+            "pTarget": 0.0008
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "internal_vs_external_B",
+        "recipientStep": "internal_vs_external_A",
+        "targetTool": "web_search",
+        "baselineChoice": "internal_search",
+        "baselineTarget": 0.0001,
+        "differenceNorm": 145.5694,
+        "recipientNorm": 283.7272,
+        "ceiling": {
+          "choice": "web_search",
+          "pTarget": 0.9859,
+          "deltaTarget": 0.9858,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 82.3699,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "internal_search",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "internal_search",
+            "pTarget": 0.0001
+          },
+          {
+            "draw": 2,
+            "choice": "internal_search",
+            "pTarget": 0.0
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "specific_vs_broad": {
+      "a_into_b": {
+        "donorStep": "specific_vs_broad_A",
+        "recipientStep": "specific_vs_broad_B",
+        "targetTool": "file_read",
+        "baselineChoice": "internal_search",
+        "baselineTarget": 0.0083,
+        "differenceNorm": 130.2841,
+        "recipientNorm": 270.814,
+        "ceiling": {
+          "choice": "file_read",
+          "pTarget": 0.8162,
+          "deltaTarget": 0.8079,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 62.2564,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "internal_search",
+            "pTarget": 0.0022
+          },
+          {
+            "draw": 1,
+            "choice": "internal_search",
+            "pTarget": 0.0056
+          },
+          {
+            "draw": 2,
+            "choice": "internal_search",
+            "pTarget": 0.0095
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "specific_vs_broad_B",
+        "recipientStep": "specific_vs_broad_A",
+        "targetTool": "internal_search",
+        "baselineChoice": "file_read",
+        "baselineTarget": 0.0675,
+        "differenceNorm": 130.2841,
+        "recipientNorm": 266.1935,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.9568,
+          "deltaTarget": 0.8893,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 42.6721,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "file_read",
+            "pTarget": 0.0675
+          },
+          {
+            "draw": 1,
+            "choice": "file_read",
+            "pTarget": 0.0758
+          },
+          {
+            "draw": 2,
+            "choice": "file_read",
+            "pTarget": 0.0675
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_remote": {
+      "a_into_b": {
+        "donorStep": "local_vs_remote_A",
+        "recipientStep": "local_vs_remote_B",
+        "targetTool": "file_read",
+        "baselineChoice": "api_call",
+        "baselineTarget": 0.002,
+        "differenceNorm": 150.8486,
+        "recipientNorm": 253.1545,
+        "ceiling": {
+          "choice": "file_read",
+          "pTarget": 0.9976,
+          "deltaTarget": 0.9956,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 116.6361,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "api_call",
+            "pTarget": 0.0007
+          },
+          {
+            "draw": 1,
+            "choice": "api_call",
+            "pTarget": 0.0279
+          },
+          {
+            "draw": 2,
+            "choice": "api_call",
+            "pTarget": 0.0015
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_remote_B",
+        "recipientStep": "local_vs_remote_A",
+        "targetTool": "api_call",
+        "baselineChoice": "file_read",
+        "baselineTarget": 0.0,
+        "differenceNorm": 150.8486,
+        "recipientNorm": 264.3847,
+        "ceiling": {
+          "choice": "api_call",
+          "pTarget": 0.5174,
+          "deltaTarget": 0.5174,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 38.5209,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "file_read",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "file_read",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 2,
+            "choice": "file_read",
+            "pTarget": 0.0
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "verified_vs_unverified": {
+      "a_into_b": {
+        "donorStep": "verified_vs_unverified_A",
+        "recipientStep": "verified_vs_unverified_B",
+        "targetTool": "internal_search",
+        "baselineChoice": "web_search",
+        "baselineTarget": 0.0,
+        "differenceNorm": 148.592,
+        "recipientNorm": 272.1046,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.9914,
+          "deltaTarget": 0.9914,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 95.9799,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "web_search",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "web_search",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 2,
+            "choice": "web_search",
+            "pTarget": 0.0
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "verified_vs_unverified_B",
+        "recipientStep": "verified_vs_unverified_A",
+        "targetTool": "web_search",
+        "baselineChoice": "internal_search",
+        "baselineTarget": 0.0,
+        "differenceNorm": 148.592,
+        "recipientNorm": 280.3122,
+        "ceiling": {
+          "choice": "web_search",
+          "pTarget": 0.9987,
+          "deltaTarget": 0.9987,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 77.6066,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "internal_search",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "internal_search",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 2,
+            "choice": "internal_search",
+            "pTarget": 0.0
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "query_vs_mutate": {
+      "a_into_b": {
+        "donorStep": "query_vs_mutate_A",
+        "recipientStep": "query_vs_mutate_B",
+        "targetTool": "internal_search",
+        "baselineChoice": "file_read",
+        "baselineTarget": 0.1575,
+        "differenceNorm": 76.9121,
+        "recipientNorm": 256.8748,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.6159,
+          "deltaTarget": 0.4584,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 9.0728,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "file_read",
+            "pTarget": 0.1693
+          },
+          {
+            "draw": 1,
+            "choice": "file_read",
+            "pTarget": 0.1952
+          },
+          {
+            "draw": 2,
+            "choice": "file_read",
+            "pTarget": 0.1587
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "query_vs_mutate_B",
+        "recipientStep": "query_vs_mutate_A",
+        "targetTool": "file_read",
+        "baselineChoice": "internal_search",
+        "baselineTarget": 0.3737,
+        "differenceNorm": 76.9121,
+        "recipientNorm": 255.2808,
+        "ceiling": {
+          "choice": "file_read",
+          "pTarget": 0.7517,
+          "deltaTarget": 0.378,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 40.7454,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "internal_search",
+            "pTarget": 0.3463
+          },
+          {
+            "draw": 1,
+            "choice": "internal_search",
+            "pTarget": 0.3467
+          },
+          {
+            "draw": 2,
+            "choice": "internal_search",
+            "pTarget": 0.2916
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "direct_vs_delegated": {
+      "a_into_b": {
+        "donorStep": "direct_vs_delegated_A",
+        "recipientStep": "direct_vs_delegated_B",
+        "targetTool": "database_query",
+        "baselineChoice": "internal_search",
+        "baselineTarget": 0.0026,
+        "differenceNorm": 102.0336,
+        "recipientNorm": 284.9251,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.4244,
+          "deltaTarget": 0.4218,
+          "flipped": false
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 18.4718,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "internal_search",
+            "pTarget": 0.0018
+          },
+          {
+            "draw": 1,
+            "choice": "internal_search",
+            "pTarget": 0.006
+          },
+          {
+            "draw": 2,
+            "choice": "internal_search",
+            "pTarget": 0.006
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "direct_vs_delegated_B",
+        "recipientStep": "direct_vs_delegated_A",
+        "targetTool": "internal_search",
+        "baselineChoice": "database_query",
+        "baselineTarget": 0.2694,
+        "differenceNorm": 102.0336,
+        "recipientNorm": 275.3373,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.8851,
+          "deltaTarget": 0.6157,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 58.9305,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "database_query",
+            "pTarget": 0.2434
+          },
+          {
+            "draw": 1,
+            "choice": "database_query",
+            "pTarget": 0.1875
+          },
+          {
+            "draw": 2,
+            "choice": "database_query",
+            "pTarget": 0.3163
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "single_vs_batch": {
+      "a_into_b": {
+        "donorStep": "single_vs_batch_A",
+        "recipientStep": "single_vs_batch_B",
+        "targetTool": "database_query",
+        "baselineChoice": "internal_search",
+        "baselineTarget": 0.2156,
+        "differenceNorm": 62.0871,
+        "recipientNorm": 260.6545,
+        "ceiling": {
+          "choice": "database_query",
+          "pTarget": 0.5964,
+          "deltaTarget": 0.3808,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 22.2533,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "internal_search",
+            "pTarget": 0.2865
+          },
+          {
+            "draw": 1,
+            "choice": "internal_search",
+            "pTarget": 0.309
+          },
+          {
+            "draw": 2,
+            "choice": "internal_search",
+            "pTarget": 0.2578
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "single_vs_batch_B",
+        "recipientStep": "single_vs_batch_A",
+        "targetTool": "internal_search",
+        "baselineChoice": "database_query",
+        "baselineTarget": 0.2831,
+        "differenceNorm": 62.0871,
+        "recipientNorm": 260.3862,
+        "ceiling": {
+          "choice": "internal_search",
+          "pTarget": 0.6837,
+          "deltaTarget": 0.4006,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 10.9887,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "database_query",
+            "pTarget": 0.2847
+          },
+          {
+            "draw": 1,
+            "choice": "database_query",
+            "pTarget": 0.2807
+          },
+          {
+            "draw": 2,
+            "choice": "database_query",
+            "pTarget": 0.3344
+          }
+        ],
+        "randomFlips": 0
+      }
+    }
+  },
+  "summary": {
+    "ceilingFlips": 13,
+    "directions": 14,
+    "dimFlips": 0,
+    "dimDirections": 0,
+    "randomFlips": 0,
+    "randomDraws": 42,
+    "dimMatchedFlips": 0,
+    "dimMatchedDirections": 0,
+    "randomMatchedFlips": 0,
+    "randomMatchedDraws": 0
+  }
+}

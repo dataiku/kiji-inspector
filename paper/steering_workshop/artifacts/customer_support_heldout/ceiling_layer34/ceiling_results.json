@@ -1,0 +1,903 @@
+{
+  "model": "/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp",
+  "layer": 34,
+  "scenario": "customer_support_heldout",
+  "draws": 3,
+  "seed": 0,
+  "directions": {
+    "coverage_vs_repair_0": {
+      "a_into_b": {
+        "donorStep": "coverage_vs_repair_0_A",
+        "recipientStep": "coverage_vs_repair_0_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0026,
+        "differenceNorm": 56.6924,
+        "recipientNorm": 120.2447,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.3376,
+          "deltaTarget": 0.335,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "knowledge_base",
+          "pTarget": 0.1723,
+          "deltaTarget": 0.1697,
+          "flipped": false
+        },
+        "clampDeltaNorm": 26.3891,
+        "differenceInMeansMatched": {
+          "norm": 26.3891,
+          "choice": "knowledge_base",
+          "pTarget": 0.0331,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0038
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0018
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0026
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "coverage_vs_repair_0_B",
+        "recipientStep": "coverage_vs_repair_0_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0839,
+        "differenceNorm": 56.6924,
+        "recipientNorm": 122.9257,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8229,
+          "deltaTarget": 0.739,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "knowledge_base",
+          "pTarget": 0.6724,
+          "deltaTarget": 0.5885,
+          "flipped": true
+        },
+        "clampDeltaNorm": 30.6821,
+        "differenceInMeansMatched": {
+          "norm": 30.6821,
+          "choice": "customer_history",
+          "pTarget": 0.2758,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0344
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.1221
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0475
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "many_customers_vs_one_customer_0": {
+      "a_into_b": {
+        "donorStep": "many_customers_vs_one_customer_0_A",
+        "recipientStep": "many_customers_vs_one_customer_0_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.1972,
+        "differenceNorm": 34.4978,
+        "recipientNorm": 121.3507,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.6587,
+          "deltaTarget": 0.4615,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "knowledge_base",
+          "pTarget": 0.6875,
+          "deltaTarget": 0.4903,
+          "flipped": true
+        },
+        "clampDeltaNorm": 14.416,
+        "differenceInMeansMatched": {
+          "norm": 14.416,
+          "choice": "ticket_lookup",
+          "pTarget": 0.3421,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.146
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1621
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1793
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "many_customers_vs_one_customer_0_B",
+        "recipientStep": "many_customers_vs_one_customer_0_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.1574,
+        "differenceNorm": 34.4978,
+        "recipientNorm": 124.1685,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.5753,
+          "deltaTarget": 0.4179,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "ticket_lookup",
+          "pTarget": 0.6247,
+          "deltaTarget": 0.4673,
+          "flipped": true
+        },
+        "clampDeltaNorm": 9.2243,
+        "differenceInMeansMatched": {
+          "norm": 9.2243,
+          "choice": "knowledge_base",
+          "pTarget": 0.2828,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0731
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.1919
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.217
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "many_customers_vs_one_customer_1": {
+      "a_into_b": {
+        "donorStep": "many_customers_vs_one_customer_1_A",
+        "recipientStep": "many_customers_vs_one_customer_1_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0715,
+        "differenceNorm": 42.0661,
+        "recipientNorm": 123.0489,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.5776,
+          "deltaTarget": 0.5061,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "knowledge_base",
+          "pTarget": 0.635,
+          "deltaTarget": 0.5635,
+          "flipped": true
+        },
+        "clampDeltaNorm": 14.0671,
+        "differenceInMeansMatched": {
+          "norm": 14.0671,
+          "choice": "ticket_lookup",
+          "pTarget": 0.1571,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0558
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0713
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0711
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "many_customers_vs_one_customer_1_B",
+        "recipientStep": "many_customers_vs_one_customer_1_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.264,
+        "differenceNorm": 42.0661,
+        "recipientNorm": 123.3189,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.8068,
+          "deltaTarget": 0.5428,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "ticket_lookup",
+          "pTarget": 0.8194,
+          "deltaTarget": 0.5554,
+          "flipped": true
+        },
+        "clampDeltaNorm": 19.2309,
+        "differenceInMeansMatched": {
+          "norm": 19.2309,
+          "choice": "ticket_lookup",
+          "pTarget": 0.5505,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.2884
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.2408
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.218
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "past_orders_vs_open_invoice_0": {
+      "a_into_b": {
+        "donorStep": "past_orders_vs_open_invoice_0_A",
+        "recipientStep": "past_orders_vs_open_invoice_0_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2606,
+        "differenceNorm": 42.4725,
+        "recipientNorm": 121.3534,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.7515,
+          "deltaTarget": 0.4909,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "customer_history",
+          "pTarget": 0.5875,
+          "deltaTarget": 0.3269,
+          "flipped": true
+        },
+        "clampDeltaNorm": 11.055,
+        "differenceInMeansMatched": {
+          "norm": 11.055,
+          "choice": "billing_system",
+          "pTarget": 0.3346,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2182
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1975
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.3683
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "past_orders_vs_open_invoice_0_B",
+        "recipientStep": "past_orders_vs_open_invoice_0_A",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0184,
+        "differenceNorm": 42.4725,
+        "recipientNorm": 120.2912,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.2936,
+          "deltaTarget": 0.2752,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "customer_history",
+          "pTarget": 0.1642,
+          "deltaTarget": 0.1458,
+          "flipped": false
+        },
+        "clampDeltaNorm": 28.3081,
+        "differenceInMeansMatched": {
+          "norm": 28.3081,
+          "choice": "customer_history",
+          "pTarget": 0.0767,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0166
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0296
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0071
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "past_orders_vs_open_invoice_1": {
+      "a_into_b": {
+        "donorStep": "past_orders_vs_open_invoice_1_A",
+        "recipientStep": "past_orders_vs_open_invoice_1_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1057,
+        "differenceNorm": 39.9144,
+        "recipientNorm": 126.0225,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.397,
+          "deltaTarget": 0.2913,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "customer_history",
+          "pTarget": 0.6332,
+          "deltaTarget": 0.5275,
+          "flipped": true
+        },
+        "clampDeltaNorm": 6.5915,
+        "differenceInMeansMatched": {
+          "norm": 6.5915,
+          "choice": "billing_system",
+          "pTarget": 0.1181,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.1179
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1183
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1058
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "past_orders_vs_open_invoice_1_B",
+        "recipientStep": "past_orders_vs_open_invoice_1_A",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.2379,
+        "differenceNorm": 39.9144,
+        "recipientNorm": 121.0092,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.5499,
+          "deltaTarget": 0.312,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "billing_system",
+          "pTarget": 0.5225,
+          "deltaTarget": 0.2846,
+          "flipped": true
+        },
+        "clampDeltaNorm": 31.3048,
+        "differenceInMeansMatched": {
+          "norm": 31.3048,
+          "choice": "customer_history",
+          "pTarget": 0.4601,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.3921
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.3073
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1969
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "coverage_vs_repair_1": {
+      "a_into_b": {
+        "donorStep": "coverage_vs_repair_1_A",
+        "recipientStep": "coverage_vs_repair_1_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0028,
+        "differenceNorm": 49.3571,
+        "recipientNorm": 119.9019,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.1728,
+          "deltaTarget": 0.17,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "knowledge_base",
+          "pTarget": 0.2492,
+          "deltaTarget": 0.2464,
+          "flipped": false
+        },
+        "clampDeltaNorm": 21.8814,
+        "differenceInMeansMatched": {
+          "norm": 21.8814,
+          "choice": "knowledge_base",
+          "pTarget": 0.0408,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0074
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0084
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0046
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "coverage_vs_repair_1_B",
+        "recipientStep": "coverage_vs_repair_1_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.3524,
+        "differenceNorm": 49.3571,
+        "recipientNorm": 119.8678,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.9042,
+          "deltaTarget": 0.5518,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "knowledge_base",
+          "pTarget": 0.9201,
+          "deltaTarget": 0.5677,
+          "flipped": true
+        },
+        "clampDeltaNorm": 27.1152,
+        "differenceInMeansMatched": {
+          "norm": 27.1152,
+          "choice": "knowledge_base",
+          "pTarget": 0.7778,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.3537
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.3461
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.3584
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "many_customers_vs_one_customer_2": {
+      "a_into_b": {
+        "donorStep": "many_customers_vs_one_customer_2_A",
+        "recipientStep": "many_customers_vs_one_customer_2_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0345,
+        "differenceNorm": 48.5812,
+        "recipientNorm": 123.8857,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.4861,
+          "deltaTarget": 0.4516,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "knowledge_base",
+          "pTarget": 0.4838,
+          "deltaTarget": 0.4493,
+          "flipped": true
+        },
+        "clampDeltaNorm": 16.4582,
+        "differenceInMeansMatched": {
+          "norm": 16.4582,
+          "choice": "ticket_lookup",
+          "pTarget": 0.0799,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0148
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0312
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0118
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "many_customers_vs_one_customer_2_B",
+        "recipientStep": "many_customers_vs_one_customer_2_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.3698,
+        "differenceNorm": 48.5812,
+        "recipientNorm": 123.478,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.8696,
+          "deltaTarget": 0.4998,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "ticket_lookup",
+          "pTarget": 0.8617,
+          "deltaTarget": 0.4919,
+          "flipped": true
+        },
+        "clampDeltaNorm": 24.4843,
+        "differenceInMeansMatched": {
+          "norm": 24.4843,
+          "choice": "ticket_lookup",
+          "pTarget": 0.6683,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.3151
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.3984
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.3441
+          }
+        ],
+        "randomFlips": 0
+      }
+    }
+  },
+  "summary": {
+    "ceilingFlips": 10,
+    "directions": 14,
+    "dimFlips": 11,
+    "dimDirections": 14,
+    "randomFlips": 0,
+    "randomDraws": 42,
+    "dimMatchedFlips": 3,
+    "dimMatchedDirections": 14,
+    "randomMatchedFlips": 0,
+    "randomMatchedDraws": 42
+  }
+}

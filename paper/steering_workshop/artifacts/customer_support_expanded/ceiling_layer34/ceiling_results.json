@@ -1,0 +1,3957 @@
+{
+  "model": "/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp",
+  "layer": 34,
+  "scenario": "customer_support_expanded",
+  "draws": 3,
+  "seed": 0,
+  "directions": {
+    "billing_vs_technical_0": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_0_A",
+        "recipientStep": "billing_vs_technical_0_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.221,
+        "differenceNorm": 47.2095,
+        "recipientNorm": 119.0947,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.7873,
+          "deltaTarget": 0.5663,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "ticket_lookup",
+          "pTarget": 0.2203,
+          "deltaTarget": -0.0007,
+          "flipped": false
+        },
+        "clampDeltaNorm": 31.5121,
+        "differenceInMeansMatched": {
+          "norm": 31.5121,
+          "choice": "knowledge_base",
+          "pTarget": 0.1951,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.2207
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.2394
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.2435
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_0_B",
+        "recipientStep": "billing_vs_technical_0_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0146,
+        "differenceNorm": 47.2095,
+        "recipientNorm": 121.6676,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.5197,
+          "deltaTarget": 0.5051,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.0905,
+          "deltaTarget": 0.0759,
+          "flipped": false
+        },
+        "clampDeltaNorm": 23.656,
+        "differenceInMeansMatched": {
+          "norm": 23.656,
+          "choice": "customer_history",
+          "pTarget": 0.0445,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0237
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0079
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0171
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_1": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_1_A",
+        "recipientStep": "billing_vs_technical_1_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0015,
+        "differenceNorm": 50.3768,
+        "recipientNorm": 121.279,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.1713,
+          "deltaTarget": 0.1698,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.0995,
+          "deltaTarget": 0.098,
+          "flipped": false
+        },
+        "clampDeltaNorm": 27.9851,
+        "differenceInMeansMatched": {
+          "norm": 27.9851,
+          "choice": "customer_history",
+          "pTarget": 0.026,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0014
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0004
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0009
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_1_B",
+        "recipientStep": "billing_vs_technical_1_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.3694,
+        "differenceNorm": 50.3768,
+        "recipientNorm": 123.9914,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.7589,
+          "deltaTarget": 0.3895,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.8003,
+          "deltaTarget": 0.4309,
+          "flipped": true
+        },
+        "clampDeltaNorm": 8.0657,
+        "differenceInMeansMatched": {
+          "norm": 8.0657,
+          "choice": "billing_system",
+          "pTarget": 0.4558,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2606
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.3996
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.2611
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_2": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_2_A",
+        "recipientStep": "billing_vs_technical_2_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.1245,
+        "differenceNorm": 31.202,
+        "recipientNorm": 119.3993,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4619,
+          "deltaTarget": 0.3374,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.4819,
+          "deltaTarget": 0.3574,
+          "flipped": true
+        },
+        "clampDeltaNorm": 31.592,
+        "differenceInMeansMatched": {
+          "norm": 31.592,
+          "choice": "billing_system",
+          "pTarget": 0.4658,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.118
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.143
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1023
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_2_B",
+        "recipientStep": "billing_vs_technical_2_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1523,
+        "differenceNorm": 31.202,
+        "recipientNorm": 121.1595,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4109,
+          "deltaTarget": 0.2586,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.4965,
+          "deltaTarget": 0.3442,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.1433,
+        "differenceInMeansMatched": {
+          "norm": 13.1433,
+          "choice": "billing_system",
+          "pTarget": 0.2416,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.1338
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1491
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1382
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_3": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_3_A",
+        "recipientStep": "billing_vs_technical_3_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.1351,
+        "differenceNorm": 39.2552,
+        "recipientNorm": 118.9746,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.5359,
+          "deltaTarget": 0.4008,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.5109,
+          "deltaTarget": 0.3758,
+          "flipped": true
+        },
+        "clampDeltaNorm": 38.3388,
+        "differenceInMeansMatched": {
+          "norm": 38.3388,
+          "choice": "billing_system",
+          "pTarget": 0.5132,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0777
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0768
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1145
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_3_B",
+        "recipientStep": "billing_vs_technical_3_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1628,
+        "differenceNorm": 39.2552,
+        "recipientNorm": 121.941,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.5444,
+          "deltaTarget": 0.3816,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.6424,
+          "deltaTarget": 0.4796,
+          "flipped": true
+        },
+        "clampDeltaNorm": 20.701,
+        "differenceInMeansMatched": {
+          "norm": 20.701,
+          "choice": "billing_system",
+          "pTarget": 0.3681,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.1804
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.2907
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1633
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_4": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_4_A",
+        "recipientStep": "billing_vs_technical_4_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.2891,
+        "differenceNorm": 35.4106,
+        "recipientNorm": 121.0429,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.7292,
+          "deltaTarget": 0.4401,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.7154,
+          "deltaTarget": 0.4263,
+          "flipped": true
+        },
+        "clampDeltaNorm": 23.4074,
+        "differenceInMeansMatched": {
+          "norm": 23.4074,
+          "choice": "billing_system",
+          "pTarget": 0.6062,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.4097
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.4468
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.4005
+          }
+        ],
+        "randomFlips": 1
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_4_B",
+        "recipientStep": "billing_vs_technical_4_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.0008,
+        "differenceNorm": 35.4106,
+        "recipientNorm": 123.7467,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.1326,
+          "deltaTarget": 0.1318,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.0125,
+          "deltaTarget": 0.0117,
+          "flipped": false
+        },
+        "clampDeltaNorm": 7.5315,
+        "differenceInMeansMatched": {
+          "norm": 7.5315,
+          "choice": "billing_system",
+          "pTarget": 0.0019,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.0012
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.0005
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.0006
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_5": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_5_A",
+        "recipientStep": "billing_vs_technical_5_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0904,
+        "differenceNorm": 38.1248,
+        "recipientNorm": 119.7646,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4918,
+          "deltaTarget": 0.4014,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.5918,
+          "deltaTarget": 0.5014,
+          "flipped": true
+        },
+        "clampDeltaNorm": 39.6658,
+        "differenceInMeansMatched": {
+          "norm": 39.6658,
+          "choice": "billing_system",
+          "pTarget": 0.6216,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.1219
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.1308
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.108
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_5_B",
+        "recipientStep": "billing_vs_technical_5_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1268,
+        "differenceNorm": 38.1248,
+        "recipientNorm": 123.2696,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4146,
+          "deltaTarget": 0.2878,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.4534,
+          "deltaTarget": 0.3266,
+          "flipped": true
+        },
+        "clampDeltaNorm": 20.174,
+        "differenceInMeansMatched": {
+          "norm": 20.174,
+          "choice": "billing_system",
+          "pTarget": 0.2479,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.124
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1551
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1267
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_6": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_6_A",
+        "recipientStep": "billing_vs_technical_6_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0715,
+        "differenceNorm": 39.1671,
+        "recipientNorm": 122.0937,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.3358,
+          "deltaTarget": 0.2643,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.6252,
+          "deltaTarget": 0.5537,
+          "flipped": true
+        },
+        "clampDeltaNorm": 30.7283,
+        "differenceInMeansMatched": {
+          "norm": 30.7283,
+          "choice": "customer_history",
+          "pTarget": 0.4777,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0887
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0557
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0405
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_6_B",
+        "recipientStep": "billing_vs_technical_6_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2497,
+        "differenceNorm": 39.1671,
+        "recipientNorm": 121.1214,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.7153,
+          "deltaTarget": 0.4656,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.6915,
+          "deltaTarget": 0.4418,
+          "flipped": true
+        },
+        "clampDeltaNorm": 20.4124,
+        "differenceInMeansMatched": {
+          "norm": 20.4124,
+          "choice": "customer_history",
+          "pTarget": 0.4668,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.3733
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.317
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.2093
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_7": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_7_A",
+        "recipientStep": "billing_vs_technical_7_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.1497,
+        "differenceNorm": 39.8362,
+        "recipientNorm": 117.5297,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.627,
+          "deltaTarget": 0.4773,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.5151,
+          "deltaTarget": 0.3654,
+          "flipped": true
+        },
+        "clampDeltaNorm": 29.4926,
+        "differenceInMeansMatched": {
+          "norm": 29.4926,
+          "choice": "customer_history",
+          "pTarget": 0.3766,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.1182
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.1699
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1178
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_7_B",
+        "recipientStep": "billing_vs_technical_7_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1594,
+        "differenceNorm": 39.8362,
+        "recipientNorm": 122.7398,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.4706,
+          "deltaTarget": 0.3112,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "billing_system",
+          "pTarget": 0.4285,
+          "deltaTarget": 0.2691,
+          "flipped": false
+        },
+        "clampDeltaNorm": 11.7127,
+        "differenceInMeansMatched": {
+          "norm": 11.7127,
+          "choice": "billing_system",
+          "pTarget": 0.2347,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.1722
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.2132
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.192
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "billing_vs_technical_8": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_8_A",
+        "recipientStep": "billing_vs_technical_8_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0401,
+        "differenceNorm": 41.3339,
+        "recipientNorm": 119.0325,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.4658,
+          "deltaTarget": 0.4257,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.4178,
+          "deltaTarget": 0.3777,
+          "flipped": false
+        },
+        "clampDeltaNorm": 26.5674,
+        "differenceInMeansMatched": {
+          "norm": 26.5674,
+          "choice": "customer_history",
+          "pTarget": 0.2596,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0312
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0384
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0538
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_8_B",
+        "recipientStep": "billing_vs_technical_8_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.427,
+        "differenceNorm": 41.3339,
+        "recipientNorm": 124.6978,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.7503,
+          "deltaTarget": 0.3233,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.7973,
+          "deltaTarget": 0.3703,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.0209,
+        "differenceInMeansMatched": {
+          "norm": 13.0209,
+          "choice": "customer_history",
+          "pTarget": 0.5735,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.3642
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.4874
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.3132
+          }
+        ],
+        "randomFlips": 1
+      }
+    },
+    "billing_vs_technical_9": {
+      "a_into_b": {
+        "donorStep": "billing_vs_technical_9_A",
+        "recipientStep": "billing_vs_technical_9_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0038,
+        "differenceNorm": 56.8693,
+        "recipientNorm": 117.6304,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.3277,
+          "deltaTarget": 0.3239,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.2898,
+          "deltaTarget": 0.286,
+          "flipped": false
+        },
+        "clampDeltaNorm": 38.714,
+        "differenceInMeansMatched": {
+          "norm": 38.714,
+          "choice": "customer_history",
+          "pTarget": 0.1054,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0034
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0041
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0015
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "billing_vs_technical_9_B",
+        "recipientStep": "billing_vs_technical_9_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2305,
+        "differenceNorm": 56.8693,
+        "recipientNorm": 125.31,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.8596,
+          "deltaTarget": 0.6291,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.7628,
+          "deltaTarget": 0.5323,
+          "flipped": true
+        },
+        "clampDeltaNorm": 22.7964,
+        "differenceInMeansMatched": {
+          "norm": 22.7964,
+          "choice": "customer_history",
+          "pTarget": 0.4964,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.271
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.3179
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.3726
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_0": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_0_A",
+        "recipientStep": "refund_vs_troubleshoot_0_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0016,
+        "differenceNorm": 53.0181,
+        "recipientNorm": 117.0641,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.2343,
+          "deltaTarget": 0.2327,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.1188,
+          "deltaTarget": 0.1172,
+          "flipped": false
+        },
+        "clampDeltaNorm": 33.9722,
+        "differenceInMeansMatched": {
+          "norm": 33.9722,
+          "choice": "customer_history",
+          "pTarget": 0.0472,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0007
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0014
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0026
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_0_B",
+        "recipientStep": "refund_vs_troubleshoot_0_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2837,
+        "differenceNorm": 53.0181,
+        "recipientNorm": 124.433,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.6649,
+          "deltaTarget": 0.3812,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.5827,
+          "deltaTarget": 0.299,
+          "flipped": true
+        },
+        "clampDeltaNorm": 16.4513,
+        "differenceInMeansMatched": {
+          "norm": 16.4513,
+          "choice": "billing_system",
+          "pTarget": 0.3285,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2144
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1749
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.3372
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_1": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_1_A",
+        "recipientStep": "refund_vs_troubleshoot_1_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0002,
+        "differenceNorm": 57.3042,
+        "recipientNorm": 117.104,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.0839,
+          "deltaTarget": 0.0837,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "ticket_lookup",
+          "pTarget": 0.2491,
+          "deltaTarget": 0.2489,
+          "flipped": false
+        },
+        "clampDeltaNorm": 31.3859,
+        "differenceInMeansMatched": {
+          "norm": 31.3859,
+          "choice": "ticket_lookup",
+          "pTarget": 0.0374,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0007
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0001
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0002
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_1_B",
+        "recipientStep": "refund_vs_troubleshoot_1_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.0193,
+        "differenceNorm": 57.3042,
+        "recipientNorm": 118.0395,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.4525,
+          "deltaTarget": 0.4332,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.312,
+          "deltaTarget": 0.2927,
+          "flipped": false
+        },
+        "clampDeltaNorm": 29.6897,
+        "differenceInMeansMatched": {
+          "norm": 29.6897,
+          "choice": "customer_history",
+          "pTarget": 0.1138,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.0104
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.0298
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.0424
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_0": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_0_A",
+        "recipientStep": "self_service_vs_agent_assist_0_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.1633,
+        "differenceNorm": 55.1723,
+        "recipientNorm": 122.5735,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.9048,
+          "deltaTarget": 0.7415,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.9144,
+          "deltaTarget": 0.7511,
+          "flipped": true
+        },
+        "clampDeltaNorm": 38.0471,
+        "differenceInMeansMatched": {
+          "norm": 38.0471,
+          "choice": "knowledge_base",
+          "pTarget": 0.7701,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1946
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1077
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.135
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_0_B",
+        "recipientStep": "self_service_vs_agent_assist_0_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0158,
+        "differenceNorm": 55.1723,
+        "recipientNorm": 127.2889,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.2858,
+          "deltaTarget": 0.27,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.4539,
+          "deltaTarget": 0.4381,
+          "flipped": false
+        },
+        "clampDeltaNorm": 22.6524,
+        "differenceInMeansMatched": {
+          "norm": 22.6524,
+          "choice": "knowledge_base",
+          "pTarget": 0.0846,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0097
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.014
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0158
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_2": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_2_A",
+        "recipientStep": "refund_vs_troubleshoot_2_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0,
+        "differenceNorm": 69.2191,
+        "recipientNorm": 116.8849,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.0611,
+          "deltaTarget": 0.0611,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "knowledge_base",
+          "pTarget": 0.2615,
+          "deltaTarget": 0.2615,
+          "flipped": false
+        },
+        "clampDeltaNorm": 38.7862,
+        "differenceInMeansMatched": {
+          "norm": 38.7862,
+          "choice": "knowledge_base",
+          "pTarget": 0.0263,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0001
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_2_B",
+        "recipientStep": "refund_vs_troubleshoot_2_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1247,
+        "differenceNorm": 69.2191,
+        "recipientNorm": 122.1685,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8755,
+          "deltaTarget": 0.7508,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "knowledge_base",
+          "pTarget": 0.6727,
+          "deltaTarget": 0.548,
+          "flipped": true
+        },
+        "clampDeltaNorm": 34.8539,
+        "differenceInMeansMatched": {
+          "norm": 34.8539,
+          "choice": "knowledge_base",
+          "pTarget": 0.4133,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.032
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1694
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.0386
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_3": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_3_A",
+        "recipientStep": "refund_vs_troubleshoot_3_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0386,
+        "differenceNorm": 45.8125,
+        "recipientNorm": 118.5291,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.5064,
+          "deltaTarget": 0.4678,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.3513,
+          "deltaTarget": 0.3127,
+          "flipped": false
+        },
+        "clampDeltaNorm": 33.882,
+        "differenceInMeansMatched": {
+          "norm": 33.882,
+          "choice": "customer_history",
+          "pTarget": 0.2462,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0425
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0326
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0561
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_3_B",
+        "recipientStep": "refund_vs_troubleshoot_3_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.1934,
+        "differenceNorm": 45.8125,
+        "recipientNorm": 123.1757,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.6455,
+          "deltaTarget": 0.4521,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.5231,
+          "deltaTarget": 0.3297,
+          "flipped": true
+        },
+        "clampDeltaNorm": 20.2815,
+        "differenceInMeansMatched": {
+          "norm": 20.2815,
+          "choice": "billing_system",
+          "pTarget": 0.3167,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2554
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1408
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1423
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_4": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_4_A",
+        "recipientStep": "refund_vs_troubleshoot_4_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0074,
+        "differenceNorm": 43.3958,
+        "recipientNorm": 120.3793,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.1997,
+          "deltaTarget": 0.1923,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.1712,
+          "deltaTarget": 0.1638,
+          "flipped": false
+        },
+        "clampDeltaNorm": 27.3545,
+        "differenceInMeansMatched": {
+          "norm": 27.3545,
+          "choice": "customer_history",
+          "pTarget": 0.0781,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0107
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0045
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0049
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_4_B",
+        "recipientStep": "refund_vs_troubleshoot_4_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.304,
+        "differenceNorm": 43.3958,
+        "recipientNorm": 122.0323,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.7883,
+          "deltaTarget": 0.4843,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.6404,
+          "deltaTarget": 0.3364,
+          "flipped": true
+        },
+        "clampDeltaNorm": 14.7091,
+        "differenceInMeansMatched": {
+          "norm": 14.7091,
+          "choice": "customer_history",
+          "pTarget": 0.4503,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.259
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.159
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.4018
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_5": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_5_A",
+        "recipientStep": "refund_vs_troubleshoot_5_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0044,
+        "differenceNorm": 49.5417,
+        "recipientNorm": 121.3412,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.2269,
+          "deltaTarget": 0.2225,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "ticket_lookup",
+          "pTarget": 0.1544,
+          "deltaTarget": 0.15,
+          "flipped": false
+        },
+        "clampDeltaNorm": 30.3857,
+        "differenceInMeansMatched": {
+          "norm": 30.3857,
+          "choice": "ticket_lookup",
+          "pTarget": 0.0619,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0094
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0058
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0086
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_5_B",
+        "recipientStep": "refund_vs_troubleshoot_5_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.0767,
+        "differenceNorm": 49.5417,
+        "recipientNorm": 124.9365,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.5207,
+          "deltaTarget": 0.444,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.2081,
+          "deltaTarget": 0.1314,
+          "flipped": false
+        },
+        "clampDeltaNorm": 17.802,
+        "differenceInMeansMatched": {
+          "norm": 17.802,
+          "choice": "billing_system",
+          "pTarget": 0.1456,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.0795
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.0819
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.1054
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_1": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_1_A",
+        "recipientStep": "self_service_vs_agent_assist_1_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0165,
+        "differenceNorm": 52.3481,
+        "recipientNorm": 123.4836,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.518,
+          "deltaTarget": 0.5015,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.7101,
+          "deltaTarget": 0.6936,
+          "flipped": true
+        },
+        "clampDeltaNorm": 27.1802,
+        "differenceInMeansMatched": {
+          "norm": 27.1802,
+          "choice": "customer_history",
+          "pTarget": 0.1737,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.009
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0112
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0196
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_1_B",
+        "recipientStep": "self_service_vs_agent_assist_1_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0771,
+        "differenceNorm": 52.3481,
+        "recipientNorm": 119.278,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.4395,
+          "deltaTarget": 0.3624,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "customer_history",
+          "pTarget": 0.3657,
+          "deltaTarget": 0.2886,
+          "flipped": true
+        },
+        "clampDeltaNorm": 34.8104,
+        "differenceInMeansMatched": {
+          "norm": 34.8104,
+          "choice": "knowledge_base",
+          "pTarget": 0.3082,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0545
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0698
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0602
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_6": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_6_A",
+        "recipientStep": "refund_vs_troubleshoot_6_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0005,
+        "differenceNorm": 54.9981,
+        "recipientNorm": 120.2927,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.1139,
+          "deltaTarget": 0.1134,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.0597,
+          "deltaTarget": 0.0592,
+          "flipped": false
+        },
+        "clampDeltaNorm": 30.9744,
+        "differenceInMeansMatched": {
+          "norm": 30.9744,
+          "choice": "customer_history",
+          "pTarget": 0.0155,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0004
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0007
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0005
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_6_B",
+        "recipientStep": "refund_vs_troubleshoot_6_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2244,
+        "differenceNorm": 54.9981,
+        "recipientNorm": 123.7957,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.8132,
+          "deltaTarget": 0.5888,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.5468,
+          "deltaTarget": 0.3224,
+          "flipped": true
+        },
+        "clampDeltaNorm": 21.8377,
+        "differenceInMeansMatched": {
+          "norm": 21.8377,
+          "choice": "billing_system",
+          "pTarget": 0.3614,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.1689
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1878
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.3449
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "new_vs_returning_customer": {
+      "a_into_b": {
+        "donorStep": "new_vs_returning_customer_A",
+        "recipientStep": "new_vs_returning_customer_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.1707,
+        "differenceNorm": 38.8472,
+        "recipientNorm": 122.2957,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.6067,
+          "deltaTarget": 0.436,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 14.1625,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1858
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1257
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1674
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "new_vs_returning_customer_B",
+        "recipientStep": "new_vs_returning_customer_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.1134,
+        "differenceNorm": 38.8472,
+        "recipientNorm": 119.2681,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.6064,
+          "deltaTarget": 0.493,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 19.5076,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.1473
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.164
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1286
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_7": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_7_A",
+        "recipientStep": "refund_vs_troubleshoot_7_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0001,
+        "differenceNorm": 72.4237,
+        "recipientNorm": 120.8252,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.1786,
+          "deltaTarget": 0.1785,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "ticket_lookup",
+          "pTarget": 0.2097,
+          "deltaTarget": 0.2096,
+          "flipped": false
+        },
+        "clampDeltaNorm": 42.7602,
+        "differenceInMeansMatched": {
+          "norm": 42.7602,
+          "choice": "ticket_lookup",
+          "pTarget": 0.0515,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0005
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0001
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0002
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_7_B",
+        "recipientStep": "refund_vs_troubleshoot_7_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.0023,
+        "differenceNorm": 72.4237,
+        "recipientNorm": 125.3917,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.4958,
+          "deltaTarget": 0.4935,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.3868,
+          "deltaTarget": 0.3845,
+          "flipped": false
+        },
+        "clampDeltaNorm": 26.6323,
+        "differenceInMeansMatched": {
+          "norm": 26.6323,
+          "choice": "billing_system",
+          "pTarget": 0.0226,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.0109
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.0062
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.0041
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_8": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_8_A",
+        "recipientStep": "refund_vs_troubleshoot_8_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.2376,
+        "differenceNorm": 30.624,
+        "recipientNorm": 121.5063,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.5702,
+          "deltaTarget": 0.3326,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.459,
+          "deltaTarget": 0.2214,
+          "flipped": false
+        },
+        "clampDeltaNorm": 30.1922,
+        "differenceInMeansMatched": {
+          "norm": 30.1922,
+          "choice": "customer_history",
+          "pTarget": 0.4282,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.3301
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.3096
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1747
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_8_B",
+        "recipientStep": "refund_vs_troubleshoot_8_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.305,
+        "differenceNorm": 30.624,
+        "recipientNorm": 123.8728,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4234,
+          "deltaTarget": 0.1184,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "customer_history",
+          "pTarget": 0.5014,
+          "deltaTarget": 0.1964,
+          "flipped": true
+        },
+        "clampDeltaNorm": 14.4638,
+        "differenceInMeansMatched": {
+          "norm": 14.4638,
+          "choice": "billing_system",
+          "pTarget": 0.2805,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2142
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.3052
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.3069
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "refund_vs_troubleshoot_9": {
+      "a_into_b": {
+        "donorStep": "refund_vs_troubleshoot_9_A",
+        "recipientStep": "refund_vs_troubleshoot_9_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0001,
+        "differenceNorm": 59.3084,
+        "recipientNorm": 120.0816,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.0646,
+          "deltaTarget": 0.0645,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "ticket_lookup",
+          "pTarget": 0.155,
+          "deltaTarget": 0.1549,
+          "flipped": false
+        },
+        "clampDeltaNorm": 34.8956,
+        "differenceInMeansMatched": {
+          "norm": 34.8956,
+          "choice": "knowledge_base",
+          "pTarget": 0.0283,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0002
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0002
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "refund_vs_troubleshoot_9_B",
+        "recipientStep": "refund_vs_troubleshoot_9_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.0291,
+        "differenceNorm": 59.3084,
+        "recipientNorm": 119.0618,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8611,
+          "deltaTarget": 0.832,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "knowledge_base",
+          "pTarget": 0.4363,
+          "deltaTarget": 0.4072,
+          "flipped": true
+        },
+        "clampDeltaNorm": 27.5158,
+        "differenceInMeansMatched": {
+          "norm": 27.5158,
+          "choice": "customer_history",
+          "pTarget": 0.1655,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system"
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.0306
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.0638
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.0254
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_2": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_2_A",
+        "recipientStep": "self_service_vs_agent_assist_2_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0801,
+        "differenceNorm": 61.0844,
+        "recipientNorm": 114.7217,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8915,
+          "deltaTarget": 0.8114,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.9461,
+          "deltaTarget": 0.866,
+          "flipped": true
+        },
+        "clampDeltaNorm": 41.9143,
+        "differenceInMeansMatched": {
+          "norm": 41.9143,
+          "choice": "knowledge_base",
+          "pTarget": 0.7985,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0614
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.1049
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0721
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_2_B",
+        "recipientStep": "self_service_vs_agent_assist_2_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0016,
+        "differenceNorm": 61.0844,
+        "recipientNorm": 127.4823,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.1565,
+          "deltaTarget": 0.1549,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.0639,
+          "deltaTarget": 0.0623,
+          "flipped": false
+        },
+        "clampDeltaNorm": 19.7614,
+        "differenceInMeansMatched": {
+          "norm": 19.7614,
+          "choice": "knowledge_base",
+          "pTarget": 0.0051,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0014
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0016
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0023
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_3": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_3_A",
+        "recipientStep": "self_service_vs_agent_assist_3_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0097,
+        "differenceNorm": 74.9098,
+        "recipientNorm": 121.7748,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.7977,
+          "deltaTarget": 0.788,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.9151,
+          "deltaTarget": 0.9054,
+          "flipped": true
+        },
+        "clampDeltaNorm": 47.763,
+        "differenceInMeansMatched": {
+          "norm": 47.763,
+          "choice": "knowledge_base",
+          "pTarget": 0.517,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0052
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0069
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0036
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_3_B",
+        "recipientStep": "self_service_vs_agent_assist_3_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0063,
+        "differenceNorm": 74.9098,
+        "recipientNorm": 131.0718,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.5688,
+          "deltaTarget": 0.5625,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "ticket_lookup",
+          "pTarget": 0.4026,
+          "deltaTarget": 0.3963,
+          "flipped": true
+        },
+        "clampDeltaNorm": 32.2942,
+        "differenceInMeansMatched": {
+          "norm": 32.2942,
+          "choice": "knowledge_base",
+          "pTarget": 0.0837,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0238
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0099
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0068
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "urgent_vs_routine_0": {
+      "a_into_b": {
+        "donorStep": "urgent_vs_routine_0_A",
+        "recipientStep": "urgent_vs_routine_0_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0288,
+        "differenceNorm": 42.76,
+        "recipientNorm": 123.0521,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.3418,
+          "deltaTarget": 0.313,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "customer_history",
+          "pTarget": 0.0058,
+          "deltaTarget": -0.023,
+          "flipped": false
+        },
+        "clampDeltaNorm": 17.7866,
+        "differenceInMeansMatched": {
+          "norm": 17.7866,
+          "choice": "customer_history",
+          "pTarget": 0.0156,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0367
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.029
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0324
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "urgent_vs_routine_0_B",
+        "recipientStep": "urgent_vs_routine_0_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.3109,
+        "differenceNorm": 42.76,
+        "recipientNorm": 121.5572,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.8461,
+          "deltaTarget": 0.5352,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "knowledge_base",
+          "pTarget": 0.1955,
+          "deltaTarget": -0.1154,
+          "flipped": false
+        },
+        "clampDeltaNorm": 30.9313,
+        "differenceInMeansMatched": {
+          "norm": 30.9313,
+          "choice": "knowledge_base",
+          "pTarget": 0.1954,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.1972
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.2823
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.2311
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_4": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_4_A",
+        "recipientStep": "self_service_vs_agent_assist_4_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0098,
+        "differenceNorm": 49.454,
+        "recipientNorm": 122.2542,
+        "ceiling": {
+          "choice": "customer_history",
+          "pTarget": 0.1911,
+          "deltaTarget": 0.1813,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.451,
+          "deltaTarget": 0.4412,
+          "flipped": true
+        },
+        "clampDeltaNorm": 23.771,
+        "differenceInMeansMatched": {
+          "norm": 23.771,
+          "choice": "ticket_lookup",
+          "pTarget": 0.0709,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0132
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0062
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0048
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_4_B",
+        "recipientStep": "self_service_vs_agent_assist_4_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0969,
+        "differenceNorm": 49.454,
+        "recipientNorm": 117.8036,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.6131,
+          "deltaTarget": 0.5162,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "customer_history",
+          "pTarget": 0.3062,
+          "deltaTarget": 0.2093,
+          "flipped": false
+        },
+        "clampDeltaNorm": 32.7106,
+        "differenceInMeansMatched": {
+          "norm": 32.7106,
+          "choice": "customer_history",
+          "pTarget": 0.2706,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0792
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.1129
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.1037
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_5": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_5_A",
+        "recipientStep": "self_service_vs_agent_assist_5_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.0527,
+        "differenceNorm": 55.4991,
+        "recipientNorm": 118.0494,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8528,
+          "deltaTarget": 0.8001,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.8799,
+          "deltaTarget": 0.8272,
+          "flipped": true
+        },
+        "clampDeltaNorm": 37.2505,
+        "differenceInMeansMatched": {
+          "norm": 37.2505,
+          "choice": "knowledge_base",
+          "pTarget": 0.6335,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.0664
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.0199
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.0751
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_5_B",
+        "recipientStep": "self_service_vs_agent_assist_5_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0072,
+        "differenceNorm": 55.4991,
+        "recipientNorm": 127.0419,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.3377,
+          "deltaTarget": 0.3305,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "knowledge_base",
+          "pTarget": 0.1776,
+          "deltaTarget": 0.1704,
+          "flipped": false
+        },
+        "clampDeltaNorm": 15.7161,
+        "differenceInMeansMatched": {
+          "norm": 15.7161,
+          "choice": "knowledge_base",
+          "pTarget": 0.0187,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0312
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0242
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0105
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "self_service_vs_agent_assist_6": {
+      "a_into_b": {
+        "donorStep": "self_service_vs_agent_assist_6_A",
+        "recipientStep": "self_service_vs_agent_assist_6_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.0273,
+        "differenceNorm": 41.0966,
+        "recipientNorm": 124.5318,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.3646,
+          "deltaTarget": 0.3373,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "ticket_lookup",
+          "pTarget": 0.399,
+          "deltaTarget": 0.3717,
+          "flipped": false
+        },
+        "clampDeltaNorm": 18.3874,
+        "differenceInMeansMatched": {
+          "norm": 18.3874,
+          "choice": "ticket_lookup",
+          "pTarget": 0.1129,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0327
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0364
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.0254
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "self_service_vs_agent_assist_6_B",
+        "recipientStep": "self_service_vs_agent_assist_6_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.2835,
+        "differenceNorm": 41.0966,
+        "recipientNorm": 119.3837,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.7382,
+          "deltaTarget": 0.4547,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 6,
+          "choice": "ticket_lookup",
+          "pTarget": 0.7705,
+          "deltaTarget": 0.487,
+          "flipped": true
+        },
+        "clampDeltaNorm": 22.0816,
+        "differenceInMeansMatched": {
+          "norm": 22.0816,
+          "choice": "ticket_lookup",
+          "pTarget": 0.5828,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.2154
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.3897
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.2848
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "urgent_vs_routine_1": {
+      "a_into_b": {
+        "donorStep": "urgent_vs_routine_1_A",
+        "recipientStep": "urgent_vs_routine_1_B",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "ticket_lookup",
+        "baselineTarget": 0.1695,
+        "differenceNorm": 43.4929,
+        "recipientNorm": 119.8342,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.4021,
+          "deltaTarget": 0.2326,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "ticket_lookup",
+          "pTarget": 0.1033,
+          "deltaTarget": -0.0662,
+          "flipped": false
+        },
+        "clampDeltaNorm": 17.2307,
+        "differenceInMeansMatched": {
+          "norm": 17.2307,
+          "choice": "ticket_lookup",
+          "pTarget": 0.1495,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup"
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1733
+          },
+          {
+            "draw": 1,
+            "choice": "ticket_lookup",
+            "pTarget": 0.2418
+          },
+          {
+            "draw": 2,
+            "choice": "ticket_lookup",
+            "pTarget": 0.1478
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "urgent_vs_routine_1_B",
+        "recipientStep": "urgent_vs_routine_1_A",
+        "targetTool": "ticket_lookup",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.4316,
+        "differenceNorm": 43.4929,
+        "recipientNorm": 115.5375,
+        "ceiling": {
+          "choice": "ticket_lookup",
+          "pTarget": 0.7037,
+          "deltaTarget": 0.2721,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "knowledge_base",
+          "pTarget": 0.1797,
+          "deltaTarget": -0.2519,
+          "flipped": false
+        },
+        "clampDeltaNorm": 19.6197,
+        "differenceInMeansMatched": {
+          "norm": 19.6197,
+          "choice": "knowledge_base",
+          "pTarget": 0.3433,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.4641
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.4029
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.4947
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "urgent_vs_routine_2": {
+      "a_into_b": {
+        "donorStep": "urgent_vs_routine_2_A",
+        "recipientStep": "urgent_vs_routine_2_B",
+        "targetTool": "customer_history",
+        "baselineChoice": "knowledge_base",
+        "baselineTarget": 0.0065,
+        "differenceNorm": 41.4179,
+        "recipientNorm": 123.5252,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.1914,
+          "deltaTarget": 0.1849,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "knowledge_base",
+          "pTarget": 0.0006,
+          "deltaTarget": -0.0059,
+          "flipped": false
+        },
+        "clampDeltaNorm": 10.3102,
+        "differenceInMeansMatched": {
+          "norm": 10.3102,
+          "choice": "knowledge_base",
+          "pTarget": 0.0031,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base"
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "knowledge_base",
+            "pTarget": 0.0031
+          },
+          {
+            "draw": 1,
+            "choice": "knowledge_base",
+            "pTarget": 0.0021
+          },
+          {
+            "draw": 2,
+            "choice": "knowledge_base",
+            "pTarget": 0.0095
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "urgent_vs_routine_2_B",
+        "recipientStep": "urgent_vs_routine_2_A",
+        "targetTool": "knowledge_base",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.3254,
+        "differenceNorm": 41.4179,
+        "recipientNorm": 119.136,
+        "ceiling": {
+          "choice": "knowledge_base",
+          "pTarget": 0.8998,
+          "deltaTarget": 0.5744,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "customer_history",
+          "pTarget": 0.0193,
+          "deltaTarget": -0.3061,
+          "flipped": false
+        },
+        "clampDeltaNorm": 23.9733,
+        "differenceInMeansMatched": {
+          "norm": 23.9733,
+          "choice": "customer_history",
+          "pTarget": 0.0713,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history"
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.3227
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.3301
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.1908
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "single_issue_vs_complex_case": {
+      "a_into_b": {
+        "donorStep": "single_issue_vs_complex_case_A",
+        "recipientStep": "single_issue_vs_complex_case_B",
+        "targetTool": "billing_system",
+        "baselineChoice": "customer_history",
+        "baselineTarget": 0.2551,
+        "differenceNorm": 32.4143,
+        "recipientNorm": 120.1151,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.5648,
+          "deltaTarget": 0.3097,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 29.3069,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "customer_history",
+            "pTarget": 0.1918
+          },
+          {
+            "draw": 1,
+            "choice": "customer_history",
+            "pTarget": 0.1889
+          },
+          {
+            "draw": 2,
+            "choice": "customer_history",
+            "pTarget": 0.2756
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "single_issue_vs_complex_case_B",
+        "recipientStep": "single_issue_vs_complex_case_A",
+        "targetTool": "customer_history",
+        "baselineChoice": "billing_system",
+        "baselineTarget": 0.2615,
+        "differenceNorm": 32.4143,
+        "recipientNorm": 121.966,
+        "ceiling": {
+          "choice": "billing_system",
+          "pTarget": 0.4513,
+          "deltaTarget": 0.1898,
+          "flipped": false
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 12.6876,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "billing_system",
+            "pTarget": 0.2644
+          },
+          {
+            "draw": 1,
+            "choice": "billing_system",
+            "pTarget": 0.1775
+          },
+          {
+            "draw": 2,
+            "choice": "billing_system",
+            "pTarget": 0.2853
+          }
+        ],
+        "randomFlips": 0
+      }
+    }
+  },
+  "summary": {
+    "ceilingFlips": 39,
+    "directions": 64,
+    "dimFlips": 29,
+    "dimDirections": 60,
+    "randomFlips": 2,
+    "randomDraws": 192,
+    "dimMatchedFlips": 14,
+    "dimMatchedDirections": 60,
+    "randomMatchedFlips": 0,
+    "randomMatchedDraws": 180
+  }
+}

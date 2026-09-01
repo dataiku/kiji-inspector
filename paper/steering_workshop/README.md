@@ -8,6 +8,8 @@ steering study. It lives on branch steering-workshop-five-page in the separate
 - neurips_2026_formatting/neurips_2026.sty is the NeurIPS 2026 template.
 - steering_refs.bib supplements the shared ../references.bib.
 - images/ contains the figures used by the paper and appendix.
+- artifacts/ holds the ten battery outputs the numbers come from, so the
+  paper is reproducible without the ignored 3.4 GB run tree; see its README.
 - build.sh compiles the PDF with local TeX or Docker.
 
 Before submission, replace the placeholder in workshoptitle and verify whether

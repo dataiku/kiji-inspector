@@ -1,0 +1,4053 @@
+{
+  "model": "/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp",
+  "layer": 43,
+  "scenario": "supply_chain_expanded",
+  "draws": 3,
+  "seed": 0,
+  "directions": {
+    "local_vs_global_sourcing_0": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_0_A",
+        "recipientStep": "local_vs_global_sourcing_0_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2227,
+        "differenceNorm": 46.3234,
+        "recipientNorm": 281.21,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.6512,
+          "deltaTarget": 0.4285,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.4374,
+          "deltaTarget": 0.2147,
+          "flipped": false
+        },
+        "clampDeltaNorm": 31.6284,
+        "differenceInMeansMatched": {
+          "norm": 31.6284,
+          "choice": "demand_forecaster",
+          "pTarget": 0.3485,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2689
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2942
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.245
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_0_B",
+        "recipientStep": "local_vs_global_sourcing_0_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.3209,
+        "differenceNorm": 46.3234,
+        "recipientNorm": 282.1833,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.731,
+          "deltaTarget": 0.4101,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.4378,
+          "deltaTarget": 0.1169,
+          "flipped": false
+        },
+        "clampDeltaNorm": 14.6957,
+        "differenceInMeansMatched": {
+          "norm": 14.6957,
+          "choice": "inventory_manager",
+          "pTarget": 0.3487,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.3208
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.2943
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.2943
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_0": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_0_A",
+        "recipientStep": "demand_pull_vs_supply_push_0_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.221,
+        "differenceNorm": 75.4908,
+        "recipientNorm": 280.981,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.7958,
+          "deltaTarget": 0.5748,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.8841,
+          "deltaTarget": 0.6631,
+          "flipped": true
+        },
+        "clampDeltaNorm": 43.3186,
+        "differenceInMeansMatched": {
+          "norm": 43.3186,
+          "choice": "inventory_manager",
+          "pTarget": 0.6442,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.243
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2006
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2002
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_0_B",
+        "recipientStep": "demand_pull_vs_supply_push_0_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.182,
+        "differenceNorm": 75.4908,
+        "recipientNorm": 277.0614,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.7245,
+          "deltaTarget": 0.5425,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.8152,
+          "deltaTarget": 0.6332,
+          "flipped": true
+        },
+        "clampDeltaNorm": 25.4614,
+        "differenceInMeansMatched": {
+          "norm": 25.4614,
+          "choice": "inventory_manager",
+          "pTarget": 0.3764,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.119
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.2017
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.2221
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_1": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_1_A",
+        "recipientStep": "demand_pull_vs_supply_push_1_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.06,
+        "differenceNorm": 77.822,
+        "recipientNorm": 283.2108,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.6185,
+          "deltaTarget": 0.5585,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.7526,
+          "deltaTarget": 0.6926,
+          "flipped": true
+        },
+        "clampDeltaNorm": 40.8157,
+        "differenceInMeansMatched": {
+          "norm": 40.8157,
+          "choice": "demand_forecaster",
+          "pTarget": 0.2935,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.0851
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.0601
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.0533
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_1_B",
+        "recipientStep": "demand_pull_vs_supply_push_1_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.3749,
+        "differenceNorm": 77.822,
+        "recipientNorm": 281.8262,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.9223,
+          "deltaTarget": 0.5474,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.8619,
+          "deltaTarget": 0.487,
+          "flipped": true
+        },
+        "clampDeltaNorm": 34.184,
+        "differenceInMeansMatched": {
+          "norm": 34.184,
+          "choice": "demand_forecaster",
+          "pTarget": 0.6182,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.2915
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.3763
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.2932
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_2": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_2_A",
+        "recipientStep": "demand_pull_vs_supply_push_2_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2018,
+        "differenceNorm": 82.0854,
+        "recipientNorm": 281.5579,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.8669,
+          "deltaTarget": 0.6651,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.924,
+          "deltaTarget": 0.7222,
+          "flipped": true
+        },
+        "clampDeltaNorm": 59.3528,
+        "differenceInMeansMatched": {
+          "norm": 59.3528,
+          "choice": "inventory_manager",
+          "pTarget": 0.8174,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.1824
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2227
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2451
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_2_B",
+        "recipientStep": "demand_pull_vs_supply_push_2_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.1193,
+        "differenceNorm": 82.0854,
+        "recipientNorm": 279.7369,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.7548,
+          "deltaTarget": 0.6355,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.7981,
+          "deltaTarget": 0.6788,
+          "flipped": true
+        },
+        "clampDeltaNorm": 35.1872,
+        "differenceInMeansMatched": {
+          "norm": 35.1872,
+          "choice": "inventory_manager",
+          "pTarget": 0.4074,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.1194
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.1067
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.1067
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_3": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_3_A",
+        "recipientStep": "demand_pull_vs_supply_push_3_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2874,
+        "differenceNorm": 86.4481,
+        "recipientNorm": 274.0793,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.799,
+          "deltaTarget": 0.5116,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.881,
+          "deltaTarget": 0.5936,
+          "flipped": true
+        },
+        "clampDeltaNorm": 47.2625,
+        "differenceInMeansMatched": {
+          "norm": 47.2625,
+          "choice": "inventory_manager",
+          "pTarget": 0.6905,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2442
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.4275
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2649
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_3_B",
+        "recipientStep": "demand_pull_vs_supply_push_3_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0147,
+        "differenceNorm": 86.4481,
+        "recipientNorm": 281.8079,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.4828,
+          "deltaTarget": 0.4681,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.3586,
+          "deltaTarget": 0.3439,
+          "flipped": true
+        },
+        "clampDeltaNorm": 29.4386,
+        "differenceInMeansMatched": {
+          "norm": 29.4386,
+          "choice": "inventory_manager",
+          "pTarget": 0.0528,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0141
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0067
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0098
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_4": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_4_A",
+        "recipientStep": "demand_pull_vs_supply_push_4_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2687,
+        "differenceNorm": 113.6566,
+        "recipientNorm": 280.4341,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9819,
+          "deltaTarget": 0.7132,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.9555,
+          "deltaTarget": 0.6868,
+          "flipped": true
+        },
+        "clampDeltaNorm": 88.5303,
+        "differenceInMeansMatched": {
+          "norm": 88.5303,
+          "choice": "inventory_manager",
+          "pTarget": 0.9129,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2449
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2446
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.3773
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_4_B",
+        "recipientStep": "demand_pull_vs_supply_push_4_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0125,
+        "differenceNorm": 113.6566,
+        "recipientNorm": 281.7149,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.5921,
+          "deltaTarget": 0.5796,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.8353,
+          "deltaTarget": 0.8228,
+          "flipped": true
+        },
+        "clampDeltaNorm": 55.7537,
+        "differenceInMeansMatched": {
+          "norm": 55.7537,
+          "choice": "inventory_manager",
+          "pTarget": 0.1646,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0076
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0125
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0052
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_5": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_5_A",
+        "recipientStep": "demand_pull_vs_supply_push_5_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.018,
+        "differenceNorm": 90.8809,
+        "recipientNorm": 274.8264,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.7045,
+          "deltaTarget": 0.6865,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.8798,
+          "deltaTarget": 0.8618,
+          "flipped": true
+        },
+        "clampDeltaNorm": 42.2693,
+        "differenceInMeansMatched": {
+          "norm": 42.2693,
+          "choice": "demand_forecaster",
+          "pTarget": 0.2226,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.0421
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.018
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.0204
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_5_B",
+        "recipientStep": "demand_pull_vs_supply_push_5_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.2448,
+        "differenceNorm": 90.8809,
+        "recipientNorm": 272.5434,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.9703,
+          "deltaTarget": 0.7255,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.923,
+          "deltaTarget": 0.6782,
+          "flipped": true
+        },
+        "clampDeltaNorm": 39.2708,
+        "differenceInMeansMatched": {
+          "norm": 39.2708,
+          "choice": "demand_forecaster",
+          "pTarget": 0.6502,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.2445
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.1644
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.2015
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_6": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_6_A",
+        "recipientStep": "demand_pull_vs_supply_push_6_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.1996,
+        "differenceNorm": 93.1655,
+        "recipientNorm": 281.1136,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9088,
+          "deltaTarget": 0.7092,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.9123,
+          "deltaTarget": 0.7127,
+          "flipped": true
+        },
+        "clampDeltaNorm": 66.1469,
+        "differenceInMeansMatched": {
+          "norm": 66.1469,
+          "choice": "inventory_manager",
+          "pTarget": 0.7862,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2898
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2001
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2215
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_6_B",
+        "recipientStep": "demand_pull_vs_supply_push_6_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0846,
+        "differenceNorm": 93.1655,
+        "recipientNorm": 280.6815,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.7216,
+          "deltaTarget": 0.637,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.812,
+          "deltaTarget": 0.7274,
+          "flipped": true
+        },
+        "clampDeltaNorm": 32.1182,
+        "differenceInMeansMatched": {
+          "norm": 32.1182,
+          "choice": "inventory_manager",
+          "pTarget": 0.2667,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.085
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0846
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0671
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_7": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_7_A",
+        "recipientStep": "demand_pull_vs_supply_push_7_B",
+        "targetTool": "procurement_system",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2162,
+        "differenceNorm": 87.0631,
+        "recipientNorm": 281.6943,
+        "ceiling": {
+          "choice": "procurement_system",
+          "pTarget": 0.6253,
+          "deltaTarget": 0.4091,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.2726,
+          "deltaTarget": 0.0564,
+          "flipped": false
+        },
+        "clampDeltaNorm": 27.5929,
+        "differenceInMeansMatched": {
+          "norm": 27.5929,
+          "choice": "demand_forecaster",
+          "pTarget": 0.2424,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.1726
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2372
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2158
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_7_B",
+        "recipientStep": "demand_pull_vs_supply_push_7_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "procurement_system",
+        "baselineTarget": 0.1263,
+        "differenceNorm": 87.0631,
+        "recipientNorm": 277.3717,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.7284,
+          "deltaTarget": 0.6021,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.5873,
+          "deltaTarget": 0.461,
+          "flipped": true
+        },
+        "clampDeltaNorm": 27.5597,
+        "differenceInMeansMatched": {
+          "norm": 27.5597,
+          "choice": "procurement_system",
+          "pTarget": 0.2571,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "procurement_system",
+            "pTarget": 0.1688
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system",
+            "pTarget": 0.1035
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system",
+            "pTarget": 0.1262
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_8": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_8_A",
+        "recipientStep": "demand_pull_vs_supply_push_8_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2181,
+        "differenceNorm": 80.3839,
+        "recipientNorm": 280.8406,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.8805,
+          "deltaTarget": 0.6624,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.8941,
+          "deltaTarget": 0.676,
+          "flipped": true
+        },
+        "clampDeltaNorm": 48.3824,
+        "differenceInMeansMatched": {
+          "norm": 48.3824,
+          "choice": "inventory_manager",
+          "pTarget": 0.7352,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2196
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.198
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.1977
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_8_B",
+        "recipientStep": "demand_pull_vs_supply_push_8_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0566,
+        "differenceNorm": 80.3839,
+        "recipientNorm": 280.8768,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.6836,
+          "deltaTarget": 0.627,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.6277,
+          "deltaTarget": 0.5711,
+          "flipped": true
+        },
+        "clampDeltaNorm": 29.0977,
+        "differenceInMeansMatched": {
+          "norm": 29.0977,
+          "choice": "inventory_manager",
+          "pTarget": 0.1673,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0445
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0553
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0502
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "demand_pull_vs_supply_push_9": {
+      "a_into_b": {
+        "donorStep": "demand_pull_vs_supply_push_9_A",
+        "recipientStep": "demand_pull_vs_supply_push_9_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.3164,
+        "differenceNorm": 97.0107,
+        "recipientNorm": 283.0554,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9287,
+          "deltaTarget": 0.6123,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.9248,
+          "deltaTarget": 0.6084,
+          "flipped": true
+        },
+        "clampDeltaNorm": 68.3938,
+        "differenceInMeansMatched": {
+          "norm": 68.3938,
+          "choice": "inventory_manager",
+          "pTarget": 0.8528,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.3707
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.3746
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.3446
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "demand_pull_vs_supply_push_9_B",
+        "recipientStep": "demand_pull_vs_supply_push_9_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0533,
+        "differenceNorm": 97.0107,
+        "recipientNorm": 280.4448,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.6126,
+          "deltaTarget": 0.5593,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.7953,
+          "deltaTarget": 0.742,
+          "flipped": true
+        },
+        "clampDeltaNorm": 36.9957,
+        "differenceInMeansMatched": {
+          "norm": 36.9957,
+          "choice": "inventory_manager",
+          "pTarget": 0.2012,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0473
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0421
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0601
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_1": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_1_A",
+        "recipientStep": "local_vs_global_sourcing_1_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.1815,
+        "differenceNorm": 50.1969,
+        "recipientNorm": 287.7072,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6192,
+          "deltaTarget": 0.4377,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.5524,
+          "deltaTarget": 0.3709,
+          "flipped": true
+        },
+        "clampDeltaNorm": 34.7297,
+        "differenceInMeansMatched": {
+          "norm": 34.7297,
+          "choice": "shipment_tracker",
+          "pTarget": 0.4022,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1324
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.22
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2004
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_1_B",
+        "recipientStep": "local_vs_global_sourcing_1_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.2674,
+        "differenceNorm": 50.1969,
+        "recipientNorm": 285.9329,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.7482,
+          "deltaTarget": 0.4808,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.6472,
+          "deltaTarget": 0.3798,
+          "flipped": true
+        },
+        "clampDeltaNorm": 10.2543,
+        "differenceInMeansMatched": {
+          "norm": 10.2543,
+          "choice": "supplier_database",
+          "pTarget": 0.3467,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.2928
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.2217
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.2672
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_0": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_0_A",
+        "recipientStep": "cost_vs_speed_optimization_0_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.176,
+        "differenceNorm": 84.1636,
+        "recipientNorm": 283.2261,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.6451,
+          "deltaTarget": 0.4691,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.7993,
+          "deltaTarget": 0.6233,
+          "flipped": true
+        },
+        "clampDeltaNorm": 8.9899,
+        "differenceInMeansMatched": {
+          "norm": 8.9899,
+          "choice": "shipment_tracker",
+          "pTarget": 0.2142,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1564
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2862
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1759
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_0_B",
+        "recipientStep": "cost_vs_speed_optimization_0_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.2658,
+        "differenceNorm": 84.1636,
+        "recipientNorm": 276.3336,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.7621,
+          "deltaTarget": 0.4963,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.9115,
+          "deltaTarget": 0.6457,
+          "flipped": true
+        },
+        "clampDeltaNorm": 21.4202,
+        "differenceInMeansMatched": {
+          "norm": 21.4202,
+          "choice": "route_optimizer",
+          "pTarget": 0.4642,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.2654
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.2205
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.181
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_2": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_2_A",
+        "recipientStep": "local_vs_global_sourcing_2_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.3775,
+        "differenceNorm": 86.7161,
+        "recipientNorm": 294.3497,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.9898,
+          "deltaTarget": 0.6123,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.88,
+          "deltaTarget": 0.5025,
+          "flipped": true
+        },
+        "clampDeltaNorm": 68.6781,
+        "differenceInMeansMatched": {
+          "norm": 68.6781,
+          "choice": "supplier_database",
+          "pTarget": 0.8171,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3206
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3485
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3209
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_2_B",
+        "recipientStep": "local_vs_global_sourcing_2_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.0019,
+        "differenceNorm": 86.7161,
+        "recipientNorm": 287.4934,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.4675,
+          "deltaTarget": 0.4656,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.1814,
+          "deltaTarget": 0.1795,
+          "flipped": false
+        },
+        "clampDeltaNorm": 21.544,
+        "differenceInMeansMatched": {
+          "norm": 21.544,
+          "choice": "supplier_database",
+          "pTarget": 0.0067,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.001
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.0015
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.0019
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_1": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_1_A",
+        "recipientStep": "cost_vs_speed_optimization_1_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.2461,
+        "differenceNorm": 64.0619,
+        "recipientNorm": 280.5333,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.7052,
+          "deltaTarget": 0.4591,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.7553,
+          "deltaTarget": 0.5092,
+          "flipped": true
+        },
+        "clampDeltaNorm": 7.7204,
+        "differenceInMeansMatched": {
+          "norm": 7.7204,
+          "choice": "shipment_tracker",
+          "pTarget": 0.2952,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2461
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2238
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1652
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_1_B",
+        "recipientStep": "cost_vs_speed_optimization_1_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.2442,
+        "differenceNorm": 64.0619,
+        "recipientNorm": 277.993,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.7044,
+          "deltaTarget": 0.4602,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.7749,
+          "deltaTarget": 0.5307,
+          "flipped": true
+        },
+        "clampDeltaNorm": 19.9224,
+        "differenceInMeansMatched": {
+          "norm": 19.9224,
+          "choice": "route_optimizer",
+          "pTarget": 0.3761,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.2931
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.2217
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.2931
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_3": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_3_A",
+        "recipientStep": "local_vs_global_sourcing_3_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.2689,
+        "differenceNorm": 64.8425,
+        "recipientNorm": 285.1473,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.8668,
+          "deltaTarget": 0.5979,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.7765,
+          "deltaTarget": 0.5076,
+          "flipped": true
+        },
+        "clampDeltaNorm": 53.8464,
+        "differenceInMeansMatched": {
+          "norm": 53.8464,
+          "choice": "supplier_database",
+          "pTarget": 0.6787,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3483
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2454
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3481
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_3_B",
+        "recipientStep": "local_vs_global_sourcing_3_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.085,
+        "differenceNorm": 64.8425,
+        "recipientNorm": 288.6582,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.6497,
+          "deltaTarget": 0.5647,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.4679,
+          "deltaTarget": 0.3829,
+          "flipped": false
+        },
+        "clampDeltaNorm": 18.3191,
+        "differenceInMeansMatched": {
+          "norm": 18.3191,
+          "choice": "supplier_database",
+          "pTarget": 0.1643,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.0758
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.0953
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.0952
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_4": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_4_A",
+        "recipientStep": "local_vs_global_sourcing_4_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2942,
+        "differenceNorm": 43.8734,
+        "recipientNorm": 283.0477,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.6791,
+          "deltaTarget": 0.3849,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.4377,
+          "deltaTarget": 0.1435,
+          "flipped": false
+        },
+        "clampDeltaNorm": 28.0694,
+        "differenceInMeansMatched": {
+          "norm": 28.0694,
+          "choice": "demand_forecaster",
+          "pTarget": 0.3775,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2942
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2689
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2689
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_4_B",
+        "recipientStep": "local_vs_global_sourcing_4_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.3209,
+        "differenceNorm": 43.8734,
+        "recipientNorm": 283.1893,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.7057,
+          "deltaTarget": 0.3848,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "inventory_manager",
+          "pTarget": 0.4072,
+          "deltaTarget": 0.0863,
+          "flipped": false
+        },
+        "clampDeltaNorm": 16.6558,
+        "differenceInMeansMatched": {
+          "norm": 16.6558,
+          "choice": "inventory_manager",
+          "pTarget": 0.3775,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.2943
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.2941
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.269
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_2": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_2_A",
+        "recipientStep": "cost_vs_speed_optimization_2_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.0602,
+        "differenceNorm": 75.7958,
+        "recipientNorm": 283.7202,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.4955,
+          "deltaTarget": 0.4353,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.6198,
+          "deltaTarget": 0.5596,
+          "flipped": true
+        },
+        "clampDeltaNorm": 19.0427,
+        "differenceInMeansMatched": {
+          "norm": 19.0427,
+          "choice": "shipment_tracker",
+          "pTarget": 0.133,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1067
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.06
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.0761
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_2_B",
+        "recipientStep": "cost_vs_speed_optimization_2_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.3452,
+        "differenceNorm": 75.7958,
+        "recipientNorm": 278.6715,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.9024,
+          "deltaTarget": 0.5572,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.8748,
+          "deltaTarget": 0.5296,
+          "flipped": true
+        },
+        "clampDeltaNorm": 22.3242,
+        "differenceInMeansMatched": {
+          "norm": 22.3242,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5266,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.3161
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.3742
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.3175
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_5": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_5_A",
+        "recipientStep": "local_vs_global_sourcing_5_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2383,
+        "differenceNorm": 44.9616,
+        "recipientNorm": 279.3261,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.6053,
+          "deltaTarget": 0.367,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.3684,
+          "deltaTarget": 0.1301,
+          "flipped": false
+        },
+        "clampDeltaNorm": 22.9587,
+        "differenceInMeansMatched": {
+          "norm": 22.9587,
+          "choice": "demand_forecaster",
+          "pTarget": 0.3047,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster"
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2852
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2619
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2178
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_5_B",
+        "recipientStep": "local_vs_global_sourcing_5_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.34,
+        "differenceNorm": 44.9616,
+        "recipientNorm": 281.6644,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.6578,
+          "deltaTarget": 0.3178,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "demand_forecaster",
+          "pTarget": 0.488,
+          "deltaTarget": 0.148,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.5856,
+        "differenceInMeansMatched": {
+          "norm": 13.5856,
+          "choice": "inventory_manager",
+          "pTarget": 0.3685,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.3122
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.3702
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.3411
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_6": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_6_A",
+        "recipientStep": "local_vs_global_sourcing_6_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "procurement_system",
+        "baselineTarget": 0.3371,
+        "differenceNorm": 43.5136,
+        "recipientNorm": 281.2133,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6119,
+          "deltaTarget": 0.2748,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.6429,
+          "deltaTarget": 0.3058,
+          "flipped": true
+        },
+        "clampDeltaNorm": 16.9091,
+        "differenceInMeansMatched": {
+          "norm": 16.9091,
+          "choice": "supplier_database",
+          "pTarget": 0.4898,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "procurement_system",
+            "pTarget": 0.2845
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system",
+            "pTarget": 0.3384
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system",
+            "pTarget": 0.3121
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_6_B",
+        "recipientStep": "local_vs_global_sourcing_6_A",
+        "targetTool": "procurement_system",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.3434,
+        "differenceNorm": 43.5136,
+        "recipientNorm": 278.4013,
+        "ceiling": {
+          "choice": "procurement_system",
+          "pTarget": 0.6042,
+          "deltaTarget": 0.2608,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "procurement_system",
+          "pTarget": 0.6163,
+          "deltaTarget": 0.2729,
+          "flipped": true
+        },
+        "clampDeltaNorm": 1.7173,
+        "differenceInMeansMatched": {
+          "norm": 1.7173,
+          "choice": "supplier_database",
+          "pTarget": 0.3433,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.3694
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.3722
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.4015
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_3": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_3_A",
+        "recipientStep": "cost_vs_speed_optimization_3_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.2218,
+        "differenceNorm": 81.3134,
+        "recipientNorm": 286.1868,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.8708,
+          "deltaTarget": 0.649,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.8119,
+          "deltaTarget": 0.5901,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.7437,
+        "differenceInMeansMatched": {
+          "norm": 13.7437,
+          "choice": "shipment_tracker",
+          "pTarget": 0.3194,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.182
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2221
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2681
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_3_B",
+        "recipientStep": "cost_vs_speed_optimization_3_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.075,
+        "differenceNorm": 81.3134,
+        "recipientNorm": 279.2791,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.6743,
+          "deltaTarget": 0.5993,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.6137,
+          "deltaTarget": 0.5387,
+          "flipped": true
+        },
+        "clampDeltaNorm": 26.053,
+        "differenceInMeansMatched": {
+          "norm": 26.053,
+          "choice": "route_optimizer",
+          "pTarget": 0.1462,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.1055
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.0844
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.1184
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_4": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_4_A",
+        "recipientStep": "cost_vs_speed_optimization_4_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.1565,
+        "differenceNorm": 70.8142,
+        "recipientNorm": 281.9023,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.6161,
+          "deltaTarget": 0.4596,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.607,
+          "deltaTarget": 0.4505,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.4934,
+        "differenceInMeansMatched": {
+          "norm": 13.4934,
+          "choice": "shipment_tracker",
+          "pTarget": 0.1898,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1565
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1278
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1268
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_4_B",
+        "recipientStep": "cost_vs_speed_optimization_4_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.2917,
+        "differenceNorm": 70.8142,
+        "recipientNorm": 273.2423,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.7627,
+          "deltaTarget": 0.471,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.8144,
+          "deltaTarget": 0.5227,
+          "flipped": true
+        },
+        "clampDeltaNorm": 20.6854,
+        "differenceInMeansMatched": {
+          "norm": 20.6854,
+          "choice": "route_optimizer",
+          "pTarget": 0.465,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.2658
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.2669
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.2215
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_7": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_7_A",
+        "recipientStep": "local_vs_global_sourcing_7_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "procurement_system",
+        "baselineTarget": 0.3488,
+        "differenceNorm": 23.8749,
+        "recipientNorm": 273.3446,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6226,
+          "deltaTarget": 0.2738,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.5313,
+          "deltaTarget": 0.1825,
+          "flipped": true
+        },
+        "clampDeltaNorm": 11.1491,
+        "differenceInMeansMatched": {
+          "norm": 11.1491,
+          "choice": "procurement_system",
+          "pTarget": 0.438,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "procurement_system",
+            "pTarget": 0.3488
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system",
+            "pTarget": 0.3777
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system",
+            "pTarget": 0.321
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_7_B",
+        "recipientStep": "local_vs_global_sourcing_7_A",
+        "targetTool": "procurement_system",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.3485,
+        "differenceNorm": 23.8749,
+        "recipientNorm": 277.2166,
+        "ceiling": {
+          "choice": "procurement_system",
+          "pTarget": 0.5925,
+          "deltaTarget": 0.244,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.4998,
+          "deltaTarget": 0.1513,
+          "flipped": false
+        },
+        "clampDeltaNorm": 6.5491,
+        "differenceInMeansMatched": {
+          "norm": 6.5491,
+          "choice": "supplier_database",
+          "pTarget": 0.3774,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.3207
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.3774
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.3774
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_5": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_5_A",
+        "recipientStep": "cost_vs_speed_optimization_5_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.5,
+        "differenceNorm": 50.1322,
+        "recipientNorm": 274.918,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.8508,
+          "deltaTarget": 0.3508,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.8664,
+          "deltaTarget": 0.3664,
+          "flipped": false
+        },
+        "clampDeltaNorm": 8.9273,
+        "differenceInMeansMatched": {
+          "norm": 8.9273,
+          "choice": "route_optimizer",
+          "pTarget": 0.5926,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.5002
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.5312
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.562
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_5_B",
+        "recipientStep": "cost_vs_speed_optimization_5_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.9139,
+        "differenceNorm": 50.1322,
+        "recipientNorm": 275.9403,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.6223,
+          "deltaTarget": -0.2916,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.5617,
+          "deltaTarget": -0.3522,
+          "flipped": false
+        },
+        "clampDeltaNorm": 13.5253,
+        "differenceInMeansMatched": {
+          "norm": 13.5253,
+          "choice": "route_optimizer",
+          "pTarget": 0.8346,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.9318
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.8659
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.8916
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_8": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_8_A",
+        "recipientStep": "local_vs_global_sourcing_8_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.4067,
+        "differenceNorm": 39.6681,
+        "recipientNorm": 292.034,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6788,
+          "deltaTarget": 0.2721,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.7046,
+          "deltaTarget": 0.2979,
+          "flipped": true
+        },
+        "clampDeltaNorm": 20.5736,
+        "differenceInMeansMatched": {
+          "norm": 20.5736,
+          "choice": "supplier_database",
+          "pTarget": 0.5304,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3768
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.4372
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.4367
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_8_B",
+        "recipientStep": "local_vs_global_sourcing_8_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.2682,
+        "differenceNorm": 39.6681,
+        "recipientNorm": 288.8471,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.5597,
+          "deltaTarget": 0.2915,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5293,
+          "deltaTarget": 0.2611,
+          "flipped": true
+        },
+        "clampDeltaNorm": 9.9143,
+        "differenceInMeansMatched": {
+          "norm": 9.9143,
+          "choice": "supplier_database",
+          "pTarget": 0.3477,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.2443
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.2932
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.2683
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_6": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_6_A",
+        "recipientStep": "cost_vs_speed_optimization_6_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.1331,
+        "differenceNorm": 68.0161,
+        "recipientNorm": 275.1031,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.5278,
+          "deltaTarget": 0.3947,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.7304,
+          "deltaTarget": 0.5973,
+          "flipped": true
+        },
+        "clampDeltaNorm": 19.6179,
+        "differenceInMeansMatched": {
+          "norm": 19.6179,
+          "choice": "shipment_tracker",
+          "pTarget": 0.269,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1649
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1482
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.202
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_6_B",
+        "recipientStep": "cost_vs_speed_optimization_6_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.345,
+        "differenceNorm": 68.0161,
+        "recipientNorm": 277.4072,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.7762,
+          "deltaTarget": 0.4312,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.8444,
+          "deltaTarget": 0.4994,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.0371,
+        "differenceInMeansMatched": {
+          "norm": 13.0371,
+          "choice": "route_optimizer",
+          "pTarget": 0.4638,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.2903
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.4634
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.2909
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_7": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_7_A",
+        "recipientStep": "cost_vs_speed_optimization_7_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.2935,
+        "differenceNorm": 58.5145,
+        "recipientNorm": 274.9453,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.9313,
+          "deltaTarget": 0.6378,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.7274,
+          "deltaTarget": 0.4339,
+          "flipped": true
+        },
+        "clampDeltaNorm": 9.3305,
+        "differenceInMeansMatched": {
+          "norm": 9.3305,
+          "choice": "shipment_tracker",
+          "pTarget": 0.3764,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3207
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3762
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3474
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_7_B",
+        "recipientStep": "cost_vs_speed_optimization_7_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.033,
+        "differenceNorm": 58.5145,
+        "recipientNorm": 269.8174,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.5594,
+          "deltaTarget": 0.5264,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.2683,
+          "deltaTarget": 0.2353,
+          "flipped": false
+        },
+        "clampDeltaNorm": 21.807,
+        "differenceInMeansMatched": {
+          "norm": 21.807,
+          "choice": "route_optimizer",
+          "pTarget": 0.0757,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.033
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.0293
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.042
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "local_vs_global_sourcing_9": {
+      "a_into_b": {
+        "donorStep": "local_vs_global_sourcing_9_A",
+        "recipientStep": "local_vs_global_sourcing_9_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "procurement_system",
+        "baselineTarget": 0.3108,
+        "differenceNorm": 44.5369,
+        "recipientNorm": 277.8258,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6106,
+          "deltaTarget": 0.2998,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "supplier_database",
+          "pTarget": 0.6145,
+          "deltaTarget": 0.3037,
+          "flipped": true
+        },
+        "clampDeltaNorm": 17.2408,
+        "differenceInMeansMatched": {
+          "norm": 17.2408,
+          "choice": "procurement_system",
+          "pTarget": 0.4596,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system"
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "procurement_system",
+            "pTarget": 0.2621
+          },
+          {
+            "draw": 1,
+            "choice": "procurement_system",
+            "pTarget": 0.2623
+          },
+          {
+            "draw": 2,
+            "choice": "procurement_system",
+            "pTarget": 0.3639
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "local_vs_global_sourcing_9_B",
+        "recipientStep": "local_vs_global_sourcing_9_A",
+        "targetTool": "procurement_system",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.343,
+        "differenceNorm": 44.5369,
+        "recipientNorm": 277.333,
+        "ceiling": {
+          "choice": "procurement_system",
+          "pTarget": 0.606,
+          "deltaTarget": 0.263,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "procurement_system",
+          "pTarget": 0.6411,
+          "deltaTarget": 0.2981,
+          "flipped": true
+        },
+        "clampDeltaNorm": 1.1873,
+        "differenceInMeansMatched": {
+          "norm": 1.1873,
+          "choice": "supplier_database",
+          "pTarget": 0.3424,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.3982
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.3695
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.3703
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_8": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_8_A",
+        "recipientStep": "cost_vs_speed_optimization_8_B",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.1325,
+        "differenceNorm": 65.7243,
+        "recipientNorm": 285.0546,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.5912,
+          "deltaTarget": 0.4587,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.6446,
+          "deltaTarget": 0.5121,
+          "flipped": true
+        },
+        "clampDeltaNorm": 9.8063,
+        "differenceInMeansMatched": {
+          "norm": 9.8063,
+          "choice": "shipment_tracker",
+          "pTarget": 0.1816,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1639
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.132
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.119
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_8_B",
+        "recipientStep": "cost_vs_speed_optimization_8_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.2931,
+        "differenceNorm": 65.7243,
+        "recipientNorm": 280.5672,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.7931,
+          "deltaTarget": 0.5,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.8163,
+          "deltaTarget": 0.5232,
+          "flipped": true
+        },
+        "clampDeltaNorm": 19.4214,
+        "differenceInMeansMatched": {
+          "norm": 19.4214,
+          "choice": "route_optimizer",
+          "pTarget": 0.4673,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.2927
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.3473
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.3474
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "cost_vs_speed_optimization_9": {
+      "a_into_b": {
+        "donorStep": "cost_vs_speed_optimization_9_A",
+        "recipientStep": "cost_vs_speed_optimization_9_B",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.1329,
+        "differenceNorm": 63.8112,
+        "recipientNorm": 283.2701,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.622,
+          "deltaTarget": 0.4891,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "route_optimizer",
+          "pTarget": 0.0141,
+          "deltaTarget": -0.1188,
+          "flipped": false
+        },
+        "clampDeltaNorm": 8.304,
+        "differenceInMeansMatched": {
+          "norm": 8.304,
+          "choice": "route_optimizer",
+          "pTarget": 0.1066,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.0953
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.2016
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.1329
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "cost_vs_speed_optimization_9_B",
+        "recipientStep": "cost_vs_speed_optimization_9_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.2692,
+        "differenceNorm": 63.8112,
+        "recipientNorm": 283.899,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.8176,
+          "deltaTarget": 0.5484,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 9,
+          "choice": "shipment_tracker",
+          "pTarget": 0.0204,
+          "deltaTarget": -0.2488,
+          "flipped": false
+        },
+        "clampDeltaNorm": 12.1601,
+        "differenceInMeansMatched": {
+          "norm": 12.1601,
+          "choice": "shipment_tracker",
+          "pTarget": 0.1648,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2696
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.2232
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3212
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "single_source_vs_multi_source_0": {
+      "a_into_b": {
+        "donorStep": "single_source_vs_multi_source_0_A",
+        "recipientStep": "single_source_vs_multi_source_0_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0893,
+        "differenceNorm": 66.177,
+        "recipientNorm": 277.4636,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6267,
+          "deltaTarget": 0.5374,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "supplier_database",
+          "pTarget": 0.6249,
+          "deltaTarget": 0.5356,
+          "flipped": true
+        },
+        "clampDeltaNorm": 30.0455,
+        "differenceInMeansMatched": {
+          "norm": 30.0455,
+          "choice": "inventory_manager",
+          "pTarget": 0.2943,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0723
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0802
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.1076
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "single_source_vs_multi_source_0_B",
+        "recipientStep": "single_source_vs_multi_source_0_A",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.2865,
+        "differenceNorm": 66.177,
+        "recipientNorm": 275.9998,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.8372,
+          "deltaTarget": 0.5507,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "inventory_manager",
+          "pTarget": 0.8513,
+          "deltaTarget": 0.5648,
+          "flipped": true
+        },
+        "clampDeltaNorm": 28.0414,
+        "differenceInMeansMatched": {
+          "norm": 28.0414,
+          "choice": "inventory_manager",
+          "pTarget": 0.5439,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.341
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.3402
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.2883
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "single_source_vs_multi_source_1": {
+      "a_into_b": {
+        "donorStep": "single_source_vs_multi_source_1_A",
+        "recipientStep": "single_source_vs_multi_source_1_B",
+        "targetTool": "supplier_database",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0848,
+        "differenceNorm": 69.7452,
+        "recipientNorm": 274.8882,
+        "ceiling": {
+          "choice": "supplier_database",
+          "pTarget": 0.6406,
+          "deltaTarget": 0.5558,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "supplier_database",
+          "pTarget": 0.6201,
+          "deltaTarget": 0.5353,
+          "flipped": true
+        },
+        "clampDeltaNorm": 35.4739,
+        "differenceInMeansMatched": {
+          "norm": 35.4739,
+          "choice": "inventory_manager",
+          "pTarget": 0.3474,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.1063
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0849
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0673
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "single_source_vs_multi_source_1_B",
+        "recipientStep": "single_source_vs_multi_source_1_A",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "supplier_database",
+        "baselineTarget": 0.2896,
+        "differenceNorm": 69.7452,
+        "recipientNorm": 277.2844,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9007,
+          "deltaTarget": 0.6111,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 1,
+          "choice": "inventory_manager",
+          "pTarget": 0.8859,
+          "deltaTarget": 0.5963,
+          "flipped": true
+        },
+        "clampDeltaNorm": 36.076,
+        "differenceInMeansMatched": {
+          "norm": 36.076,
+          "choice": "inventory_manager",
+          "pTarget": 0.6118,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database"
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "supplier_database",
+            "pTarget": 0.2202
+          },
+          {
+            "draw": 1,
+            "choice": "supplier_database",
+            "pTarget": 0.291
+          },
+          {
+            "draw": 2,
+            "choice": "supplier_database",
+            "pTarget": 0.2884
+          }
+        ],
+        "randomFlips": 0
+      }
+    }
+  },
+  "summary": {
+    "ceilingFlips": 61,
+    "directions": 64,
+    "dimFlips": 50,
+    "dimDirections": 64,
+    "randomFlips": 0,
+    "randomDraws": 192,
+    "dimMatchedFlips": 16,
+    "dimMatchedDirections": 64,
+    "randomMatchedFlips": 0,
+    "randomMatchedDraws": 192
+  }
+}

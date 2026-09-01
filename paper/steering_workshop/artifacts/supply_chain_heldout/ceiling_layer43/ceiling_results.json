@@ -1,0 +1,981 @@
+{
+  "model": "/models/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16-no-mtp",
+  "layer": 43,
+  "scenario": "supply_chain_heldout",
+  "draws": 3,
+  "seed": 0,
+  "directions": {
+    "warehouse_vs_transit_capacity_0": {
+      "a_into_b": {
+        "donorStep": "warehouse_vs_transit_capacity_0_A",
+        "recipientStep": "warehouse_vs_transit_capacity_0_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.0007,
+        "differenceNorm": 101.1072,
+        "recipientNorm": 276.0248,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.8858,
+          "deltaTarget": 0.8851,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "inventory_manager",
+          "pTarget": 0.9297,
+          "deltaTarget": 0.929,
+          "flipped": true
+        },
+        "clampDeltaNorm": 53.338,
+        "differenceInMeansMatched": {
+          "norm": 53.338,
+          "choice": "route_optimizer",
+          "pTarget": 0.221,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.0005
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.0007
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.0008
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "warehouse_vs_transit_capacity_0_B",
+        "recipientStep": "warehouse_vs_transit_capacity_0_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0322,
+        "differenceNorm": 101.1072,
+        "recipientNorm": 276.3972,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.6992,
+          "deltaTarget": 0.667,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "route_optimizer",
+          "pTarget": 0.5093,
+          "deltaTarget": 0.4771,
+          "flipped": true
+        },
+        "clampDeltaNorm": 43.4689,
+        "differenceInMeansMatched": {
+          "norm": 43.4689,
+          "choice": "inventory_manager",
+          "pTarget": 0.2104,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0225
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0229
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.02
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "past_usage_vs_future_usage": {
+      "a_into_b": {
+        "donorStep": "past_usage_vs_future_usage_A",
+        "recipientStep": "past_usage_vs_future_usage_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "demand_forecaster",
+        "baselineTarget": 0.2686,
+        "differenceNorm": 87.7941,
+        "recipientNorm": 280.6678,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9672,
+          "deltaTarget": 0.6986,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 55.1858,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "demand_forecaster",
+            "pTarget": 0.2449
+          },
+          {
+            "draw": 1,
+            "choice": "demand_forecaster",
+            "pTarget": 0.3206
+          },
+          {
+            "draw": 2,
+            "choice": "demand_forecaster",
+            "pTarget": 0.3478
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "past_usage_vs_future_usage_B",
+        "recipientStep": "past_usage_vs_future_usage_A",
+        "targetTool": "demand_forecaster",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0109,
+        "differenceNorm": 87.7941,
+        "recipientNorm": 276.8285,
+        "ceiling": {
+          "choice": "demand_forecaster",
+          "pTarget": 0.5919,
+          "deltaTarget": 0.581,
+          "flipped": true
+        },
+        "differenceInMeans": null,
+        "clampDeltaNorm": 36.5795,
+        "differenceInMeansMatched": null,
+        "randomMatched": [],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0052
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.011
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0046
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "carrier_distance_vs_carrier_price_0": {
+      "a_into_b": {
+        "donorStep": "carrier_distance_vs_carrier_price_0_A",
+        "recipientStep": "carrier_distance_vs_carrier_price_0_B",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.1956,
+        "differenceNorm": 53.8568,
+        "recipientNorm": 269.6532,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.5894,
+          "deltaTarget": 0.3938,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5289,
+          "deltaTarget": 0.3333,
+          "flipped": true
+        },
+        "clampDeltaNorm": 16.626,
+        "differenceInMeansMatched": {
+          "norm": 16.626,
+          "choice": "route_optimizer",
+          "pTarget": 0.2636,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.1446
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.2622
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.237
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "carrier_distance_vs_carrier_price_0_B",
+        "recipientStep": "carrier_distance_vs_carrier_price_0_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.2939,
+        "differenceNorm": 53.8568,
+        "recipientNorm": 275.1894,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.7109,
+          "deltaTarget": 0.417,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "route_optimizer",
+          "pTarget": 0.6846,
+          "deltaTarget": 0.3907,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.2966,
+        "differenceInMeansMatched": {
+          "norm": 13.2966,
+          "choice": "shipment_tracker",
+          "pTarget": 0.3755,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3481
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.4068
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3483
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "warehouse_vs_transit_capacity_1": {
+      "a_into_b": {
+        "donorStep": "warehouse_vs_transit_capacity_1_A",
+        "recipientStep": "warehouse_vs_transit_capacity_1_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.0009,
+        "differenceNorm": 104.1056,
+        "recipientNorm": 275.1531,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9217,
+          "deltaTarget": 0.9208,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "inventory_manager",
+          "pTarget": 0.9311,
+          "deltaTarget": 0.9302,
+          "flipped": true
+        },
+        "clampDeltaNorm": 54.9675,
+        "differenceInMeansMatched": {
+          "norm": 54.9675,
+          "choice": "route_optimizer",
+          "pTarget": 0.272,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.0016
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.0009
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.0005
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "warehouse_vs_transit_capacity_1_B",
+        "recipientStep": "warehouse_vs_transit_capacity_1_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0226,
+        "differenceNorm": 104.1056,
+        "recipientNorm": 275.7181,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.6968,
+          "deltaTarget": 0.6742,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "route_optimizer",
+          "pTarget": 0.5022,
+          "deltaTarget": 0.4796,
+          "flipped": true
+        },
+        "clampDeltaNorm": 48.1158,
+        "differenceInMeansMatched": {
+          "norm": 48.1158,
+          "choice": "inventory_manager",
+          "pTarget": 0.1795,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0227
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0367
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0138
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "warehouse_vs_transit_capacity_2": {
+      "a_into_b": {
+        "donorStep": "warehouse_vs_transit_capacity_2_A",
+        "recipientStep": "warehouse_vs_transit_capacity_2_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.0769,
+        "differenceNorm": 88.9522,
+        "recipientNorm": 267.1051,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.9055,
+          "deltaTarget": 0.8286,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "inventory_manager",
+          "pTarget": 0.8962,
+          "deltaTarget": 0.8193,
+          "flipped": true
+        },
+        "clampDeltaNorm": 47.9102,
+        "differenceInMeansMatched": {
+          "norm": 47.9102,
+          "choice": "inventory_manager",
+          "pTarget": 0.6521,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.0602
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1079
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1286
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "warehouse_vs_transit_capacity_2_B",
+        "recipientStep": "warehouse_vs_transit_capacity_2_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0072,
+        "differenceNorm": 88.9522,
+        "recipientNorm": 269.0539,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.5611,
+          "deltaTarget": 0.5539,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5742,
+          "deltaTarget": 0.567,
+          "flipped": true
+        },
+        "clampDeltaNorm": 21.7626,
+        "differenceInMeansMatched": {
+          "norm": 21.7626,
+          "choice": "inventory_manager",
+          "pTarget": 0.0422,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0044
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0024
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0115
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "carrier_distance_vs_carrier_price_1": {
+      "a_into_b": {
+        "donorStep": "carrier_distance_vs_carrier_price_1_A",
+        "recipientStep": "carrier_distance_vs_carrier_price_1_B",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.1217,
+        "differenceNorm": 52.7534,
+        "recipientNorm": 271.1184,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.4875,
+          "deltaTarget": 0.3658,
+          "flipped": false
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5171,
+          "deltaTarget": 0.3954,
+          "flipped": true
+        },
+        "clampDeltaNorm": 14.6281,
+        "differenceInMeansMatched": {
+          "norm": 14.6281,
+          "choice": "route_optimizer",
+          "pTarget": 0.2075,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.1111
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.109
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.1371
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "carrier_distance_vs_carrier_price_1_B",
+        "recipientStep": "carrier_distance_vs_carrier_price_1_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.4005,
+        "differenceNorm": 52.7534,
+        "recipientNorm": 274.8899,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.7184,
+          "deltaTarget": 0.3179,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "route_optimizer",
+          "pTarget": 0.7361,
+          "deltaTarget": 0.3356,
+          "flipped": true
+        },
+        "clampDeltaNorm": 16.3942,
+        "differenceInMeansMatched": {
+          "norm": 16.3942,
+          "choice": "route_optimizer",
+          "pTarget": 0.514,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.4338
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3717
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3445
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "carrier_distance_vs_carrier_price_2": {
+      "a_into_b": {
+        "donorStep": "carrier_distance_vs_carrier_price_2_A",
+        "recipientStep": "carrier_distance_vs_carrier_price_2_B",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "route_optimizer",
+        "baselineTarget": 0.1877,
+        "differenceNorm": 49.4761,
+        "recipientNorm": 270.0854,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.5242,
+          "deltaTarget": 0.3365,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5223,
+          "deltaTarget": 0.3346,
+          "flipped": true
+        },
+        "clampDeltaNorm": 13.3316,
+        "differenceInMeansMatched": {
+          "norm": 13.3316,
+          "choice": "route_optimizer",
+          "pTarget": 0.2552,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer"
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "route_optimizer",
+            "pTarget": 0.2091
+          },
+          {
+            "draw": 1,
+            "choice": "route_optimizer",
+            "pTarget": 0.1694
+          },
+          {
+            "draw": 2,
+            "choice": "route_optimizer",
+            "pTarget": 0.1917
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "carrier_distance_vs_carrier_price_2_B",
+        "recipientStep": "carrier_distance_vs_carrier_price_2_A",
+        "targetTool": "route_optimizer",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.3751,
+        "differenceNorm": 49.4761,
+        "recipientNorm": 274.5641,
+        "ceiling": {
+          "choice": "route_optimizer",
+          "pTarget": 0.6897,
+          "deltaTarget": 0.3146,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 2,
+          "choice": "route_optimizer",
+          "pTarget": 0.7202,
+          "deltaTarget": 0.3451,
+          "flipped": true
+        },
+        "clampDeltaNorm": 15.3295,
+        "differenceInMeansMatched": {
+          "norm": 15.3295,
+          "choice": "route_optimizer",
+          "pTarget": 0.5232,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.4035
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.3459
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.4055
+          }
+        ],
+        "randomFlips": 0
+      }
+    },
+    "warehouse_vs_transit_capacity_3": {
+      "a_into_b": {
+        "donorStep": "warehouse_vs_transit_capacity_3_A",
+        "recipientStep": "warehouse_vs_transit_capacity_3_B",
+        "targetTool": "inventory_manager",
+        "baselineChoice": "shipment_tracker",
+        "baselineTarget": 0.1004,
+        "differenceNorm": 81.8367,
+        "recipientNorm": 265.97,
+        "ceiling": {
+          "choice": "inventory_manager",
+          "pTarget": 0.8912,
+          "deltaTarget": 0.7908,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "inventory_manager",
+          "pTarget": 0.8757,
+          "deltaTarget": 0.7753,
+          "flipped": true
+        },
+        "clampDeltaNorm": 41.1552,
+        "differenceInMeansMatched": {
+          "norm": 41.1552,
+          "choice": "inventory_manager",
+          "pTarget": 0.618,
+          "flipped": true
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker"
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1123
+          },
+          {
+            "draw": 1,
+            "choice": "shipment_tracker",
+            "pTarget": 0.142
+          },
+          {
+            "draw": 2,
+            "choice": "shipment_tracker",
+            "pTarget": 0.1313
+          }
+        ],
+        "randomFlips": 0
+      },
+      "b_into_a": {
+        "donorStep": "warehouse_vs_transit_capacity_3_B",
+        "recipientStep": "warehouse_vs_transit_capacity_3_A",
+        "targetTool": "shipment_tracker",
+        "baselineChoice": "inventory_manager",
+        "baselineTarget": 0.0115,
+        "differenceNorm": 81.8367,
+        "recipientNorm": 265.0245,
+        "ceiling": {
+          "choice": "shipment_tracker",
+          "pTarget": 0.4862,
+          "deltaTarget": 0.4747,
+          "flipped": true
+        },
+        "differenceInMeans": {
+          "siblingPairs": 3,
+          "choice": "shipment_tracker",
+          "pTarget": 0.5211,
+          "deltaTarget": 0.5096,
+          "flipped": true
+        },
+        "clampDeltaNorm": 21.6135,
+        "differenceInMeansMatched": {
+          "norm": 21.6135,
+          "choice": "inventory_manager",
+          "pTarget": 0.0467,
+          "flipped": false
+        },
+        "randomMatched": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager"
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager"
+          }
+        ],
+        "randomMatchedFlips": 0,
+        "randomControls": [
+          {
+            "draw": 0,
+            "choice": "inventory_manager",
+            "pTarget": 0.0069
+          },
+          {
+            "draw": 1,
+            "choice": "inventory_manager",
+            "pTarget": 0.0116
+          },
+          {
+            "draw": 2,
+            "choice": "inventory_manager",
+            "pTarget": 0.0115
+          }
+        ],
+        "randomFlips": 0
+      }
+    }
+  },
+  "summary": {
+    "ceilingFlips": 15,
+    "directions": 16,
+    "dimFlips": 14,
+    "dimDirections": 14,
+    "randomFlips": 0,
+    "randomDraws": 48,
+    "dimMatchedFlips": 4,
+    "dimMatchedDirections": 14,
+    "randomMatchedFlips": 0,
+    "randomMatchedDraws": 42
+  }
+}
