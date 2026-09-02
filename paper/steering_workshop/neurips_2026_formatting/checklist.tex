@@ -161,8 +161,8 @@
 
 \item {\bf Licenses for existing assets}
     \item[] Question: Are the creators or original owners of assets (e.g., code, data, models), used in the paper, properly credited and are the license and terms of use explicitly mentioned and properly respected?
-    \item[] Answer: \answerNo{}
-    \item[] Justification: Appendix A.7 lists licenses for the subject model, the SAE release, the code and run artifacts, and the primary software. Appendix A.6 names the pair-generation, feature-labeling and label-validation models, whose terms A.7 also records.
+    \item[] Answer: \answerYes{}
+    \item[] Justification: Appendix A.7 names a license for every asset used or released: the subject checkpoint under the OpenMDW License Agreement 1.1, the pair-generation, feature-labeling and label-validation models under Apache-2.0, the released SAE checkpoints, labels, reports, code, pair definitions and run artifacts under Apache-2.0, and the primary software under BSD-3-Clause for PyTorch and Apache-2.0 for Hugging Face Transformers and vLLM. It gives both the original and the derived license where the SAE release builds on the subject checkpoint. Appendix A.6 identifies each model by repository, and the subject checkpoint and the SAEs by exact commit; the released lockfile pins the software versions.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not use existing assets.
