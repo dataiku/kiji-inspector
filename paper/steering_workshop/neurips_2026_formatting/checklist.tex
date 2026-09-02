@@ -67,7 +67,7 @@
 \item {\bf Open access to data and code}
     \item[] Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce the main experimental results, as described in supplemental material?
     \item[] Answer: \answerNo{}
-    \item[] Justification: The trained SAEs are released: all six checkpoints at a pinned Hugging Face commit, with their normalization and configuration files and a SHA-256 for each, reachable for review through the anonymized mirror linked in the appendix. Code, pair definitions, run artifacts, and regeneration instructions are prepared for release alongside them, but the anonymous artifact endpoint must be made externally accessible before submission. The generated pair corpus the SAEs were trained on is not released; the paper states its size, construction, and retention rule, and the reported experiments consume the released dictionaries and artifacts rather than that corpus. The full activation captures and gate sweep are likewise omitted because of their size, with compact derived inputs supplied for the reported analyses.
+    \item[] Justification: The trained SAEs are released: all six checkpoints at a pinned Hugging Face commit, with their normalization and configuration files and a SHA-256 for each, reachable for review through the anonymized mirror linked in the appendix. Code, pair definitions, run artifacts, and regeneration instructions are released alongside them through the anonymized repository linked in the paper. The generated pair corpus the SAEs were trained on is not released; the paper states its size, construction, and retention rule, and the reported experiments consume the released dictionaries and artifacts rather than that corpus. The full activation captures and gate sweep are likewise omitted because of their size, with compact derived inputs supplied for the reported analyses.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that paper does not include experiments requiring code.
@@ -124,7 +124,7 @@
 \item {\bf Code of ethics}
     \item[] Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics \url{https://neurips.cc/public/EthicsGuidelines}?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The experiments use synthetic business requests and model activations, involve no human subjects or personal data, and report negative results, uncertainty, and limitations. The authors should reconfirm this answer after reviewing the current Code of Ethics before submission.
+    \item[] Justification: The experiments use synthetic business requests and model activations, involve no human subjects or personal data, and report negative results, uncertainty, and limitations.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the authors have not reviewed the NeurIPS Code of Ethics.
@@ -162,7 +162,7 @@
 \item {\bf Licenses for existing assets}
     \item[] Question: Are the creators or original owners of assets (e.g., code, data, models), used in the paper, properly credited and are the license and terms of use explicitly mentioned and properly respected?
     \item[] Answer: \answerNo{}
-    \item[] Justification: Appendix A.7 lists licenses for the subject model, SAE release, code, and primary software, but the exact feature-labeling and validation model identities and their applicable terms still require correction and verification.
+    \item[] Justification: Appendix A.7 lists licenses for the subject model, the SAE release, the code and run artifacts, and the primary software. Appendix A.6 names the pair-generation, feature-labeling and label-validation models, whose terms A.7 also records.
     \item[] Guidelines:
     \begin{itemize}
         \item The answer \answerNA{} means that the paper does not use existing assets.

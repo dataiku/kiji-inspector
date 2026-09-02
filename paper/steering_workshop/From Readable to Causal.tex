@@ -102,9 +102,9 @@ where and how the intervention acts.
 We evaluate NVIDIA Nemotron-3.5-Lightning-30B-A3B in BF16, a 52-layer hybrid of
 Mamba-2, attention, and mixture-of-experts blocks with residual width 2,688
 \citep{nvidia2026nemotron35}.
-Released JumpReLU SAEs \citep{ref_rajamanoharan2024} cover layers
+Our JumpReLU SAEs \citep{ref_rajamanoharan2024} cover layers
 $\{6,13,20,27,34,43\}$ at the residual entering each layer, have 10,752
-features, and target $L_0=75$. They were trained, without contrastive
+features, and target $L_0=75$. We trained them, without contrastive
 supervision, on decision-token activations from the same generated corpus the
 in-distribution evaluation draws on: the 1,574,523 of 2,011,672
 Qwen3-VL-generated pairs whose two sides call different tools. 136 of the 150 unique demonstration and expanded requests occur in
@@ -194,7 +194,7 @@ cross-patching feature 2101 (\emph{safety stock and inventory coverage
 calculation}) into the unmodified request changes \texttt{demand\_forecaster}
 to \texttt{inventory\_manager}, raising the latter from 0.15 to 0.71 at the
 donor's natural activation; all six cue families reach 0.73 and mass-matched
-random sets move it by at most 0.05. This establishes existence, not typicality.
+random sets move it by 0.05 there. This establishes existence, not typicality.
 
 On the expanded sample, cue cross-patching redirects 29 of 128 directions to
 the donor tool and 3 to a third. Bulk
@@ -562,7 +562,9 @@ Layer & Tool selection (7 pairs) & Supply chain (4 pairs) & Customer support (6 
 \caption{Cross-patching feature 2101 into the unmodified recipient request.
 The tool boundary is crossed at the donor's natural activation. Shading is the
 largest deviation from three random sets matched to the feature (dark) or the
-whole cue set (light).}
+whole cue set (light). Both bands widen sharply below the natural scale, where
+clamping a control set to zero is itself a large perturbation: 0.41 and 0.77
+there, against 0.05 at the natural scale.}
 \label{fig:dose}
 \end{figure}
 
