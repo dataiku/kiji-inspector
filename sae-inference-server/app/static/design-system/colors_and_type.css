@@ -1,0 +1,197 @@
+/* ============================================================================
+   DATAIKU DESIGN SYSTEM — colors_and_type.css
+   Foundational color + typography tokens.
+   ----------------------------------------------------------------------------
+   FONTS:
+     • Signifier (Klim) — display/headline serif — SELF-HOSTED from fonts/.
+       Uploaded weights: Light 300, Bold 700, Black 900 (upright) + Light/
+       Regular italics. There is no upright 400 file, so display headings map
+       to Light (300) — the elegant high-contrast setting this face is made for.
+     • Untitled Sans (plain neo-grotesque) → Roboto  *(brand-sanctioned
+       web/slides font per the brand guidelines)* — SELF-HOSTED from fonts/.
+     • Söhne Mono (numbers, tags, notes)   → Roboto Mono — CDN.
+   ========================================================================== */
+
+/* Use the supplied monospace fallback; no external font request is required. */
+
+/* ---- Roboto (self-hosted, body/UI) -------------------------------------- */
+@font-face {
+  font-family: 'Roboto';
+  src: url('fonts/Roboto-Light.ttf') format('truetype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto';
+  src: url('fonts/Roboto-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto';
+  src: url('fonts/Roboto-Italic.ttf') format('truetype');
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto';
+  src: url('fonts/Roboto-Medium.ttf') format('truetype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto';
+  src: url('fonts/Roboto-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+/* ---- Signifier (self-hosted, Klim Type Foundry) ------------------------- */
+@font-face {
+  font-family: 'Signifier';
+  src: url('fonts/Signifier-Light.otf') format('opentype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Signifier';
+  src: url('fonts/Signifier-LightItalic.otf') format('opentype');
+  font-weight: 300; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Signifier';
+  src: url('fonts/Signifier-RegularItalic.otf') format('opentype');
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Signifier';
+  src: url('fonts/Signifier-Bold.otf') format('opentype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Signifier';
+  src: url('fonts/Signifier-Black.otf') format('opentype');
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* ---- CORE PALETTE (from brand guidelines) ---------------------------- */
+  --dku-core-black:  #1A1A1A;   /* rgb(26,26,26)  · PMS Black 6 C   */
+  --dku-core-white:  #FFFEF9;   /* rgb(255,254,249) · PMS 1-1 C     */
+  --dku-dark-green:  #06312E;   /* rgb(6,49,46)   · PMS 627 C       */
+  --dku-beige:       #F8F4E4;   /* rgb(248,244,228) · PMS 1-2 C     */
+
+  /* ---- DERIVED NEUTRALS (oklch-harmonized from core black/white) ------- */
+  /* For UI surfaces, borders and secondary text. Not in the brand deck —   */
+  /* harmonized to sit between Core Black and Core White.                    */
+  --dku-ink-900: #1A1A1A;
+  --dku-ink-700: #3D3D3A;
+  --dku-ink-500: #6B6B65;
+  --dku-ink-300: #A8A89F;
+  --dku-ink-150: #D8D6CC;
+  --dku-ink-80:  #ECEAE0;
+  --dku-ink-40:  #F3F1E7;
+
+  /* ---- GREEN FAMILY (harmonized from Dark Green) ----------------------- */
+  --dku-green-900: #06312E;   /* Core Dark Green */
+  --dku-green-700: #0C4A45;
+  --dku-green-500: #16695F;
+  --dku-green-300: #4E938A;   /* tints for charts / accents */
+  --dku-green-tint: #E3EBE7;  /* faint green wash on cream */
+
+  /* ---- SEMANTIC SURFACES ----------------------------------------------- */
+  --dku-bg:            var(--dku-core-white);  /* default page bg (warm)   */
+  --dku-bg-cream:      var(--dku-beige);       /* alternate warm section   */
+  --dku-bg-dark:       var(--dku-dark-green);  /* dark/hero sections       */
+  --dku-surface:       #FFFFFF;                /* cards on cream           */
+  --dku-border:        var(--dku-ink-150);
+  --dku-border-strong: var(--dku-ink-300);
+
+  /* ---- SEMANTIC TEXT --------------------------------------------------- */
+  --dku-fg1: var(--dku-core-black);   /* primary text            */
+  --dku-fg2: var(--dku-ink-500);      /* secondary / muted text  */
+  --dku-fg3: var(--dku-ink-300);      /* tertiary / placeholders */
+  --dku-fg-on-dark:   var(--dku-core-white);
+  --dku-fg2-on-dark:  #B7C6C0;        /* muted text on dark green */
+  --dku-link: var(--dku-green-700);
+
+  /* ---- STATUS (functional, harmonized to warm palette) ----------------- */
+  --dku-success: #2E7D52;
+  --dku-warning: #C9821F;
+  --dku-danger:  #B43A2E;
+  --dku-info:    var(--dku-green-500);
+
+  /* ---- TYPE FAMILIES --------------------------------------------------- */
+  --dku-font-display: 'Signifier', Georgia, 'Times New Roman', serif;
+  --dku-font-sans:    'Roboto', 'Untitled Sans', -apple-system, Helvetica, Arial, sans-serif;
+  --dku-font-mono:    'Roboto Mono', 'Söhne Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* ---- TYPE SCALE (semantic) ------------------------------------------- */
+  /* Display & headings use Signifier (self-hosted). Upright Light=300.      */
+  --dku-display:  300 clamp(48px, 6vw, 92px)/1.02 var(--dku-font-display);
+  --dku-h1:       300 clamp(40px, 4.4vw, 64px)/1.06 var(--dku-font-display);
+  --dku-h2:       300 clamp(30px, 3vw, 44px)/1.1   var(--dku-font-display);
+  --dku-h3:       500 24px/1.25 var(--dku-font-sans);
+  --dku-h4:       500 19px/1.3  var(--dku-font-sans);
+  --dku-body-lg:  400 19px/1.55 var(--dku-font-sans);
+  --dku-body:     400 16px/1.6  var(--dku-font-sans);
+  --dku-body-sm:  400 14px/1.55 var(--dku-font-sans);
+  --dku-caption:  400 13px/1.4  var(--dku-font-sans);
+  --dku-overline: 500 12px/1.2  var(--dku-font-mono);  /* tags, eyebrows */
+  --dku-mono:     400 14px/1.5  var(--dku-font-mono);
+
+  /* letter-spacing helpers */
+  --dku-tracking-tight:  -0.02em;   /* serif display */
+  --dku-tracking-normal: 0;
+  --dku-tracking-wide:   0.08em;    /* mono overlines, all-caps tags */
+
+  /* ---- RADII ----------------------------------------------------------- */
+  --dku-radius-sm:  4px;
+  --dku-radius-md:  8px;
+  --dku-radius-lg:  16px;
+  --dku-radius-xl:  24px;
+  --dku-radius-pill: 999px;
+
+  /* ---- SHADOWS / ELEVATION (soft, warm-tinted, low-contrast) ----------- */
+  --dku-shadow-sm: 0 1px 2px rgba(26,26,26,0.06);
+  --dku-shadow-md: 0 4px 16px rgba(26,26,26,0.08);
+  --dku-shadow-lg: 0 12px 40px rgba(6,49,46,0.12);
+
+  /* ---- SPACING (8px base) ---------------------------------------------- */
+  --dku-space-1: 4px;
+  --dku-space-2: 8px;
+  --dku-space-3: 12px;
+  --dku-space-4: 16px;
+  --dku-space-5: 24px;
+  --dku-space-6: 32px;
+  --dku-space-7: 48px;
+  --dku-space-8: 64px;
+  --dku-space-9: 96px;
+  --dku-space-10: 128px;
+
+  /* ---- MOTION ---------------------------------------------------------- */
+  --dku-ease: cubic-bezier(0.22, 0.61, 0.36, 1);   /* gentle ease-out */
+  --dku-dur-fast: 140ms;
+  --dku-dur:      220ms;
+  --dku-dur-slow: 420ms;
+}
+
+/* ----------------------------------------------------------------------------
+   OPTIONAL BASE ELEMENT STYLES — apply by adding class="dku" to a container.
+   Kept namespaced so this file is safe to drop into any page.
+   -------------------------------------------------------------------------- */
+.dku {
+  font: var(--dku-body);
+  color: var(--dku-fg1);
+  background: var(--dku-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.dku h1 { font: var(--dku-h1); letter-spacing: var(--dku-tracking-tight); margin: 0 0 .4em; }
+.dku h2 { font: var(--dku-h2); letter-spacing: var(--dku-tracking-tight); margin: 0 0 .4em; }
+.dku h3 { font: var(--dku-h3); margin: 0 0 .4em; }
+.dku h4 { font: var(--dku-h4); margin: 0 0 .4em; }
+.dku p  { margin: 0 0 1em; max-width: 68ch; text-wrap: pretty; }
+.dku a  { color: var(--dku-link); text-underline-offset: 2px; }
+.dku code, .dku kbd { font: var(--dku-mono); }
+.dku .overline {
+  font: var(--dku-overline);
+  letter-spacing: var(--dku-tracking-wide);
+  text-transform: uppercase;
+  color: var(--dku-fg2);
+}
+.dku .display { font: var(--dku-display); letter-spacing: var(--dku-tracking-tight); }

@@ -4,58 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kiji Inspector · One word, a different tool</title>
-  <style>
-    :root { color-scheme: light; --ink:#172c38; --muted:#536773; --paper:#f5f4ef; --line:#d9dfdb; --a:#167a75; --b:#b85331; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 system-ui,sans-serif; }
-    header { background:var(--ink); color:white; padding:18px max(24px,calc((100vw - 1160px)/2)); display:flex; justify-content:space-between; align-items:center; gap:16px; }
-    header strong { letter-spacing:.13em; font-size:13px; } header span { font-size:12px; color:#b7d4d3; }
-    main { max-width:1208px; margin:auto; padding:44px 24px 64px; }
-    .eyebrow { font:12px ui-monospace,monospace; text-transform:uppercase; letter-spacing:.1em; color:var(--a); }
-    h1 { max-width:840px; font-size:clamp(32px,5vw,54px); line-height:1.08; letter-spacing:-.045em; margin:12px 0 18px; }
-    h2 { font-size:23px; letter-spacing:-.025em; margin:0 0 8px; } h3 { font-size:16px; margin:0 0 8px; }
-    p { margin:8px 0 18px; } .intro { max-width:780px; color:var(--muted); font-size:18px; }
-    .flow { display:flex; flex-wrap:wrap; gap:9px; color:var(--muted); font-size:12px; margin:24px 0 32px; }
-    .flow span { padding:5px 10px; border:1px solid var(--line); border-radius:5px; }
-    .flow i { align-self:center; font-style:normal; }
-    .panel { border:1px solid var(--line); border-radius:12px; background:#fff; padding:24px; margin-bottom:24px; }
-    .toolbar { display:flex; justify-content:space-between; gap:20px; align-items:end; flex-wrap:wrap; }
-    label { display:block; font-size:12px; font-weight:650; letter-spacing:.02em; margin-bottom:7px; }
-    select,textarea,button { font:inherit; } select { max-width:100%; padding:9px 30px 9px 10px; background:white; border:1px solid var(--line); border-radius:5px; color:var(--ink); }
-    button { border:1px solid var(--ink); border-radius:6px; padding:11px 18px; cursor:pointer; font-weight:650; color:white; background:var(--ink); }
-    button.secondary { background:white; color:var(--ink); } button:disabled { opacity:.45; cursor:default; }
-    button:hover:not(:disabled) { background:#315367; color:white; }
-    :focus-visible { outline:3px solid #d38c34; outline-offset:3px; }
-    .pair { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:24px; }
-    .side { border-top:3px solid var(--a); padding-top:14px; } .side.b { border-color:var(--b); }
-    .side-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-    .badge { display:inline-block; font:600 12px ui-monospace,monospace; padding:3px 7px; border-radius:4px; color:var(--a); background:#e7f3f1; }
-    .b .badge,.badge.b { color:var(--b); background:#fff0e9; }
-    textarea { width:100%; min-height:114px; padding:13px; resize:vertical; line-height:1.6; background:#fbfcfa; border:1px solid var(--line); border-radius:7px; color:var(--ink); }
-    .small { font-size:13px; color:var(--muted); } .hint { margin:16px 0 0; }
-    .action { margin-top:20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
-    #status { font-size:13px; color:var(--muted); } #status.error { color:#a52c29; }
-    #empty { padding:44px; text-align:center; color:var(--muted); border:1px dashed #bac7c4; border-radius:12px; margin-bottom:24px; }
-    .result-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .outcome { font-size:14px; padding:5px 10px; border-radius:5px; background:#eef3f3; }
-    .tool { font-size:clamp(19px,3vw,25px); letter-spacing:-.02em; margin:6px 0; overflow-wrap:anywhere; }
-    .continuation { background:#f5f7f5; padding:12px; border-radius:5px; white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.6 ui-monospace,monospace; }
-    .feature { border-top:1px solid #e5eae6; padding:12px 0; }
-    .feature-title { display:flex; justify-content:space-between; gap:16px; font-size:14px; }
-    .feature-title strong { font-weight:600; } .number { font:12px ui-monospace,monospace; white-space:nowrap; }
-    .meter { display:grid; grid-template-columns:15px 1fr 55px; align-items:center; gap:8px; margin-top:5px; font:11px ui-monospace,monospace; }
-    .track { height:6px; background:#eef1ed; border-radius:4px; overflow:hidden; } .fill { height:100%; background:var(--a); } .meter.b .fill { background:var(--b); }
-    .feature-id { font:11px ui-monospace,monospace; color:var(--muted); } details { margin-top:14px; } summary { cursor:pointer; font-size:13px; }
-    pre { max-height:270px; overflow:auto; padding:14px; background:#f5f7f5; font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; }
-    .notes { display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:28px; }
-    .notes p { font-size:13px; color:var(--muted); } a { color:var(--a); }
-    .tools { display:flex; flex-wrap:wrap; gap:6px; } .tools span { border:1px solid var(--line); padding:3px 7px; border-radius:4px; font:11px ui-monospace,monospace; }
-    [hidden] { display:none!important; }
-    @media(max-width:700px) { main { padding:28px 16px; } .panel { padding:18px; } .pair,.notes { grid-template-columns:1fr; } header { padding:16px; } header span { max-width:150px; text-align:right; } .side-title { flex-wrap:wrap; } }
-  </style>
+  <link rel="stylesheet" href="/demo/assets/design-system/colors_and_type.css">
+  <link rel="stylesheet" href="/demo/assets/demo.css">
 </head>
 <body>
-  <header><strong>KIJI INSPECTOR</strong><span>Nutanix · Kubernetes demo</span></header>
+  <header class="brand-header">
+    <div class="brand-identity">
+      <img class="brand-lockup" src="/demo/assets/logos/dataiku-lockup-black.png" alt="Dataiku" width="140" height="30">
+      <div class="brand-product"><strong>Kiji Inspector</strong><span>Nutanix · Kubernetes demo</span></div>
+    </div>
+    <span class="header-tag">Live model inspection</span>
+  </header>
   <main>
     <div class="eyebrow">Supply-chain routing / live model inspection</div>
     <h1>One word.<br>A different tool?</h1>
@@ -97,6 +56,11 @@
       <div><h3>Built from the steering demos</h3><p>These four prompt pairs and their controls come from the supply-chain demo on <code>steering-demos</code>. They use the shipped layer-43 SAE. Historical probabilities and intervention results are not reused; a new run may behave differently.</p><a id="source" target="_blank" rel="noreferrer">View the frozen source</a><p class="small" id="provenance"></p></div>
     </div>
   </main>
+  <footer class="brand-footer">
+    <img src="/demo/assets/logos/dataiku-logomark-white.svg" alt="Dataiku logomark" width="36" height="37">
+    <div><span class="eyebrow">Kiji Inspector</span><p>Make model behavior visible.</p></div>
+    <span class="footer-detail">Supply-chain interpretation · Layer 43</span>
+  </footer>
   <script>
     const $ = id => document.getElementById(id);
     let config, lastRun, busy = false;

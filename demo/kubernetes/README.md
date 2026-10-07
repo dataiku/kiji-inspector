@@ -13,8 +13,9 @@ Nemotron 3.5 Lightning SAE downloaded by the sidecar.
 
 ## Deploy and open
 
-Build the updated sidecar from the repository root. The HTML and frozen demo
-inputs are packaged inside the image; no volume mounts or extra services are
+Build the updated sidecar from the repository root. The HTML, Dataiku logos,
+local Signifier/Roboto fonts, and frozen demo inputs are packaged inside the
+image; no volume mounts or extra services are
 needed. Replace `YOUR_REGISTRY` with a registry your cluster can pull from:
 
 ```bash
