@@ -129,6 +129,102 @@ To run the pipeline against a Qwen3.6 subject model (a reasoning model), pass `-
 python -m kiji_inspector.pipeline --subject-model Qwen/Qwen3.6-35B-A3B --no-thinking
 ```
 
+### Serving on Kubernetes
+
+[`deploy/vllm.yml`](deploy/vllm.yml) runs the published
+`575lab/kiji-inspector:dev` image as a vLLM OpenAI-compatible server, with a
+Deployment and a ClusterIP Service on port 8000. It has no volume mounts or
+persistent storage: model downloads use the container's writable layer and
+must be downloaded again when the container is replaced. Ensure the node has
+enough ephemeral disk space for the BF16 weights. The container uses its
+runtime's default `/dev/shm` capacity. It explicitly starts `vllm serve`
+because this image has no API-server entrypoint. Health probes follow the
+[vLLM Kubernetes deployment guidance](https://docs.vllm.ai/en/v0.19.0/deployment/k8s/).
+
+The example serves `nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16` in BF16
+with a 4096-token context, up to 16 concurrent sequences, and one 80 GB
+A100/H100 GPU. The [requested Nano ID](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16)
+currently redirects to NVIDIA's Lightning checkpoint; its model card lists
+80 GB A100/H100 single-GPU deployment. Host RAM is requested at 64 GiB and
+limited to 128 GiB. GPU count alone does not enforce VRAM capacity: add your
+cluster's GPU-type node label to `nodeSelector`. The cluster needs NVIDIA drivers and a
+device plugin exposing `nvidia.com/gpu` and a compatible CUDA 12.9 driver. Adjust the model,
+resources, GPU-node tolerations, and optional `runtimeClassName` for your
+cluster. For multiple GPUs, update both GPU resource counts and
+`--tensor-parallel-size`. For reproducible deployments, replace the mutable
+`:dev` tag with a published image digest.
+
+```bash
+kubectl apply -f deploy/vllm.yml
+kubectl rollout status deployment/kiji-vllm --timeout=30m
+kubectl logs -f deployment/kiji-vllm
+
+# In another terminal, access the API locally:
+kubectl port-forward service/kiji-vllm 8000:8000
+```
+
+```bash
+curl http://localhost:8000/v1/models
+curl http://localhost:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"nvidia/NVIDIA-Nemotron-3.5-Nano-30B-A3B-BF16","messages":[{"role":"user","content":"Hello!"}],"max_tokens":1,"stream":false,"n":1,"chat_template_kwargs":{"enable_thinking":false},"kv_transfer_params":{"return_inline":true,"include_output_tokens":false}}' \
+  -o hidden-states-response.json
+```
+
+For gated/private models, create a Secret named `hf-token` with a `token` key
+in the same namespace; its reference is optional for the public default model.
+The Service exposes an unauthenticated API inside the cluster. Configure API
+authentication and TLS before exposing it externally.
+
+The manifest also enables residual-stream capture for the six trained demo
+layers: **6, 13, 20, 27, 34, 43**. `--speculative-config` selects these through
+`draft_model_config.hf_config.eagle_aux_hidden_state_layer_ids` with
+`method="extract_hidden_states"`; `--kv-transfer-config` installs the
+`ExampleHiddenStatesConnector`. For a smaller capture focused on the
+tool-selection demo, change the layer list to `[43]`. These are the current
+fork's native layer IDs; the legacy `--extract-activation-layers` flag in
+`patches/` belongs to the older patched-wheel workflow.
+
+To receive tensors **through HTTP**, each request must include the top-level
+`"kv_transfer_params":{"return_inline":true,"include_output_tokens":false}`
+field, as in the curl example above. This works with `/v1/chat/completions`
+and `/v1/completions` in the pinned fork's Python server. Use one prompt,
+`n=1`, `stream=false`, no beam search, and no built-in tool execution.
+The manifest disables chunked prefill as required by the extraction path.
+See the pinned fork's [inline-return guide](https://github.com/Davidnet/vllm/blob/b6455d43be849d4850bed6ecfb834489ba9f0a08/docs/features/speculative_decoding/extract_hidden_states.md#inline-return).
+
+The response's top-level `kv_transfer_params` contains `hidden_states_inline`,
+`hidden_states`, and `token_ids`. Each tensor is encoded as a JSON object with
+`dtype`, `shape`, and base64 `data`. Decode it in Python with PyTorch:
+
+```python
+import base64
+import json
+import torch
+
+def decode_tensor(value):
+    raw = bytearray(base64.b64decode(value["data"]))
+    return torch.frombuffer(raw, dtype=getattr(torch, value["dtype"])).reshape(value["shape"])
+
+with open("hidden-states-response.json") as f:
+    response = json.load(f)
+params = response["kv_transfer_params"]
+assert params["hidden_states_inline"]
+hidden_states = decode_tensor(params["hidden_states"])
+token_ids = decode_tensor(params["token_ids"])
+layers = [6, 13, 20, 27, 34, 43]  # Must match the server configuration.
+residuals = {f"residual_{layer}": hidden_states[:, i, :] for i, layer in enumerate(layers)}
+print(hidden_states.shape)  # [prompt_tokens, layers, hidden_size]
+```
+
+Inline requests skip file writes and require no shared volume. Requests that
+omit `return_inline` fall back to safetensors under `/tmp/kiji-hidden-states`
+inside the container; those files need cleanup after reading. The current
+`VLLMActivationExtractor` still uses an in-process `LLM`, so the pipeline is
+not automatically redirected to this HTTP API. To reproduce demo decision-token
+measurements, use the same formatted prompt and token position as the demo;
+an arbitrary chat prompt's final token need not be its tool-decision token.
+
 ### Using a locally downloaded model
 
 `--subject-model` also accepts a local model directory (paths must start with
