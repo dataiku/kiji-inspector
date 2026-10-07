@@ -28,6 +28,23 @@ class DescribeBySampleResponseRequest(BaseModel):
 DescribeRequest: TypeAlias = DescribeByActivationRequest | DescribeBySampleResponseRequest
 
 
+class DescribeInlineRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    response: dict[str, Any] = Field(description="Full vLLM inline HTTP response.")
+    token_index: int = Field(default=-1, description="Prompt token position; -1 selects the last.")
+    top_k: int = Field(default=10, ge=1, le=200)
+
+
+class InterpretRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request: dict[str, Any] = Field(description="vLLM completion or chat request body.")
+    route: str = Field(default="chat", pattern="^(chat|completion)$")
+    token_index: int = -1
+    top_k: int = Field(default=10, ge=1, le=200)
+
+
 class FeatureDescription(BaseModel):
     model_config = ConfigDict(extra="allow")
 

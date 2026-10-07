@@ -133,7 +133,9 @@ python -m kiji_inspector.pipeline --subject-model Qwen/Qwen3.6-35B-A3B --no-thin
 
 [`deploy/vllm.yml`](deploy/vllm.yml) runs the published
 `575lab/kiji-inspector:dev` image as a vLLM OpenAI-compatible server, with a
-Deployment and a ClusterIP Service on port 8000. It has no volume mounts or
+Deployment and a ClusterIP Service on ports 8000 (vLLM) and 8001 (SAE sidecar).
+Build the sidecar image as described below before applying the manifest.
+It has no volume mounts or
 persistent storage: model downloads use the container's writable layer and
 must be downloaded again when the container is replaced. Ensure the node has
 enough ephemeral disk space for the BF16 weights. The container uses its
@@ -157,7 +159,7 @@ cluster. For multiple GPUs, update both GPU resource counts and
 ```bash
 kubectl apply -f deploy/vllm.yml
 kubectl rollout status deployment/kiji-vllm --timeout=30m
-kubectl logs -f deployment/kiji-vllm
+kubectl logs -f deployment/kiji-vllm -c vllm
 
 # In another terminal, access the API locally:
 kubectl port-forward service/kiji-vllm 8000:8000
@@ -224,6 +226,61 @@ inside the container; those files need cleanup after reading. The current
 not automatically redirected to this HTTP API. To reproduce demo decision-token
 measurements, use the same formatted prompt and token position as the demo;
 an arbitrary chat prompt's final token need not be its tool-decision token.
+
+#### SAE sidecar
+
+The `sae` container downloads layer **43** and its feature descriptions from
+`575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16` at startup.
+It runs on CPU, applies the checkpoint's mean-centering and RMS normalization,
+then encodes the selected residual vector and returns its top active features.
+Its cache is temporary and it requests no GPU or volume mounts. `/healthz`
+becomes available after the SAE has loaded.
+
+The existing published image does not include the HTTP SAE application. Build
+the supplied derivative from the repository root, push it to your registry,
+and replace `image: kiji-inspector-sae:dev` in the manifest with that reference:
+
+```bash
+docker build --platform linux/amd64 -f sae-inference-server/Dockerfile \
+  -t YOUR_REGISTRY/kiji-inspector-sae:dev .
+docker push YOUR_REGISTRY/kiji-inspector-sae:dev
+# After updating the sidecar image reference:
+kubectl apply -f deploy/vllm.yml
+kubectl rollout status deployment/kiji-vllm --timeout=30m
+kubectl logs -f deployment/kiji-vllm -c sae
+kubectl port-forward service/kiji-vllm 8001:8001
+```
+
+Send a request to the sidecar to call vLLM through the pod's localhost interface
+and interpret the returned inline activations in one operation:
+
+```bash
+curl --fail-with-body http://localhost:8001/interpret \
+  -H 'Content-Type: application/json' \
+  -d '{"request":{"messages":[{"role":"user","content":"Check our inventory levels."}],"chat_template_kwargs":{"enable_thinking":false}},"token_index":-1,"top_k":10}'
+```
+
+The result contains `completion` (the vLLM answer, without the large tensor
+payload) and `interpretation` (layer, token index, top features, and total active
+feature count). `token_index=-1` selects the last prompt token; interpreting a
+specific tool-decision token requires the same prompt formatting as the demo.
+For an already formatted demo prompt, use `"route":"completion"` and
+`"request":{"prompt":"..."}` to call `/v1/completions` without chat templating.
+`/interpret` enables inline prompt-state return automatically. Calls made
+directly to port 8000 are not automatically intercepted by the sidecar.
+
+To interpret an existing vLLM response instead:
+
+```bash
+jq '{response: ., token_index: -1, top_k: 10}' hidden-states-response.json \
+  | curl --fail-with-body http://localhost:8001/describe/inline \
+      -H 'Content-Type: application/json' --data-binary @-
+```
+
+`SAE_LAYER` can select another checkpoint, such as **34** for the customer-support
+steering demo. Keep `VLLM_CAPTURE_LAYERS` identical to the vLLM layer list and
+order; the tensor response itself does not label its layer axis. Changing that
+order in only one container would interpret the wrong residual stream.
 
 ### Using a locally downloaded model
 

@@ -5,10 +5,15 @@ from typing import Optional
 
 import torch
 
+from app.config import (
+    SAE_BASE_MODEL,
+    SAE_CHECKPOINT_PATH,
+    SAE_DEVICE,
+    SAE_LAYER,
+    SAE_REPO_ID,
+)
 from kiji_inspector import SAE
 from kiji_inspector.core.sae_core import JumpReLUSAE
-
-from app.config import SAE_BASE_MODEL, SAE_CHECKPOINT_PATH, SAE_DEVICE, SAE_LAYER, SAE_REPO_ID
 
 
 class SAEEngine:
@@ -28,8 +33,25 @@ class SAEEngine:
         return None
 
     def describe(self, activation: list[float], top_k: int) -> dict:
-        x = torch.tensor(activation, dtype=torch.float32)
-        results = self.sae.describe(x, self.feature_descriptions, top_k=top_k)
+        parameter = next(self.sae.parameters())
+        x = torch.tensor(activation, dtype=torch.float32, device=parameter.device)
+        if x.ndim != 1 or x.numel() != self.sae.d_model:
+            raise ValueError(f"Expected one activation vector of size {self.sae.d_model}")
+        if not torch.isfinite(x).all():
+            raise ValueError("Activation values must be finite")
+        with torch.inference_mode():
+            x = self.sae.normalize_input(x).to(dtype=parameter.dtype)
+            encoded = self.sae.encode(x.unsqueeze(0)).squeeze(0)
+            values, indices = torch.topk(encoded, min(top_k, encoded.numel()))
+            results = [
+                (
+                    index.item(),
+                    self.sae._lookup_feature_description(self.feature_descriptions, index.item()),
+                    value.item(),
+                )
+                for value, index in zip(values, indices, strict=True)
+                if value.item() > 0
+            ]
         top_features = [
             {
                 "feature_id": str(feature_id),
@@ -40,7 +62,7 @@ class SAEEngine:
         ]
         return {
             "top_features": top_features,
-            "num_active_features": len(top_features),
+            "num_active_features": int((encoded > 0).sum().item()),
         }
 
 

@@ -47,3 +47,29 @@ This project provides a FastAPI server for generating descriptions of features f
     ```
 
 The server will be available at `http://localhost:8000`.
+
+## Kubernetes sidecar and inline activations
+
+The [deployment guide](../README.md#sae-sidecar) includes image build steps and
+examples for the sidecar on port **8001**. Build `Dockerfile` from the repository
+root; it includes this app on top of `575lab/kiji-inspector:dev`.
+
+- `POST /describe/inline`: accepts `{"response": <vLLM HTTP response>,
+  "token_index": -1, "top_k": 10}`. Decodes the base64 tensor, selects the
+  configured SAE layer and token, normalizes, and encodes it.
+- `POST /interpret`: accepts `{"request": <vLLM request body>, "route": "chat",
+  "token_index": -1, "top_k": 10}`. Calls vLLM with inline capture enabled and
+  returns the completion plus SAE interpretation. `route="completion"` uses
+  `/v1/completions` for preformatted prompts.
+- `GET /healthz`: available once the startup checkpoint download/load finishes.
+
+Set `SAE_REPO_ID`, `SAE_LAYER`, and `SAE_DEVICE=cpu` to choose the SAE.
+`VLLM_URL` defaults to `http://127.0.0.1:8000`; `VLLM_MODEL` selects the served
+model name. `VLLM_CAPTURE_LAYERS` is a comma-separated list whose order must
+match the vLLM capture configuration. The deployment sets layer 43 from the
+Nemotron 3.5 Lightning SAE repository.
+
+All describe endpoints accept **raw residual vectors** and apply training
+normalization before encoding. `num_active_features` counts all positive SAE
+features, even when `top_k` truncates the returned list. These are observational
+feature readouts; the sidecar does not modify vLLM's generation.
