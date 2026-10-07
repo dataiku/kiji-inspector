@@ -32,7 +32,8 @@ class SAEEngine:
             return {"label": desc, "description": desc}
         return None
 
-    def describe(self, activation: list[float], top_k: int) -> dict:
+    def encode_activation(self, activation: list[float]) -> torch.Tensor:
+        """Encode a raw residual using the checkpoint's training normalization."""
         parameter = next(self.sae.parameters())
         x = torch.tensor(activation, dtype=torch.float32, device=parameter.device)
         if x.ndim != 1 or x.numel() != self.sae.d_model:
@@ -41,7 +42,13 @@ class SAEEngine:
             raise ValueError("Activation values must be finite")
         with torch.inference_mode():
             x = self.sae.normalize_input(x).to(dtype=parameter.dtype)
-            encoded = self.sae.encode(x.unsqueeze(0)).squeeze(0)
+            return self.sae.encode(x.unsqueeze(0)).squeeze(0)
+
+    def describe(self, activation: list[float], top_k: int) -> dict:
+        return self.describe_features(self.encode_activation(activation), top_k)
+
+    def describe_features(self, encoded: torch.Tensor, top_k: int) -> dict:
+        with torch.inference_mode():
             values, indices = torch.topk(encoded, min(top_k, encoded.numel()))
             results = [
                 (

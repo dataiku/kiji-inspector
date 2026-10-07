@@ -229,6 +229,13 @@ an arbitrary chat prompt's final token need not be its tool-decision token.
 
 #### SAE sidecar
 
+For an interactive demo adapted from `steering-demos`, open
+**`http://localhost:8001/demo`** after deploying the updated sidecar and
+forwarding port 8001. It compares supply-chain prompt pairs, offers paraphrase
+and keyword controls, and displays live tool choices and layer-43 feature
+changes. See the [Kubernetes demo walkthrough](demo/kubernetes/README.md) for
+build/deploy steps and a five-minute presentation script.
+
 The `sae` container downloads layer **43** and its feature descriptions from
 `575-lab/kiji-inspector-NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16` at startup.
 It runs on CPU, applies the checkpoint's mean-centering and RMS normalization,

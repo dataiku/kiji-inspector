@@ -1,0 +1,129 @@
+{
+  "source": {
+    "meta": "demo/steering/sweep/output/sweep_candidates/supply_chain/meta.json",
+    "sweep": "demo/steering/sweep/output/sweep_candidates/supply_chain/sweep.jsonl",
+    "pairsScored": 377626,
+    "pairsFlipping": 145604
+  },
+  "rule": {
+    "flip": "min(p_A, p_B) if top tools differ else 0",
+    "score": "flip * jaccard(content words A, content words B)",
+    "minFlip": 0.6
+  },
+  "pairs": [
+    {
+      "id": "demand_pull_vs_supply_push",
+      "title": "Demand pull vs supply push",
+      "cue": "... vs forecasted",
+      "signal": "actual frequency (pull) vs forecasted frequency (push)",
+      "score": 0.6982,
+      "flip": 0.7979,
+      "jaccard": 0.875,
+      "a": {
+        "request": "Adjust inventory for items with rising customer order frequency",
+        "cueWords": [],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.9819
+        }
+      },
+      "b": {
+        "request": "Adjust inventory for items with rising forecasted customer order frequency",
+        "cueWords": [
+          "forecasted"
+        ],
+        "sweep": {
+          "tool": "demand_forecaster",
+          "prob": 0.7979
+        }
+      }
+    },
+    {
+      "id": "local_vs_global_sourcing",
+      "title": "Local vs global sourcing",
+      "cue": "local vs global",
+      "signal": "local vs global sourcing preference",
+      "score": 0.6522,
+      "flip": 0.7971,
+      "jaccard": 0.8182,
+      "a": {
+        "request": "Track delivery performance of our local supplier for electronic components over last quarter",
+        "cueWords": [
+          "local"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.9525
+        }
+      },
+      "b": {
+        "request": "Track delivery performance of our global supplier for electronic components over last quarter",
+        "cueWords": [
+          "global"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7971
+        }
+      }
+    },
+    {
+      "id": "cost_vs_speed_optimization",
+      "title": "Cost vs speed optimization",
+      "cue": "economical vs express",
+      "signal": "cost vs speed optimization",
+      "score": 0.6174,
+      "flip": 0.7938,
+      "jaccard": 0.7778,
+      "a": {
+        "request": "Deliver items for product launch event using economical shipping",
+        "cueWords": [
+          "economical"
+        ],
+        "sweep": {
+          "tool": "route_optimizer",
+          "prob": 0.8323
+        }
+      },
+      "b": {
+        "request": "Deliver items for product launch event using express shipping",
+        "cueWords": [
+          "express"
+        ],
+        "sweep": {
+          "tool": "shipment_tracker",
+          "prob": 0.7938
+        }
+      }
+    },
+    {
+      "id": "single_source_vs_multi_source",
+      "title": "Single source vs multi source",
+      "cue": "our main supplier vs all suppliers",
+      "signal": "single_source_vs_multi_source",
+      "score": 0.4986,
+      "flip": 0.7123,
+      "jaccard": 0.7,
+      "a": {
+        "request": "Calculate safety stock for seasonal promotions using data from our main supplier",
+        "cueWords": [
+          "our main supplier"
+        ],
+        "sweep": {
+          "tool": "supplier_database",
+          "prob": 0.7123
+        }
+      },
+      "b": {
+        "request": "Calculate safety stock for seasonal promotions using data from all suppliers",
+        "cueWords": [
+          "all suppliers"
+        ],
+        "sweep": {
+          "tool": "inventory_manager",
+          "prob": 0.8256
+        }
+      }
+    }
+  ]
+}

@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "sae-inference-server"))
 
-from app import main
+from app import demo, main
 from app.api import routes
 from app.dependencies import SAEEngine, get_engine
 from app.inline import extract_inline_activation
@@ -142,3 +142,88 @@ def test_raw_activation_validation_and_health(client):
     response = client.post("/describe", json={"activation": [5, 8], "top_k": 1})
     assert response.status_code == 200
     assert response.json()["top_features"][0]["activation"] == 3
+
+
+def test_demo_uses_frozen_prompts_without_historical_scores(client):
+    response = client.get("/demo/config")
+    assert response.status_code == 200
+    config = response.json()
+    assert len(config["pairs"]) == 4
+    assert len(config["provenance"]["commit"]) == 40
+    first = config["pairs"][0]
+    assert (
+        first["b"][0]["request"]
+        == "Adjust inventory for items with rising forecasted customer order frequency"
+    )
+    assert first["b"][-1]["label"] == "Keyword control"
+    assert "prob" not in json.dumps(config["pairs"])
+    assert client.get("/demo").status_code == 200
+
+
+def test_demo_preserves_decision_prompt_and_compares_full_codes(client, monkeypatch):
+    class Tokenizer:
+        chat_template = "enable_thinking"
+
+        def apply_chat_template(self, messages, **kwargs):
+            assert kwargs == {
+                "tokenize": False,
+                "add_generation_prompt": True,
+                "enable_thinking": False,
+            }
+            assert "Available tools:" in messages[0]["content"]
+            return messages[0]["content"] + "\n" + messages[1]["content"] + "\n<think>"
+
+    monkeypatch.setattr(demo, "SAE_LAYER", 43)
+    monkeypatch.setattr(demo, "get_tokenizer", lambda: Tokenizer())
+    captured = []
+
+    def complete(payload):
+        assert payload.route == "completion"
+        assert payload.request["add_special_tokens"] is False
+        prompt = payload.request["prompt"]
+        assert prompt.endswith("</think>\n\nI'll use the")
+        captured.append(prompt)
+        response = inline_response()
+        response["choices"] = [{"text": " inventory_manager"}]
+        if "forecasted" in prompt:
+            hidden = torch.zeros(2, 6, 2, dtype=torch.bfloat16)
+            hidden[-1, -1] = torch.tensor([15, 6])
+            response["kv_transfer_params"]["hidden_states"]["data"] = base64.b64encode(
+                hidden.view(torch.uint8).numpy().tobytes()
+            ).decode()
+            response["choices"] = [{"text": " demand_forecaster"}]
+        return response
+
+    monkeypatch.setattr(demo, "fetch_completion", complete)
+    result = client.post(
+        "/demo/compare", json={"a": "rising orders", "b": "forecasted orders", "top_k": 1}
+    )
+    assert result.status_code == 200
+    body = result.json()
+    assert len(captured) == 2
+    assert body["tool_changed"] is True
+    assert body["a"]["top_features"][0]["feature_id"] == "1"
+    # Feature 0 is below A's top-1, but the comparison must still use its true value.
+    assert body["feature_changes"][0] == {
+        "feature_id": "0",
+        "description": None,
+        "a": 2.0,
+        "b": 7.0,
+        "delta": 5.0,
+    }
+    assert "kv_transfer_params" not in body["a"]
+
+
+def test_demo_wrong_layer_unknown_tools_and_failure(client, monkeypatch):
+    monkeypatch.setattr(demo, "SAE_LAYER", 34)
+    assert client.post("/demo/compare", json={"a": "a", "b": "b"}).status_code == 409
+    assert demo.generated_tool(" demand forecaster tool") == "demand_forecaster"
+    assert demo.generated_tool("Maybe inventory_manager could help") is None
+    assert demo.generated_tool("inventory_managerial") is None
+    monkeypatch.setattr(demo, "SAE_LAYER", 43)
+
+    def fail():
+        raise OSError("download unavailable")
+
+    monkeypatch.setattr(demo, "get_tokenizer", fail)
+    assert client.post("/demo/compare", json={"a": "a", "b": "b"}).status_code == 503

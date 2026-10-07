@@ -74,6 +74,18 @@ def describe_inline(payload: DescribeInlineRequest, engine: SAEEngine = Depends(
 
 @router.post("/interpret")
 def interpret(payload: InterpretRequest, engine: SAEEngine = Depends(get_engine)):
+    response = fetch_completion(payload)
+    try:
+        interpretation = _describe_inline(response, payload.token_index, payload.top_k, engine)
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    # Avoid sending the full residual tensors back across the network again.
+    response.pop("kv_transfer_params", None)
+    return {"completion": response, "interpretation": interpretation}
+
+
+def fetch_completion(payload: InterpretRequest) -> dict:
+    """Request prompt activations and a completion from the co-located vLLM server."""
     body = dict(payload.request)
     if body.get("stream") or body.get("n", 1) != 1 or body.get("use_beam_search"):
         raise HTTPException(status_code=422, detail="Use stream=false, n=1, no beam search")
@@ -94,13 +106,7 @@ def interpret(payload: InterpretRequest, engine: SAEEngine = Depends(get_engine)
         raise HTTPException(status_code=502, detail=f"vLLM returned HTTP {exc.code}") from exc
     except (URLError, TimeoutError, ValueError) as exc:
         raise HTTPException(status_code=502, detail="vLLM request failed") from exc
-    try:
-        interpretation = _describe_inline(response, payload.token_index, payload.top_k, engine)
-    except ValueError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    # Avoid sending the full residual tensors back across the network again.
-    response.pop("kv_transfer_params", None)
-    return {"completion": response, "interpretation": interpretation}
+    return response
 
 
 @router.post("/describe", response_model=DescribeResponse)

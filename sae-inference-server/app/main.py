@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.routes import router
+from app.demo import router as demo_router
 from app.dependencies import get_engine
 
 
@@ -16,6 +17,7 @@ async def lifespan(app):
 def create_app() -> FastAPI:
     app = FastAPI(title="SAE Feature Description Server", lifespan=lifespan)
     app.include_router(router)
+    app.include_router(demo_router)
     return app
 
 

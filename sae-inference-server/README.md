@@ -50,6 +50,11 @@ The server will be available at `http://localhost:8000`.
 
 ## Kubernetes sidecar and inline activations
 
+`GET /demo` serves the live supply-chain comparison UI. Its frozen pairs and
+controls come from `steering-demos`; `POST /demo/compare` builds the matching
+decision prompts and compares layer-43 activations from two vLLM calls.
+See the [walkthrough](../demo/kubernetes/README.md) for setup and interpretation.
+
 The [deployment guide](../README.md#sae-sidecar) includes image build steps and
 examples for the sidecar on port **8001**. Build `Dockerfile` from the repository
 root; it includes this app on top of `575lab/kiji-inspector:dev`.

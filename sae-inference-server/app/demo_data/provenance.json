@@ -1,0 +1,11 @@
+{
+  "branch": "steering-demos",
+  "commit": "a11d4aea842f36af176ade58e6532086a0920974",
+  "scenario": "supply_chain",
+  "sae_layer": 43,
+  "files": {
+    "pairs.json": "demo/steering/supply_chain/pairs.json",
+    "probes.json": "demo/steering/supply_chain/probes.json",
+    "scenario.json": "scenarios/supply_chain.json"
+  }
+}

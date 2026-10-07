@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiji Inspector · One word, a different tool</title>
+  <style>
+    :root { color-scheme: light; --ink:#172c38; --muted:#536773; --paper:#f5f4ef; --line:#d9dfdb; --a:#167a75; --b:#b85331; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 system-ui,sans-serif; }
+    header { background:var(--ink); color:white; padding:18px max(24px,calc((100vw - 1160px)/2)); display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    header strong { letter-spacing:.13em; font-size:13px; } header span { font-size:12px; color:#b7d4d3; }
+    main { max-width:1208px; margin:auto; padding:44px 24px 64px; }
+    .eyebrow { font:12px ui-monospace,monospace; text-transform:uppercase; letter-spacing:.1em; color:var(--a); }
+    h1 { max-width:840px; font-size:clamp(32px,5vw,54px); line-height:1.08; letter-spacing:-.045em; margin:12px 0 18px; }
+    h2 { font-size:23px; letter-spacing:-.025em; margin:0 0 8px; } h3 { font-size:16px; margin:0 0 8px; }
+    p { margin:8px 0 18px; } .intro { max-width:780px; color:var(--muted); font-size:18px; }
+    .flow { display:flex; flex-wrap:wrap; gap:9px; color:var(--muted); font-size:12px; margin:24px 0 32px; }
+    .flow span { padding:5px 10px; border:1px solid var(--line); border-radius:5px; }
+    .flow i { align-self:center; font-style:normal; }
+    .panel { border:1px solid var(--line); border-radius:12px; background:#fff; padding:24px; margin-bottom:24px; }
+    .toolbar { display:flex; justify-content:space-between; gap:20px; align-items:end; flex-wrap:wrap; }
+    label { display:block; font-size:12px; font-weight:650; letter-spacing:.02em; margin-bottom:7px; }
+    select,textarea,button { font:inherit; } select { max-width:100%; padding:9px 30px 9px 10px; background:white; border:1px solid var(--line); border-radius:5px; color:var(--ink); }
+    button { border:1px solid var(--ink); border-radius:6px; padding:11px 18px; cursor:pointer; font-weight:650; color:white; background:var(--ink); }
+    button.secondary { background:white; color:var(--ink); } button:disabled { opacity:.45; cursor:default; }
+    button:hover:not(:disabled) { background:#315367; color:white; }
+    :focus-visible { outline:3px solid #d38c34; outline-offset:3px; }
+    .pair { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:24px; }
+    .side { border-top:3px solid var(--a); padding-top:14px; } .side.b { border-color:var(--b); }
+    .side-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .badge { display:inline-block; font:600 12px ui-monospace,monospace; padding:3px 7px; border-radius:4px; color:var(--a); background:#e7f3f1; }
+    .b .badge,.badge.b { color:var(--b); background:#fff0e9; }
+    textarea { width:100%; min-height:114px; padding:13px; resize:vertical; line-height:1.6; background:#fbfcfa; border:1px solid var(--line); border-radius:7px; color:var(--ink); }
+    .small { font-size:13px; color:var(--muted); } .hint { margin:16px 0 0; }
+    .action { margin-top:20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+    #status { font-size:13px; color:var(--muted); } #status.error { color:#a52c29; }
+    #empty { padding:44px; text-align:center; color:var(--muted); border:1px dashed #bac7c4; border-radius:12px; margin-bottom:24px; }
+    .result-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .outcome { font-size:14px; padding:5px 10px; border-radius:5px; background:#eef3f3; }
+    .tool { font-size:clamp(19px,3vw,25px); letter-spacing:-.02em; margin:6px 0; overflow-wrap:anywhere; }
+    .continuation { background:#f5f7f5; padding:12px; border-radius:5px; white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.6 ui-monospace,monospace; }
+    .feature { border-top:1px solid #e5eae6; padding:12px 0; }
+    .feature-title { display:flex; justify-content:space-between; gap:16px; font-size:14px; }
+    .feature-title strong { font-weight:600; } .number { font:12px ui-monospace,monospace; white-space:nowrap; }
+    .meter { display:grid; grid-template-columns:15px 1fr 55px; align-items:center; gap:8px; margin-top:5px; font:11px ui-monospace,monospace; }
+    .track { height:6px; background:#eef1ed; border-radius:4px; overflow:hidden; } .fill { height:100%; background:var(--a); } .meter.b .fill { background:var(--b); }
+    .feature-id { font:11px ui-monospace,monospace; color:var(--muted); } details { margin-top:14px; } summary { cursor:pointer; font-size:13px; }
+    pre { max-height:270px; overflow:auto; padding:14px; background:#f5f7f5; font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .notes { display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:28px; }
+    .notes p { font-size:13px; color:var(--muted); } a { color:var(--a); }
+    .tools { display:flex; flex-wrap:wrap; gap:6px; } .tools span { border:1px solid var(--line); padding:3px 7px; border-radius:4px; font:11px ui-monospace,monospace; }
+    [hidden] { display:none!important; }
+    @media(max-width:700px) { main { padding:28px 16px; } .panel { padding:18px; } .pair,.notes { grid-template-columns:1fr; } header { padding:16px; } header span { max-width:150px; text-align:right; } .side-title { flex-wrap:wrap; } }
+  </style>
+</head>
+<body>
+  <header><strong>KIJI INSPECTOR</strong><span>Nutanix · Kubernetes demo</span></header>
+  <main>
+    <div class="eyebrow">Supply-chain routing / live model inspection</div>
+    <h1>One word.<br>A different tool?</h1>
+    <p class="intro">Compare two requests at the moment an agent chooses its tool. See the generated choice and the sparse features that change inside Nemotron.</p>
+    <div class="flow"><span>Prompt pair</span><i>→</i><span>vLLM · decision-token residual</span><i>→</i><span>SAE · layer 43</span><i>→</i><span>Feature comparison</span></div>
+    <section class="panel" aria-label="Configure comparison">
+      <div class="toolbar">
+        <div><label for="pairSelect">CHOOSE A SCENARIO PAIR</label><select id="pairSelect" disabled></select></div>
+        <div class="small" id="modelLabel">Connecting to the SAE sidecar…</div>
+      </div>
+      <p class="small hint" id="signal"></p>
+      <div class="pair">
+        <div class="side"><div class="side-title"><label for="promptA"><span class="badge">A</span> Request A</label><select id="variantA" aria-label="Request A variant" disabled></select></div><textarea id="promptA" maxlength="4000" disabled></textarea></div>
+        <div class="side b"><div class="side-title"><label for="promptB"><span class="badge">B</span> Request B</label><select id="variantB" aria-label="Request B variant" disabled></select></div><textarea id="promptB" maxlength="4000" disabled></textarea></div>
+      </div>
+      <p class="small hint">Try a paraphrase to test meaning. A keyword control inserts the cue word into the <em>other</em> request’s meaning. You can also edit either prompt.</p>
+      <div class="action"><button id="run" disabled>Compare live</button><button id="download" class="secondary" disabled>Download run</button><span id="status" role="status" aria-live="polite">Loading demo configuration…</span></div>
+    </section>
+    <div id="empty">Choose a pair and run a comparison.<br><span class="small">Every result is computed by your deployment. No recorded scores are shown.</span></div>
+    <div id="results" hidden>
+      <section class="panel">
+        <div class="result-head"><h2>What the agent chose</h2><span id="outcome" class="outcome"></span></div>
+        <p class="small">Greedy text continuation after <code>I'll use the</code>. The tool is read from the generated text, independently of the SAE labels.</p>
+        <div class="pair" id="decisions"></div>
+      </section>
+      <section class="panel">
+        <h2>Which features changed?</h2>
+        <p class="small">Largest absolute changes across the full sparse code at the last prompt token. Δ = B − A. Activation strength is in SAE units.</p>
+        <div id="changes"></div>
+      </section>
+      <section class="panel">
+        <h2>Inside each request</h2>
+        <div class="pair" id="features"></div>
+        <details><summary>Inspect the exact formatted prompts and run metadata</summary><pre id="metadata"></pre></details>
+      </section>
+    </div>
+    <div class="notes">
+      <div><h3>What this shows</h3><p>This live comparison measures how input wording, generated tool choice, and SAE features vary together. It performs no activation ablation or steering. A feature label is a description, not proof that the feature caused the decision.</p><div class="tools" id="tools"></div></div>
+      <div><h3>Built from the steering demos</h3><p>These four prompt pairs and their controls come from the supply-chain demo on <code>steering-demos</code>. They use the shipped layer-43 SAE. Historical probabilities and intervention results are not reused; a new run may behave differently.</p><a id="source" target="_blank" rel="noreferrer">View the frozen source</a><p class="small" id="provenance"></p></div>
+    </div>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    let config, lastRun, busy = false;
+    const controls = ['pairSelect','variantA','variantB','promptA','promptB','run'];
+    function element(tag, className, text) { const e=document.createElement(tag); if(className)e.className=className; if(text!==undefined)e.textContent=text; return e; }
+    function status(message, error=false) { $('status').textContent=message; $('status').className=error?'error':''; }
+    function clearResults() { lastRun=null; $('download').disabled=true; $('results').hidden=true; $('empty').hidden=false; }
+    function currentPair() { return config.pairs[Number($('pairSelect').value)]; }
+    function selectPair() {
+      const pair=currentPair(); $('signal').textContent=pair.signal;
+      for(const side of ['A','B']) {
+        const select=$('variant'+side); select.replaceChildren();
+        pair[side.toLowerCase()].forEach((v,i)=>{const o=element('option','',v.label);o.value=i;select.append(o);});
+        $('prompt'+side).value=pair[side.toLowerCase()][0].request;
+      }
+      clearResults(); status('Ready. Compare both requests, then try the controls.');
+    }
+    function meter(side,value,max) {
+      const row=element('div','meter '+side.toLowerCase()); row.append(element('span','',side));
+      const track=element('div','track'), fill=element('div','fill'); fill.style.width=Math.min(100,100*value/max)+'%'; track.append(fill);
+      row.append(track,element('span','',value.toFixed(2))); return row;
+    }
+    function featureName(feature) { return feature.description?.label || feature.description?.description || 'Unlabeled feature'; }
+    function featureRow(feature,a,b,max,delta) {
+      const row=element('div','feature'), title=element('div','feature-title');
+      title.append(element('strong','',featureName(feature)));
+      if(delta!==undefined)title.append(element('span','number',(delta>0?'+':'')+delta.toFixed(2)));
+      row.append(title,element('span','feature-id','Feature '+feature.feature_id));
+      if(a!==null)row.append(meter('A',a,max)); if(b!==null)row.append(meter('B',b,max));
+      if(feature.description?.description)row.title=feature.description.description;
+      return row;
+    }
+    function render(result) {
+      $('decisions').replaceChildren(); $('features').replaceChildren(); $('changes').replaceChildren();
+      $('outcome').textContent=result.tool_changed===null?'Tool name not recognized':result.tool_changed?'The tool changed':'The tool stayed the same';
+      for(const side of ['a','b']) {
+        const data=result[side], card=element('div','side '+side);
+        card.append(element('span','badge',side.toUpperCase()),element('div','tool',data.tool||'No recognized tool name'),element('p','small',data.request),element('div','continuation',"I'll use the"+data.continuation));
+        $('decisions').append(card);
+        const features=element('div','side '+side);
+        features.append(element('h3','',side.toUpperCase()+' · '+data.num_active_features+' active features'));
+        const max=Math.max(1,...data.top_features.map(f=>f.activation));
+        for(const f of data.top_features)features.append(featureRow(f,side==='a'?f.activation:null,side==='b'?f.activation:null,max));
+        if(!data.top_features.length)features.append(element('p','small','No positive features at this token.'));
+        $('features').append(features);
+      }
+      for(const f of result.feature_changes)$('changes').append(featureRow(f,f.a,f.b,Math.max(1,f.a,f.b),f.delta));
+      if(!result.feature_changes.length)$('changes').append(element('p','small','No activation differences for these requests.'));
+      $('metadata').textContent=JSON.stringify({model:result.model,sae_repo:result.sae_repo,layer:result.layer,captured_at:result.captured_at,method:result.method,prompt_a:result.a.formatted_prompt,prompt_b:result.b.formatted_prompt,provenance:result.provenance},null,2);
+      $('results').hidden=false; $('empty').hidden=true;
+    }
+    async function compare() {
+      if(busy)return;
+      if(!$('promptA').value.trim()||!$('promptB').value.trim()){status('Enter both requests.',true);return;}
+      busy=true; clearResults(); controls.forEach(id=>$(id).disabled=true);
+      status('Running A and B on vLLM, then encoding their layer-43 residuals…'); $('run').textContent='Comparing…';
+      const start=performance.now();
+      try {
+        const response=await fetch('/demo/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({a:$('promptA').value,b:$('promptB').value,top_k:12})});
+        const result=await response.json(); if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:JSON.stringify(result.detail));
+        lastRun=result; render(result); $('download').disabled=false;
+        status('Live run complete · '+((performance.now()-start)/1000).toFixed(1)+' s · '+new Date(result.captured_at).toLocaleTimeString());
+      } catch(error) { status('Comparison failed: '+error.message+'. Check the vLLM and SAE container logs.',true); }
+      finally {busy=false;controls.forEach(id=>$(id).disabled=false);$('run').textContent='Compare live';}
+    }
+    $('run').addEventListener('click',compare); $('pairSelect').addEventListener('change',selectPair);
+    for(const side of ['A','B']) {
+      $('variant'+side).addEventListener('change',()=>{$('prompt'+side).value=currentPair()[side.toLowerCase()][Number($('variant'+side).value)].request;clearResults();status('Variant changed. Run a new comparison.');});
+      $('prompt'+side).addEventListener('input',()=>{clearResults();status('Prompt edited. Run a new comparison.');});
+    }
+    $('download').addEventListener('click',()=>{if(!lastRun)return;const url=URL.createObjectURL(new Blob([JSON.stringify(lastRun,null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download='kiji-supply-chain-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+    (async()=>{
+      try {
+        const response=await fetch('/demo/config');if(!response.ok)throw Error('HTTP '+response.status); config=await response.json();
+        config.pairs.forEach((p,i)=>{const o=element('option','',p.title);o.value=i;$('pairSelect').append(o);});
+        $('modelLabel').textContent='Nemotron 3.5 BF16 · SAE layer '+config.layer;
+        config.tools.forEach(t=>{const e=element('span','',t.name);e.title=t.description;$('tools').append(e);});
+        $('source').href='https://github.com/dataiku/kiji-inspector/blob/'+config.provenance.commit+'/demo/steering/supply_chain/README.md';
+        $('provenance').textContent='Source commit '+config.provenance.commit.slice(0,7)+' · '+config.sae_repo;
+        if(!config.compatible)throw Error('This demo requires the layer-43 SAE; update SAE_LAYER and restart the sidecar');
+        controls.forEach(id=>$(id).disabled=false);selectPair();
+      } catch(error) {status('Setup failed: '+error.message,true);}
+    })();
+  </script>
+</body>
+</html>

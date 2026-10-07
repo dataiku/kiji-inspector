@@ -1,0 +1,20 @@
+{
+  "name": "supply_chain",
+  "system_prompt": "You are a supply chain manager responsible for end-to-end logistics, procurement, and inventory optimization. Use the available tools to track shipments, forecast demand, manage suppliers, and optimize costs while maintaining service levels.",
+  "tools": [
+    {"name": "shipment_tracker", "description": "Track shipment status, location, ETA, and delivery history across carriers and modes"},
+    {"name": "demand_forecaster", "description": "Generate demand forecasts using historical data, seasonality, and market signals"},
+    {"name": "supplier_database", "description": "Look up supplier information, performance scorecards, certifications, and pricing"},
+    {"name": "route_optimizer", "description": "Optimize shipping routes, carrier selection, and mode choices for cost and speed"},
+    {"name": "inventory_manager", "description": "Check inventory levels, set reorder points, manage safety stock, and track turns"},
+    {"name": "procurement_system", "description": "Create purchase orders, manage contracts, run RFQs, and approve spend"}
+  ],
+  "contrast_types": {
+    "just_in_time_vs_safety_stock": "One request minimizes inventory through JIT delivery, the other builds buffer stock for resilience. Example: \"Set up daily deliveries to eliminate warehouse costs\" vs \"Increase safety stock to cover 30 days of demand\"",
+    "single_source_vs_multi_source": "One request relies on a single preferred supplier, the other diversifies across multiple suppliers. Example: \"Negotiate a volume discount with our primary supplier\" vs \"Qualify two backup suppliers for critical components\"",
+    "cost_vs_speed_optimization": "One request optimizes for lowest cost (slower modes, consolidation), the other for fastest delivery. Example: \"Ship via ocean freight to save costs\" vs \"Air freight these parts, production is waiting\"",
+    "local_vs_global_sourcing": "One request sources from local/regional suppliers, the other from international/global suppliers. Example: \"Find a domestic supplier for this material\" vs \"Source this from the cheapest global supplier\"",
+    "demand_pull_vs_supply_push": "One request responds to actual customer demand (pull), the other proactively pushes inventory based on forecasts. Example: \"Replenish only what customers ordered\" vs \"Pre-position inventory based on the holiday forecast\"",
+    "spot_buy_vs_contract": "One request makes a one-time spot purchase, the other negotiates a long-term contract. Example: \"Buy 500 units at the best available price today\" vs \"Negotiate a 12-month blanket PO with volume tiers\""
+  }
+}
